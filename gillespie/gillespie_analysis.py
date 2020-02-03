@@ -1,26 +1,19 @@
-import numpy as np
-#import matplotlib.pyplot as plt
-#import seaborn as sns
+import numpy as np; import csv; import os
+import matplotlib.pyplot as plt
+from gillespie_models import MultiLV, RESULTS_DIR
 
-"""
-def plot_pop(time_points ,pops, n_simulations):
-    # Set up subplots
-    fig, ax = plt.subplots(1, pops.shape[2], figsize=(14, 5))
+sim_dir = "multiLV0"
+dict_sim = {}
+# get parameters of simulation
+with open(os.getcwd() + os.sep + RESULTS_DIR + os.sep + sim_dir + os.sep + "params.csv", newline="") as paramfile:
+    reader = csv.reader(paramfile)
+    next(reader)
+    dict_sim = dict(reader)
 
-    # Plot state trajectories
-    for i in range(n_simulations):
-        ax.plot(time_points, pops[i,:,0], '-', lw=0.3, alpha=0.2, color=sns.color_palette()[0])
-    # Plot state mean
-    ax.plot(time_points, pops[:,:,0].mean(axis=0), '-', lw=6, color=sns.color_palette()[2])
-    # Label axes
-    ax.set_xlabel('dimensionless time')
-    ax.set_ylabel('probability of being found in state')
+# turn certain strings to numbers
+for i in dict_sim:
+    if i != 'sim_dir':
+        dict_sim[i] = float(dict_sim[i])
 
-    plt.tight_layout()
-    plt.show()
-"""
-"""
-MODELS = {'original' : {'first_mte_dist' :  first_mte_dist, 'capitan_dist' : capitan_dist, 'distribution': distribution }
-
-}
-"""
+Model = MultiLV(**dict_sim)
+Model.analysis()

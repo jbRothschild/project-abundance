@@ -1,108 +1,52 @@
+import os; import csv
 import numpy as np
-import os
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches # histgram animation
+import matplotlib.path as path # histogram animation
+from matplotlib import animation # animation
+import gillespie_plotting as gp
 
 BIRTH_RATE = 0.5
 DEATH_RATE = 0.5
 IMMIGRATION_RATE = 0.1
 EMMIGRATION_RATE = 0.0
-CARRYING_CAPACITY = 100
+CARRYING_CAPACITY = 50
 LINEAR_TERM = 0.0
 QUADRATIC_TERM = 0.0
+
+RESULTS_DIR = "sim_results"
 
 """
 Need some explanation of how this works.
 """
 
-class Simple(object):
-    def __init__( self,  sim_dir='simple', birth_rate=BIRTH_RATE, death_rate=DEATH_RATE, immi_rate=IMMIGRATION_RATE, emmi_rate=EMMIGRATION_RATE, K=CARRYING_CAPACITY, linear=LINEAR_TERM, quadratic=QUADRATIC_TERM, **kwargs):
-
-        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir
-
-    def save_directory( self ):
-        save_dir =  os.getcwd() + os.sep + "results" + os.sep + self.sim_dir
-        if not os.path.exists( save_dir ):
-            os.makedirs( save_dir )
-        return save_dir
-
-    # to build dictionary from a class, simply do Class.__dict__
-
-    #def unpack( self ):
-    #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.dz
-
-    def simple_propensity( self, current_state ):
-        """
-        Example of how to define propensities. Here we have 4 reactions possible per stateself.
-
-        Input:
-            current_state : The state that the population is in before the reaction takes place
-
-        Output:
-            prop : array of propensities
-        """
-        prop = np.zeros( len(current_state)*4 )
-
-        for i in np.arange(0,len(current_state)):
-            prop[i*4] = self.birth_rate*current_state[i] # birth
-            prop[i*4+1] = self.death_rate*current_state[i]**2 # death
-            prop[i*4+2] = self.immi_rate # immigration
-            prop[i*4+3] = self.emmi_rate*current_state[i] # emmigration
-
-        return prop
-
-    def simple_update( self, current_state, idx_reaction ):
-        """
-        When the index of the reaction is chosen, rules for update the population
-
-        Input:
-            current_state : The state that the population is in before the reaction takes place
-            idx_reaction : index of reaction to take place in prop (see simple_propensity)
-
-        Output:
-            Array which is the new state of the population
-        """
-        update = np.zeros( len(current_state) )
-        if idx_reaction % 2 == 0:
-            update[int(np.floor(idx_reaction/4))] = 1
-        else:
-            update[int(np.floor(idx_reaction/4))] = -1
-
-        return current_state + update
-
-    def simple_initialize( num_states, **kwargs):
-        """
-        When the index of the reaction is chosen, rules for update the population
-
-        Input:
-            num_states : number of species
-
-        Output:
-            Array which is the new state of the population
-        """
-        initial_state = np.zeros( (num_states) ) #necessary, everything 0
-        initial_state += 10 #make substitutions
-        return initial_state
-
-
-
-
-
-
-
 class MultiLV(object):
     def __init__( self,  sim_dir='multiLV', birth_rate=BIRTH_RATE, death_rate=DEATH_RATE, immi_rate=IMMIGRATION_RATE, emmi_rate=EMMIGRATION_RATE, K=CARRYING_CAPACITY, linear=LINEAR_TERM, quadratic=QUADRATIC_TERM, comp_overlap=0.0, **kwargs):
 
-        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap
+        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap;
+        self.sim_dir=sim_dir
 
-        if not os.path.exists( os.getcwd() + os.sep + "results" + os.sep + self.sim_dir ):
-            os.makedirs(os.getcwd() + os.sep + "results" + os.sep + self.sim_dir)
+    def create_sim_folder( self ):
+        # create the directory with simulation results
+        save_dir =  os.getcwd() + os.sep + RESULTS_DIR + os.sep + self.sim_dir; i = 0;
+        while os.path.exists( save_dir + str(i) ): i += 1;
+        save_dir = save_dir + str(i)
 
-    def save_directory( self ):
-        save_dir =  os.getcwd() + os.sep + "results" + os.sep + self.sim_dir
-        if not os.path.exists( save_dir ):
-            os.makedirs( save_dir )
-        return save_dir
+        self.sim_dir = save_dir; os.makedirs( save_dir )
 
-    # to build dictionary from a class, simply do Class.__dict__
+        print(self.sim_dir)
+        # save the parameters of simulation
+        dict = self.__dict__
+        w = csv.writer( open(self.sim_dir + os.sep + "params.csv", "w"))
+        for key, val in dict.items():
+            w.writerow([key,val])
+
+        # figures subfolder
+        self.figure_dir = self.sim_dir + os.sep + 'figures'
+        if not os.path.exists( self.figure_dir):
+            os.makedirs(self.figure_dir)
+
+        return 0
 
     #def unpack( self ):
     #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.dz
@@ -113,7 +57,6 @@ class MultiLV(object):
 
         Input:
             current_state : The state that the population is in before the reaction takes place
-            kwargs :
         Output:
             prop : array of propensities
         """
@@ -128,7 +71,9 @@ class MultiLV(object):
     def update( self, current_state, idx_reaction):
         """
         When the index of the reaction is chosen, rules for update the population
-
+        Input:
+            current_state : The state that the population is in before the reaction takes place
+            idx_reaction : index of the reaction to occur
         Output:
             New state of the population
         """
@@ -142,13 +87,32 @@ class MultiLV(object):
 
     def initialize( self, num_states ):
         """
-        Inital state of our simulation.
+        Inital state of our simulation. Here close to the steady state solution
         """
-        print(int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate*( self.comp_overlap*( num_states - 1 ) + 1 )/self.K ) )/( 2*( self.comp_overlap*( num_states - 1 ) + 1 ) )))
-        initial_state = np.zeros( (num_states) )
+        initial_state = np.zeros( (num_states) ) #necessary, everything 0
         initial_state += int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate*( self.comp_overlap*( num_states - 1 ) + 1 )/self.K ) )/( 2*( self.comp_overlap*( num_states - 1 ) + 1 ) ))
         return initial_state
 
+    def save_trajectory( self, simulation, times, traj ):
+        """
+        For now simply saves each trajectory.
+        """
+        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj), simulation )
+        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj), times)
+        return 0
+
+    def analysis( self , traj = 0):
+
+        if traj != None:
+            trajectory = np.loadtxt( self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj))
+            time = np.loadtxt( self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj))
+
+            #gp.abundance_trajectory_animation(trajectory, self.sim_dir )
+            gp.abundance_steady_trajectory( trajectory, time, self.__dict__, {'1' : gp.plot1, '2': gp.plot2} )
+
+        #gp.abund_average_trajectory_animation()
+        #gp.abund_average_steady_trajectory()
+
 ############################## BE SURE TO ADD YOUR MODEL HERE #############################
 
-MODELS = {'simple' : Simple, 'multiLV' : MultiLV}
+MODELS = {'multiLV' : MultiLV}
