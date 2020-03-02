@@ -1,2 +1,6 @@
 gillespie/results/*
 *.pyc
+*.pdf
+*.png
+*.eps
+*.txt
