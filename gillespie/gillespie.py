@@ -93,7 +93,6 @@ def gillespie(Model, max_time, num_generations, num_states, traj):
         # Update the system
         # TODO what if system size changes? Going to have to rethink this...
         simulation[i,:] = Model.update( current_state, reaction_idx ); times[i] = times[i-1] + dt
-        print(i, sum(simulation[i,:]))
 
     Model.save_trajectory(simulation, times, traj)
 
@@ -122,8 +121,8 @@ if __name__ == "__main__":
 
     #TODO in this new structure, I think number of species is useless... should be a done differently.f
     parser.add_argument('-s', type = int, default = 50, nargs = '?', help = "Number of species in total.")
-    parser.add_argument('-g', type = int, default = 5*10**4, nargs = '?', help = "Number of generations (reactions) in total.")
-    parser.add_argument('-T', type = int, default = 10**5, nargs = '?', help = "Total time to not exceed.")
+    parser.add_argument('-g', type = int, default = 10**6, nargs = '?', help = "Number of generations (reactions) in total.")
+    parser.add_argument('-T', type = int, default = 10**8, nargs = '?', help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?', help = "Number of runs/trajectories.")
     parser.add_argument('-m', type = str, default = 'simple', nargs = '?', help = "Model to use.")
     parser.add_argument('-p', metavar='KEY=VAL', default= {'nada' : 0.0}, dest='my_dict', nargs='*', action=StoreDictKeyPair, required=False, help='Additional parameters to be passed on for the simulation')
@@ -139,5 +138,3 @@ if __name__ == "__main__":
     # run gillespie TODO parallelize. Have a couple savepoints?
     for traj in range( num_runs ):
         gillespie(Model, max_time, num_generations, num_states, traj)
-
-    Model.analysis(max_time, num_generations, num_states, num_runs)

@@ -1,16 +1,12 @@
 import os; import csv
 import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches # histgram animation
-import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
-import gillespie_plotting as gp
 
-BIRTH_RATE = 0.5
-DEATH_RATE = 0.5
-IMMIGRATION_RATE = 0.1
+BIRTH_RATE = 1.5
+DEATH_RATE = BIRTH_RATE - 1.0
+IMMIGRATION_RATE = 0.3
 EMMIGRATION_RATE = 0.0
-CARRYING_CAPACITY = 50
+CARRYING_CAPACITY = 100
 LINEAR_TERM = 0.0
 QUADRATIC_TERM = 0.0
 
@@ -34,7 +30,6 @@ class MultiLV(object):
 
         self.sim_dir = save_dir; os.makedirs( save_dir )
 
-        print(self.sim_dir)
         # save the parameters of simulation
         dict = self.__dict__
         w = csv.writer( open(self.sim_dir + os.sep + "params.csv", "w"))
@@ -64,7 +59,7 @@ class MultiLV(object):
 
         for i in np.arange(0,len(current_state)):
             prop[i*2] = current_state[i] * ( self.birth_rate - self.quadratic*(current_state[i] + self.comp_overlap*np.sum(np.delete(current_state,i)))/self.K ) + self.immi_rate # birth + immigration
-            prop[i*2+1] = current_state[i] * ( self.death_rate + self.emmi_rate + ( self.birth_rate + self.death_rate )*( 1 - self.quadratic )*(current_state[i] + self.comp_overlap*np.sum(np.delete(current_state,i)))/self.K )  # death + emmigration
+            prop[i*2+1] = current_state[i] * ( self.death_rate + self.emmi_rate + ( self.birth_rate - self.death_rate )*( 1 - self.quadratic )*(current_state[i] + self.comp_overlap*np.sum(np.delete(current_state,i)))/self.K )  # death + emmigration
 
         return prop
 
@@ -100,18 +95,6 @@ class MultiLV(object):
         np.savetxt(self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj), simulation )
         np.savetxt(self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj), times)
         return 0
-
-    def analysis( self , traj = 0):
-
-        if traj != None:
-            trajectory = np.loadtxt( self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj))
-            time = np.loadtxt( self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj))
-
-            #gp.abundance_trajectory_animation(trajectory, self.sim_dir )
-            gp.abundance_steady_trajectory( trajectory, time, self.__dict__, {'1' : gp.plot1, '2': gp.plot2} )
-
-        #gp.abund_average_trajectory_animation()
-        #gp.abund_average_steady_trajectory()
 
 ############################## BE SURE TO ADD YOUR MODEL HERE #############################
 

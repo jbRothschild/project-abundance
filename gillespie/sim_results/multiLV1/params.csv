@@ -5,5 +5,5 @@ emmi_rate,0.0
 K,100
 linear,0.0
 quadratic,0.0
-sim_dir,/home/jbrothschild/Documents/Population_Dynamics/project-abundance/gillespie/sim_results/multiLV0
+sim_dir,/home/jbrothschild/Documents/Population_Dynamics/project-abundance/gillespie/sim_results/multiLV1
 comp_overlap,1.0
