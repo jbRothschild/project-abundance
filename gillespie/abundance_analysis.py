@@ -5,14 +5,16 @@ import matplotlib.patches as patches # histgram animation
 import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
 from itertools import combinations
-from scipy.special import gamma
-#import seaborn as sns
+from scipy.special import gamma, poch
+from scipy.misc import factorial
+import seaborn as sns
+import itertools
 
 plt.style.use('parameters.mplstyle')
 
 ######################### THEORY PLOTS ########################################
 
-def anton_abund(fig, ax, x, total_indiv, num_species, **params):
+def anton_abund_old(fig, ax, x, total_indiv, num_species, **params):
     """
     Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
     """
@@ -20,6 +22,20 @@ def anton_abund(fig, ax, x, total_indiv, num_species, **params):
     birth_rate = params['birth_rate']
     a = 2*immi_rate/birth_rate
     Norm = gamma(num_species*a + 1 + a)/( gamma(num_species*a)*gamma(a) )
+    y = (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
+    ax.plot(x, y, c='c', label='Moran')
+    return 0
+
+def anton_abund(fig, ax, x, total_indiv, num_species, **params):
+    """
+    Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
+    """
+    immi_rate = params['immi_rate']
+    birth_rate = params['birth_rate']
+    a = total_indiv*immi_rate/(birth_rate*total_indiv+immi_rate*num_species)
+    #a = immi_rate/birth_rate
+    #total_indiv = 1
+    Norm = gamma(num_species*a)*gamma(a)/( gamma((num_species+1)*a+1) )
     y = (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
     ax.plot(x, y, c='c', label='Moran')
     return 0
@@ -44,11 +60,6 @@ def haeg_abund_1(fig, ax, x, total_indiv, num_species, **params):
     ax.plot(x, y, c='r', label='Haeg. \& Lor.')
     return 0
 
-def Nava_sol_abund(fig, ax, x, total_indiv, num_species, **params):
-    """
-    Nava has solutions for a variety of plots. Need to calculate these and plot them.
-    """
-    return 0
 
 def det_bal_abund(fig, ax, x, total_indiv, num_species, **params):
     """
@@ -56,15 +67,19 @@ def det_bal_abund(fig, ax, x, total_indiv, num_species, **params):
     """
     immi_rate = params['immi_rate']; K = params['K']; birth_rate = params['birth_rate']; death_rate = params['death_rate']; comp_overlap = params['comp_overlap']
 
-    N = K # TODO this is WRONG
+    N = total_indiv # TODO this is WRONG
 
     def c_k_partial(k, immi_rate, birth_rate, death_rate, N, K, comp_overlap ):
         value = 1.0
         if k == 0.0:
             return value
         else:
+            """ previous calc.
             for i in np.arange(1,k+1):
                 value = value*( ( immi_rate + birth_rate*(i-1))/( i*(death_rate + (birth_rate-death_rate)*(i*(1-comp_overlap)+comp_overlap*N)/K) ) )
+            """
+            c = ( death_rate/(K*(birth_rate-death_rate)) + comp_overlap*N ) / ( 1-comp_overlap )
+            value = ( birth_rate*K / ( (birth_rate - death_rate)*(1-comp_overlap) ) ) ** k * poch( immi_rate/birth_rate, k ) / ( factorial(k)*poch( c, k ) )
             return value
 
     Norm = N/(np.sum([ i*c_k_partial(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap) for i in np.arange(1,N+1)]))
@@ -145,7 +160,7 @@ def abundance_steady_trajectory(trajectory, times, params, plots):
     weighted_hist = steady_hist * time_in_state[:,None] /total_time # weight each of these histograms by amount of time spent
     total_indiv = float(int( np.sum(weighted_hist) )); num_species = float(np.shape(trajectory)[1])
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(10,4))
 
     ax.bar(hist_bins[:-1], np.sum(weighted_hist,axis=0), width = 1, color='gray', edgecolor='black', alpha=0.5)
     ax.set_yscale('log'); ax.set_ylabel(r'species abundance, $A(k)$'); ax.set_xlabel(r'number of individuals, $k$')
@@ -166,10 +181,55 @@ def probability_steady_traj(trajectory, times, params, plots):
 
     return 0
 
+def plot_traj(trajectory, times, params, range, species_list=None, sea_colours = True):
+    """
+    Plots the end of a trajectory from end to -range
+    """
+    palette = itertools.cycle(sns.color_palette())
+    fig, ax = plt.subplots(figsize=(9,5))
+
+    if species_list == None:
+        list = np.arange(0, len(trajectory[0]), 1)
+    else:
+        list = species_list
+    for i in list:
+        if sea_colours == True:
+            plt.plot(times[-range:],trajectory[-range:,i], color=next(palette))
+        else:
+            print('hi')
+            plt.plot(times[-range:],trajectory[-range:,i])
+
+    ax.set_ylabel(r'Population count'); ax.set_xlabel(r'Time')
+    ax.set_xlim(left=times[-range], right=times[-1])
+
+    #plt.xlim(hist_bins[0],hist_bins[-1])
+    plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'end_trajectory_' + str(range) + '.pdf', transparent=True)
+    #plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'ss_abundance' + '.eps')
+    plt.show()
+    #plt.close()
+
+def plot_total_indiv_time(trajectory, times, params, range):
+    """
+    Plot distribution of J
+    """
+    tot_traj = np.sum(trajectory[-range:],axis=1)
+    len(tot_traj)
+    fig, ax = plt.subplots(figsize=(8,5))
+    plt.hist(tot_traj, bins=25, density=True, color='gray', edgecolor='black')
+    #ax.set_yscale('log');
+    ax.set_ylabel(r'Probability'); ax.set_xlabel(r'Total number of individuals, $J$')
+    #ax.set_ylim(bottom=0.001)
+
+    #plt.xlim(hist_bins[0],hist_bins[-1])
+
+    plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'dist_J' + '.pdf', transparent=True)
+    #plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'ss_abundance' + '.eps')
+    plt.show()
+    #plt.close()
 
 if __name__ == "__main__":
 
-    sim_dir = "multiLV1"
+    sim_dir = "multiLV8"
     dict_sim = {}
     # get parameters of simulation
     with open(os.getcwd() + os.sep + RESULTS_DIR + os.sep + sim_dir + os.sep + "params.csv", newline="") as paramfile:
@@ -188,7 +248,11 @@ if __name__ == "__main__":
         time = np.loadtxt( dict_sim['sim_dir'] + os.sep + 'trajectory_%s_time.txt' %(traj))
 
         #abundance_trajectory_animation(trajectory, self.sim_dir )
-        abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : anton_abund, '2': haeg_abund_1, '3' : det_bal_abund} )
-
+        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : anton_abund, '2': haeg_abund_1, '3' : det_bal_abund} )
+        range = 50000
+        #plot_traj(trajectory, time, dict_sim, range)
+        #plot_total_indiv_time(trajectory, time, dict_sim, range)
+        abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : anton_abund} )
+        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : det_bal_abund} )
         #abund_average_trajectory_animation()
         #abund_average_steady_trajectory()

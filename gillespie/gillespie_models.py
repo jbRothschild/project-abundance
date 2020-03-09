@@ -2,9 +2,9 @@ import os; import csv
 import numpy as np
 from matplotlib import animation # animation
 
-BIRTH_RATE = 1.5
-DEATH_RATE = BIRTH_RATE - 1.0
-IMMIGRATION_RATE = 0.3
+BIRTH_RATE = 20.0
+DEATH_RATE = 1.0
+IMMIGRATION_RATE = 0.05
 EMMIGRATION_RATE = 0.0
 CARRYING_CAPACITY = 100
 LINEAR_TERM = 0.0
@@ -85,7 +85,7 @@ class MultiLV(object):
         Inital state of our simulation. Here close to the steady state solution
         """
         initial_state = np.zeros( (num_states) ) #necessary, everything 0
-        initial_state += int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate*( self.comp_overlap*( num_states - 1 ) + 1 )/self.K ) )/( 2*( self.comp_overlap*( num_states - 1 ) + 1 ) ))
+        initial_state += int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate*( self.comp_overlap*( num_states - 1 ) + 1 )/( self.K*(self.birth_rate-self.death_rate) ) ) )/( 2*( self.comp_overlap*( num_states - 1 ) + 1 ) ))
         return initial_state
 
     def save_trajectory( self, simulation, times, traj ):

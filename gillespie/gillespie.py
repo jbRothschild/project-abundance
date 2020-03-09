@@ -124,7 +124,7 @@ if __name__ == "__main__":
     parser.add_argument('-g', type = int, default = 10**6, nargs = '?', help = "Number of generations (reactions) in total.")
     parser.add_argument('-T', type = int, default = 10**8, nargs = '?', help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?', help = "Number of runs/trajectories.")
-    parser.add_argument('-m', type = str, default = 'simple', nargs = '?', help = "Model to use.")
+    parser.add_argument('-m', type = str, default = 'multiLV', nargs = '?', help = "Model to use.")
     parser.add_argument('-p', metavar='KEY=VAL', default= {'nada' : 0.0}, dest='my_dict', nargs='*', action=StoreDictKeyPair, required=False, help='Additional parameters to be passed on for the simulation')
     # TODO add multiprocessing. Will make it a lot better. Major changes need to happen to parallelize all this.
 
