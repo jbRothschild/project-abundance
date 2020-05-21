@@ -5,44 +5,98 @@ import matplotlib.patches as patches # histgram animation
 import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
 from itertools import combinations
-from scipy.special import gamma, poch
-from scipy.misc import factorial
+from scipy.special import gamma, poch, factorial
 import seaborn as sns
 import itertools
 
 plt.style.use('parameters.mplstyle')
 
-######################### THEORY PLOTS ########################################
+######################### THEORY FUNCTIONS ########################################
 
-def anton_abund_old(fig, ax, x, total_indiv, num_species, **params):
-    """
-    Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
-    """
-    immi_rate = params['immi_rate']
-    birth_rate = params['birth_rate']
-    a = 2*immi_rate/birth_rate
-    Norm = gamma(num_species*a + 1 + a)/( gamma(num_species*a)*gamma(a) )
-    y = (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
-    ax.plot(x, y, c='c', label='Moran')
-    return 0
+def moranton_abund_old(x, num_species, birth_rate, immi_rate):
+    a = 2*immi_rate/birth_rat
+    Norm = gamma(num_species*a + 1 + a)/( gamma(num_species*a)*gamma(a)*num_species )
+    return (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
 
-def anton_abund(fig, ax, x, total_indiv, num_species, **params):
-    """
-    Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
-    """
-    immi_rate = params['immi_rate']
-    birth_rate = params['birth_rate']
+def moranton_abund(x, num_species, birth_rate, immi_rate):
     a = total_indiv*immi_rate/(birth_rate*total_indiv+immi_rate*num_species)
     #a = immi_rate/birth_rate
     #total_indiv = 1
     Norm = gamma(num_species*a)*gamma(a)/( gamma((num_species+1)*a+1) )
-    y = (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
+    return (x/total_indiv)**(-1+a)*np.exp(-a*x)/Norm
+
+def sid_abund(x, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+    N = total_indiv # TODO this is WRONG
+    print(total_indiv,num_species)
+
+    def c_k_partial( k, immi_rate, birth_rate, death_rate, N, K, comp_overlap ):
+        value = 1.0
+        if k == 0.0:
+            return value
+        else:
+            """ previous calc.
+            for i in np.arange(1,k+1):
+                value = value*( ( immi_rate + birth_rate*(i-1))/( i*(death_rate + (birth_rate-death_rate)*(i*(1-comp_overlap)+comp_overlap*N)/K) ) )
+            """
+            c = ( death_rate*K/((birth_rate-death_rate)) + comp_overlap*N ) / ( 1-comp_overlap )
+            value = ( birth_rate*K / ( (birth_rate - death_rate)*(1-comp_overlap) ) ) ** k * poch( immi_rate/birth_rate, k ) / ( factorial(k)*poch( c + 1, k ) )
+            return value
+
+    Norm = N/(np.sum([ i*c_k_partial(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap) for i in np.arange(1,N+1)]))
+
+    return [ c_k_partial(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap)*Norm for i in x]
+
+def mte_1d(n, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+    """
+    1d mean time to extinction, which is relevant if the flutations of N (J) are negligeable
+    """
+
+    def birth(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+        quadratic = 0.0
+        return i * ( birth_rate - quadratic*(i + comp_overlap*N)/K ) + immi_rate
+
+    def death(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+        quadratic = 0.0
+        emmi_rate = 0.0
+        return i * ( death_rate + emmi_rate + ( birth_rate - death_rate )*( 1.0 - quadratic )*(i + comp_overlap*N)/K )
+
+    def R(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+        if i == 1:
+            return 1.0
+        else:
+            return ( birth_rate*K )**(i-1) * poch( immi_rate/birth_rate + 1 , i - 1 ) / ( fact(i-1)*poch(death_rate*K + comp_overlap*N + 1, i-1) )
+
+    def T(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap):
+        return death(1)*R(i+1, immi_rate, birth_rate, death_rate, N, K, comp_overlap)/birth(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap)
+
+    return np.array( [ ( 1/death(1) )*np.sum( [ ( 1/R(j) )*np.sum( [T(k) for k in np.arange(j, N+1) ] ) for j in np.arange(1,i+1) ] ) for i in n ] )
+
+
+######################### THEORY PLOTS ########################################
+
+def draw_anton_abund_old(fig, ax, x, total_indiv, num_species, **params):
+    """
+    Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
+    """
+    immi_rate = params['immi_rate']
+    birth_rate = params['birth_rate']
+    y = moranton_abund_old(x, num_species, birth_rate, immi_rate)
     ax.plot(x, y, c='c', label='Moran')
     return 0
 
-def haeg_abund_1(fig, ax, x, total_indiv, num_species, **params):
+def draw_anton_abund(fig, ax, x, total_indiv, num_species, **params):
     """
-    Plot of Haegeman and Loreau results for comp_overlap = 1.0
+    Using Anton's derivation, Nava corrected the abundance distribution we should get for Moran model with mutations... is that similar to our situation with immigration?
+    """
+    immi_rate = params['immi_rate']
+    birth_rate = params['birth_rate']
+    y = moranton_abund(x, num_species, birth_rate, immi_rate)
+    ax.plot(x, y, c='c', label='Moran')
+    return 0
+
+def draw_haeg_abund_1(fig, ax, x, total_indiv, num_species, **params):
+    """
+    Plot of Haegeman and Loreau results for comp_overlap = 1.0. Deprecated
     """
     immi_rate = params['immi_rate']; K = params['K']; birth_rate = params['birth_rate']; death_rate = params['death_rate']; comp_overlap = params['comp_overlap']
     N = K # TODO this is WRONG
@@ -61,7 +115,7 @@ def haeg_abund_1(fig, ax, x, total_indiv, num_species, **params):
     return 0
 
 
-def det_bal_abund(fig, ax, x, total_indiv, num_species, **params):
+def draw_det_bal_abund(fig, ax, x, total_indiv, num_species, **params):
     """
     Plot of the detailed balance scheme described by Sid, for now, fixed number of individuals (roughly K)
     """
@@ -69,26 +123,61 @@ def det_bal_abund(fig, ax, x, total_indiv, num_species, **params):
 
     N = total_indiv # TODO this is WRONG
 
-    def c_k_partial(k, immi_rate, birth_rate, death_rate, N, K, comp_overlap ):
-        value = 1.0
-        if k == 0.0:
-            return value
-        else:
-            """ previous calc.
-            for i in np.arange(1,k+1):
-                value = value*( ( immi_rate + birth_rate*(i-1))/( i*(death_rate + (birth_rate-death_rate)*(i*(1-comp_overlap)+comp_overlap*N)/K) ) )
-            """
-            c = ( death_rate/(K*(birth_rate-death_rate)) + comp_overlap*N ) / ( 1-comp_overlap )
-            value = ( birth_rate*K / ( (birth_rate - death_rate)*(1-comp_overlap) ) ) ** k * poch( immi_rate/birth_rate, k ) / ( factorial(k)*poch( c, k ) )
-            return value
-
-    Norm = N/(np.sum([ i*c_k_partial(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap) for i in np.arange(1,N+1)]))
-
-    y = [ c_k_partial(i, immi_rate, birth_rate, death_rate, N, K, comp_overlap)*Norm for i in x]
+    y = sid_abund(x, immi_rate, birth_rate, death_rate, N, K, comp_overlap)
 
     ax.plot(x, y, c='b', label='Kolmogorov eq.')
 
     return 0
+
+def draw_det_bal_abund_mult(fig, ax, x, total_indiv, num_species, **params):
+    """
+    Plot of the detailed balance scheme described by Sid, for now, fixed number of individuals
+    """
+    immi_rate = params['immi_rate']; K = params['K']; birth_rate = params['birth_rate']; death_rate = params['death_rate']; comp_overlap = params['comp_overlap']
+
+    N = total_indiv # TODO this is WRONG
+    print(total_indiv,num_species)
+
+    P = np.zeros(len(x))
+
+    for i, prob in enumerate(P):
+        if i==0:
+            P[i] = 1.0
+        else:
+            P[i] = ( birth_rate*(i-1) + immi_rate )*P[i-1] / ( i * (death_rate + (birth_rate-death_rate)*(1-comp_overlap)*i/K + comp_overlap*(birth_rate-death_rate)*N/K ) )
+
+
+    #Norm = num_species/(np.sum( [P[i] for i in np.arange(0,len(x))] ))
+    Norm = N/(np.sum( [i*P[i] for i in np.arange(0,len(x))] ))
+
+    y = P*Norm
+
+    ax.plot(x, y, c='b', label='Kolmogorov eq.')
+
+    return 0
+
+def draw_MTE_1D(fig, ax, n, total_indiv, num_species, **params):
+    """
+    Plot of the mean time to extinction as a function of
+    """
+    immi_rate = params['immi_rate']; K = params['K']; birth_rate = params['birth_rate']; death_rate = params['death_rate']; comp_overlap = params['comp_overlap']
+
+    N = total_indiv # TODO this is WRONG
+    print(total_indiv,num_species)
+
+    for i, prob in enumerate(P):
+
+
+
+    #Norm = num_species/(np.sum( [P[i] for i in np.arange(0,len(x))] ))
+    Norm = N/(np.sum( [i*P[i] for i in np.arange(0,len(x))] ))
+
+    y = P*Norm
+
+    ax.plot(x, y, c='b', label='Kolmogorov eq.')
+
+    return 0
+
 
 ################## TYPES OF PLOTS TO USE ###################################
 
@@ -151,6 +240,7 @@ def abundance_steady_trajectory(trajectory, times, params, plots):
             break
     """
     steady_idx=500000
+    #steady_idx=250000
     print(steady_idx, len(times))
     total_time = times[-1]-times[steady_idx]; # total time in steady state
     time_in_state = times[steady_idx+1:] - times[steady_idx:-1] # array of times in each state
@@ -158,7 +248,10 @@ def abundance_steady_trajectory(trajectory, times, params, plots):
     #  need to weight the histogram by the amount of time they spend in each state (not a simple average)
     steady_hist = np.apply_along_axis(lambda a: np.histogram(a, bins=hist_bins)[0], 1, trajectory[steady_idx:-1,:]) # tricky function that essentially creates an array of histograms (histograms for each moment in time)
     weighted_hist = steady_hist * time_in_state[:,None] /total_time # weight each of these histograms by amount of time spent
-    total_indiv = float(int( np.sum(weighted_hist) )); num_species = float(np.shape(trajectory)[1])
+    total_indiv = float( int( np.sum(weighted_hist) )); num_species = float(np.shape(trajectory)[1])
+    # For now tot_indiv = mean of trajectory
+    total_indiv = float( int( np.mean(np.sum(trajectory[-steady_idx:],axis=1)) ) )
+    print(total_indiv)
 
     fig, ax = plt.subplots(figsize=(10,4))
 
@@ -176,6 +269,7 @@ def abundance_steady_trajectory(trajectory, times, params, plots):
     plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'ss_abundance' + '.pdf', transparent=True)
     plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'ss_abundance' + '.eps')
     plt.show()
+
 
 def probability_steady_traj(trajectory, times, params, plots):
 
@@ -227,9 +321,37 @@ def plot_total_indiv_time(trajectory, times, params, range):
     plt.show()
     #plt.close()
 
+def first_passage_time(trajectory, times, params):
+    """
+    Plots the distribution of first passage times.
+    """
+    num_species = np.shape(trajectory)[1]
+    num_times = np.shape(trajectory)[0]
+    fpt_dist = []
+    for i in range( num_species ):
+        zero = 0; t1 = 0; t2 = 0
+        for j in range( num_times ):
+            if zero == 0 and trajectory[j,i] == 0:
+                zero = 1
+                t1 = times[j]
+            if zero == 1 and trajectory[j,i] != 0:
+                zero = 0; t2 = times[j]
+                fpt_dist.append(t2-t1)
+    fig, ax = plt.subplots(figsize=(8,5))
+    plt.hist(fpt_dist, bins=25, density=True, color='green', edgecolor='black')
+    ax.set_yscale('log');
+    ax.set_ylabel(r'Probability Distribution'); ax.set_xlabel(r'First Passage Time')
+    #ax.set_ylim(bottom=0.001)
+
+    #plt.xlim(hist_bins[0],hist_bins[-1])
+
+    plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'FPT_distribution' + '.pdf', transparent=True)
+    #plt.savefig(params['sim_dir'] + os.sep + 'figures' + os.sep + 'ss_abundance' + '.eps')
+    plt.show()
+
 if __name__ == "__main__":
 
-    sim_dir = "multiLV8"
+    sim_dir = "multiLV1"
     dict_sim = {}
     # get parameters of simulation
     with open(os.getcwd() + os.sep + RESULTS_DIR + os.sep + sim_dir + os.sep + "params.csv", newline="") as paramfile:
@@ -248,11 +370,14 @@ if __name__ == "__main__":
         time = np.loadtxt( dict_sim['sim_dir'] + os.sep + 'trajectory_%s_time.txt' %(traj))
 
         #abundance_trajectory_animation(trajectory, self.sim_dir )
-        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : anton_abund, '2': haeg_abund_1, '3' : det_bal_abund} )
-        range = 50000
-        #plot_traj(trajectory, time, dict_sim, range)
-        #plot_total_indiv_time(trajectory, time, dict_sim, range)
-        abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : anton_abund} )
-        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : det_bal_abund} )
+        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : draw_anton_abund, '2': draw_haeg_abund_1, '3' : draw_det_bal_abund} )
+        range_plot = 100000
+        #plot_traj(trajectory, time, dict_sim, range_plot)
+        #plot_total_indiv_time(trajectory, time, dict_sim, range_plot)
+        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : draw_anton_abund} )
+        #abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : draw_anton_abund, '2': det_bal_abund_mult } )
+        abundance_steady_trajectory( trajectory, time, dict_sim, {'1' : draw_det_bal_abund_mult} )
+        first_passage_time(trajectory, time, dict_sim)
+
         #abund_average_trajectory_animation()
         #abund_average_steady_trajectory()

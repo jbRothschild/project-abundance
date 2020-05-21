@@ -70,6 +70,7 @@ def gillespie(Model, max_time, num_generations, num_states, traj):
         num_generations : number of reactions that will occur
         num_states : number of species possible
         traj : trajectory index we are following
+        num_gen_save : number of generations to save
 
     Returns:
         simulation : the whole simulated trajectory
@@ -78,21 +79,22 @@ def gillespie(Model, max_time, num_generations, num_states, traj):
     init_state = Model.initialize( num_states )
 
     # create output arrays output
-    simulation = np.zeros( ( num_generations, num_states ) )
-    times = np.zeros( ( num_generations) )
+    simulation = np.zeros( ( Model.max_gen_save, num_states ) )
+    times = np.zeros( ( Model.max_gen_save ) )
 
     # Initialize and perform simulation
     i = 1
     simulation[0,:] = init_state.copy()
-    for i in np.arange(1,num_generations):
-        if times[i-1] > max_time: break
+    current_state = simulation[0,:].copy()
+    while not (Model.stop_condition(current_state, i) or Model.generation_time_exceed(times[i-1], i)):
         current_state = simulation[i-1,:].copy()
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
         # Update the system
         # TODO what if system size changes? Going to have to rethink this...
-        simulation[i,:] = Model.update( current_state, reaction_idx ); times[i] = times[i-1] + dt
+        simulation[i%Model.max_gen_save,:] = Model.update( current_state, reaction_idx ); times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt
+        i += 1
 
     Model.save_trajectory(simulation, times, traj)
 
@@ -132,7 +134,7 @@ if __name__ == "__main__":
     model = args.m; num_states = args.s; num_generations = args.g; max_time = args.T; num_runs = args.t
     param_dict = vars(args)['my_dict']
 
-    Model = gm.MODELS[model](**param_dict) # select which class/model we are using
+    Model = gm.MODELS[model](num_generations, max_time, **param_dict) # select which class/model we are using
     Model.create_sim_folder()
 
     # run gillespie TODO parallelize. Have a couple savepoints?

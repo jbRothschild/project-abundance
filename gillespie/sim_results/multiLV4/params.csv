@@ -1,9 +1,0 @@
-birth_rate,10.0
-death_rate,1.0
-immi_rate,0.3
-emmi_rate,0.0
-K,100
-linear,0.0
-quadratic,0.0
-sim_dir,/home/jbrothschild/Documents/Population_Dynamics/project-abundance/gillespie/sim_results/multiLV4
-comp_overlap,0.8

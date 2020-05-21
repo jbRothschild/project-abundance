@@ -4,9 +4,10 @@ import os
 
 plt.style.use('parameters.mplstyle')
 
-K = 100; alpha = 1.0; r = 10; mu = 0.25; numspecies = 10;
+K = 100; alpha = 0.99; r = 10; mu = 0.25; numspecies = 10;
 ss = K * ( 1 + np.sqrt( 1 + 4*( alpha*( numspecies-1 ) + 1  )*mu/(K*r) ) ) / ( 2*( alpha*( numspecies-1 ) + 1 ) )
 print(ss)
+print((4*alpha*mu - K*r - 4*mu)/(4*alpha*mu))
 
 def dndt(n1, n2):
     return r*n1*(1 - (n1 + alpha*( ss*(numspecies-2) + n2) )/K  ) + mu
@@ -19,6 +20,10 @@ def dndt_eigenvec_unstable(n,x):
     dndt_positive_species = r*(n+x)*( 1 - ( (n+x) + alpha*( n*(numspecies-2) + n - x ) )/K ) + mu
 
     return dndt_most_species + dndt_negative_species + dndt_positive_species
+
+diff = ss
+print(r*(numspecies)*(ss-diff)*( 1 - ( (ss-diff) + alpha*( (ss-diff)*(numspecies-1) ) )/K ) + numspecies*mu)
+print(r*(numspecies)*(ss+diff)*( 1 - ( (ss+diff) + alpha*( (ss+diff)*(numspecies-1) ) )/K ) + numspecies*mu)
 
 def dndt_eigenvec_stable(n,x):
     #stable eigenvector is (-1,0,...,0,+1,0,..,0)
@@ -73,19 +78,38 @@ def phase(n1, n2, dict_dir, xstring, ystring):
     plt.ylim(bottom = np.min(N2), top = np.max(N2) ); plt.xlim(left = np.min(N1), right = np.max(N1) );
 
     if dict_dir['name'] == 'eigen' or dict_dir['name'] == 'unstb_eigen':
-        plt.xlim( left = int(ss) , right = np.max(N1*numspecies) ); plt.ylim(bottom = np.min(2*N2), top = np.max(2*N2) )
+        plt.xlim( left = np.min(N1*numspecies) , right = np.max(N1*numspecies) ); plt.ylim(bottom = np.min(2*N2), top = np.max(2*N2) )
 
     #plt.xlim([0,int(ss)+10]); plt.ylim([0,int(ss)+10])
 
-    plt.savefig(os.getcwd() + os.sep + dict_dir['name'] + '_phase_diagram_' + str(numspecies) + 'species_alpha' + str(alpha) + '.pdf', transparent=True)
+    plt.savefig(os.getcwd() + os.sep + "figures" + os.sep + dict_dir['name'] + '_phase_diagram_' + str(numspecies) + 'species_alpha' + str(alpha) + '.pdf', transparent=True)
     #plt.savefig(os.getcwd() + os.sep + dict_dir['name'] + '_phase_diagram_' + str(numspecies) + 'species_alpha' + str(alpha) + '.eps')
     plt.close()
 
 if __name__ == '__main__':
+
+    if not os.path.isdir(os.getcwd() + os.sep + "figures"):
+        os.makedirs(os.getcwd() + os.sep + "figures")
+
     num_points = 21
+
+    Alpha = np.logspace(-3,0,101)
+
+    plt.plot(Alpha, (1/(8*Alpha*mu)) * ( 3*K*r +8*mu*(1+Alpha)-np.sqrt(9*K**2*r**2 + 32*K*r*mu ) ) )
+    plt.xlabel(r"$\alpha$"); plt.ylabel(r"stable $S$")
+    plt.xscale('log')
+    plt.savefig(os.getcwd() + os.sep + "figures" + os.sep + 'max_stable_species' + '.pdf', transparent=True)
+    #plt.savefig(os.getcwd() + os.sep + "figures" + os.sep + 'max_stable_species' + '.eps')
+    plt.close()
+
     dict_dir = {'simple' : {'name' : 'simple', 'function' : fcn_simple , 'steady_state': {'x' : ss, 'y' : ss}},
                 'eigen' : {'name' : 'eigen', 'function' : fcn_eigen  , 'steady_state': {'x' : numspecies*ss, 'y' : 0}},
                 'unstb_eigen' : {'name' : 'unstb_eigen', 'function' : fcn_unstb_eigen , 'steady_state': {'x' : numspecies*ss, 'y' : ss} }}
-    phase(np.linspace(0, int(ss)+10, num_points),  np.linspace(0, int(ss)+10, num_points), dict_dir['simple'], r'$n_i$', r'$n_j$')
-    phase(np.linspace(0, int(ss)+10, num_points),  np.linspace(-int(ss), int(ss), num_points), dict_dir['eigen'], r'$\sum n_i$', r'$n_j-n_k$')
-    phase(np.linspace(0, int(ss)+10, num_points),   np.linspace(0, int(ss)+10, num_points), dict_dir['unstb_eigen'], r'$\sum n_i$', r'$n_i$')
+    #phase(np.linspace(0, int(ss)+10, num_points),  np.linspace(0, int(ss)+10, num_points), dict_dir['simple'], r'$n_i$', r'$n_j$')
+
+    # eigen
+    #phase(np.linspace(0, int(ss)+10, num_points),  np.linspace(-int(ss), int(ss), num_points), dict_dir['eigen'], r'$\sum n_i$', r'$n_j-n_k$')
+    phase(np.linspace(ss-diff, ss+diff, num_points),  np.linspace(-diff, diff, num_points), dict_dir['eigen'], r'$\sum n_i$', r'$n_j-n_k$')
+
+    # not good
+    #phase(np.linspace(0, int(ss)+10, num_points),   np.linspace(0, int(ss)+10, num_points), dict_dir['unstb_eigen'], r'$\sum n_i$', r'$n_i$')

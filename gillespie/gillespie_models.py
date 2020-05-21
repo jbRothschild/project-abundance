@@ -2,14 +2,6 @@ import os; import csv
 import numpy as np
 from matplotlib import animation # animation
 
-BIRTH_RATE = 20.0
-DEATH_RATE = 1.0
-IMMIGRATION_RATE = 0.05
-EMMIGRATION_RATE = 0.0
-CARRYING_CAPACITY = 100
-LINEAR_TERM = 0.0
-QUADRATIC_TERM = 0.0
-
 RESULTS_DIR = "sim_results"
 
 """
@@ -17,9 +9,9 @@ Need some explanation of how this works.
 """
 
 class MultiLV(object):
-    def __init__( self,  sim_dir='multiLV', birth_rate=BIRTH_RATE, death_rate=DEATH_RATE, immi_rate=IMMIGRATION_RATE, emmi_rate=EMMIGRATION_RATE, K=CARRYING_CAPACITY, linear=LINEAR_TERM, quadratic=QUADRATIC_TERM, comp_overlap=0.0, **kwargs):
+    def __init__( self, num_generations, max_time, sim_dir='multiLV', birth_rate=20.0, death_rate=1.0, immi_rate=0.05, emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0, comp_overlap=0.0, **kwargs):
 
-        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap;
+        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap; self.num_generations = num_generations; self.max_gen_save = num_generations; self.max_time = max_time
         self.sim_dir=sim_dir
 
     def create_sim_folder( self ):
@@ -80,6 +72,21 @@ class MultiLV(object):
 
         return current_state + update
 
+    def stop_condition( self, current_state, i ):
+        """
+        Function that returns True if Gillespie should stop
+        """
+        return False
+
+    def generation_time_exceed( self, time, i ):
+        if self.num_generations < i:
+            print('END OF SIM >>>> Exceeded amount of generations permitted: ' + str(i) + ' generations')
+            return True
+        elif self.max_time < time:
+            print('END OF SIM >>>> Exceeded amount of generations permitted: '  + str(time) + ' time passed')
+            return True
+        return False
+
     def initialize( self, num_states ):
         """
         Inital state of our simulation. Here close to the steady state solution
@@ -92,10 +99,82 @@ class MultiLV(object):
         """
         For now simply saves each trajectory.
         """
-        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj), simulation )
-        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj), times)
+        idx_sort = np.argsort(times)
+        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj), simulation[idx_sort,:] )
+        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj), times[idx_sort])
         return 0
+
+############################## SIR MODEL #############################
+class SIR(MultiLV):
+    """
+    stochastic SIR model described by Kamenev and Meerson
+    """
+    def __init__( self,  num_generations, max_time, max_gen_save = 10000, sim_dir='sir', renewal_rate=1.0, infected_death_rate=10.0, total_population=200, beta_rate=20.0, **kwargs):
+
+        self.renewal_rate = renewal_rate; self.infected_death_rate = infected_death_rate; self.total_population = total_population; self.beta_rate = beta_rate; self.num_generations = num_generations; self.max_gen_save = max_gen_save; self.max_time = max_time
+        self.sim_dir=sim_dir
+
+    def propensity( self, current_state ):
+        """
+        SIR model, in which Susceptible become Infected.
+
+        Input:
+            current_state : 0 -> Susceptible, 1 -> Infected
+        Output:
+            prop : array of propensities
+        """
+        prop = np.zeros( len(current_state)*2 )
+
+        prop[0] = current_state[0] * self.renewal_rate
+        prop[1] = current_state[1] *  self.infected_death_rate
+        prop[2] = self.renewal_rate *  self.total_population
+        prop[3] = ( self.beta_rate/ self.total_population) * current_state[1] * current_state[0]
+
+        return prop
+
+    def update( self, current_state, idx_reaction):
+        """
+        When the index of the reaction is chosen, rules for update the population
+        Input:
+            current_state : The state that the population is in before the reaction takes place
+            idx_reaction : index of the reaction to occur
+        Output:
+            New state of the population
+        """
+        update = np.zeros( len(current_state) )
+        if idx_reaction == 0:
+            update[0] = 1
+        elif idx_reaction == 1:
+            update[1] = -1
+        elif idx_reaction == 2:
+            update[0] = 1
+        elif idx_reaction == 3:
+            update[0] = -1; update[1] = 1;
+        else:
+            print('invalid reaction')
+            raise SystemExit
+
+        return current_state + update
+
+    def stop_condition( self, current_state, i ):
+        """
+        Function that returns True if Gillespie should stop
+        """
+        if current_state[1] == 0:
+            return True
+        else:
+            return False
+
+    def initialize( self, num_states ):
+        """
+        Inital state of our simulation. Here close to the steady state solution, see Kamenev and Meerson
+        """
+        initial_state = np.zeros( 2, dtype=int ) #necessary, everything 0
+        initial_state[0] = np.int( (self.infected_death_rate/self.beta_rate) * self.total_population )
+        initial_state[1] = np.int( self.renewal_rate * self.total_population * ( self.beta_rate - self.infected_death_rate ) / (self.beta_rate * self.infected_death_rate) )
+        return initial_state
+
 
 ############################## BE SURE TO ADD YOUR MODEL HERE #############################
 
-MODELS = {'multiLV' : MultiLV}
+MODELS = {'multiLV' : MultiLV, 'sir' : SIR}

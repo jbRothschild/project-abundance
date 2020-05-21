@@ -55,6 +55,11 @@
 \usepackage{amsmath}
 \usepackage[margin=0.7in]{geometry}
 \usepackage[toc,page]{appendix} % custom appendix
+\usepackage{subfig}
+\usepackage{tabularx} % multifugure
+\usepackage{float} % fixing figure location
+
+\graphicspath{{figures/}}
 
 \begin{document}
 
@@ -105,12 +110,12 @@ the appropriate format for the journal concerned.
 In biological communities the abundances may vary greatly and provide many complex specie distributions. 
 We sometimes think of the abundance in terms of fitnesses, however underlying this are the mechanisms in which the species interact with their environment and neighbors. 
 In a rough approximation, we may pose that linear and pairwise interactions dominate the inter/intraspecies connections (explore this later in another section). 
-Lotka-Voltera~\cite{ref1,ref2,ref3}. 
-Blythe and McKane~\cite{ref4,ref5,ref6}. 
-Haegeman and Loreau~\cite{ref7}. 
-Capitan~\cite{ref8,ref9}. 
-Sid's clonal population~\cite{ref10}. 
-Bunin~\cite{ref11}.
+Lotka-Voltera (Armstrong-McGee) ~\cite{Lotka1950,Smale1976a,Armstrong1976}. 
+Blythe and McKane~\cite{Baxter2005,Baxter2006,Blythe2007}. 
+Haegeman and Loreau~\cite{Haegeman2011}. 
+Capitan~\cite{Capitan2015,Capitan2017}. 
+Sid's clonal population~\cite{Goyal2015}. 
+Bunin~\cite{Bunin2016}.
 
 General interest seems to be in understanding how we go from a neutral model to one with competitive overlap.
 
@@ -200,7 +205,7 @@ Furthermore, note that with symmetric species the abundance is simply $A(k)=SP(k
 
 Critically, the total population $J$ in itself flucuates complicating calculation of $\langle J(\vec{n}) |n_i \rangle$.
 This is an issue: we will require some approximation in which $J$ is fixed for many of the equations below to be solvable.
-In ~\cite{ref7}, Haegeman and Loreau assume $J$ is fixed to derive certain exact and approximations expressions for the probability distribution in Equation ~\ref{solstat} for $\alpha=0$, $\alpha=1$ and $0 < \alpha < 1$.
+In ~\cite{Haegeman2011}, Haegeman and Loreau assume $J$ is fixed to derive certain exact and approximations expressions for the probability distribution in Equation ~\ref{solstat} for $\alpha=0$, $\alpha=1$ and $0 < \alpha < 1$.
 
 \subsubsection{$\alpha=0$}
 What simplified the expression of $\langle q^+_i(\vec{n}) | n_i \rangle$ is the fact that the birth rate $q^+_i(\vec{n})$) (Equation ~\ref{simplebirth}) does not depend on any species other than $n_i$.
@@ -241,7 +246,7 @@ Can calculate probabilty of $J$, $P(J)$ too from the master equation of J in thi
 [FIGURE: PROB DISTRIBUTION OF J]
 
 Detailed balance for $P(\vec{n})$.
-How it compares to Heageman and Loreau ~\cite{ref7}
+How it compares to Heageman and Loreau ~\cite{Haegeman2011}
 
 We define the Pochhammer funciton $(a)_n=a(a+1)...(a+n-1)$.
 
@@ -274,7 +279,7 @@ So far we've entertained models in which the population size may vary, however i
 
 \subsection{Immigration between islands}
 
-What Blythe-McKane do ... ~\cite{ref4}.
+What Blythe-McKane do ... ~\cite{Blythe2007}.
 
 \subsection{Simple immigraion}
 In this formalism, at each step there is a probablity that one death event happens and one birth or immigration event happens.
@@ -340,9 +345,9 @@ Similar schemes have been solved analytically, however it does not appear to be 
 
 \subsection{Fokker-Planck approximation}
 
-As in Blythe-McKane ~\cite{ref4}, it's possible to construct a continuous time model of this Moran process.
+As in Blythe-McKane ~\cite{Blythe2007}, it's possible to construct a continuous time model of this Moran process.
 Approximating this 
-Note that Equations \ref{morantransition} are of the same form as Blythe-McKane ~\cite{ref4} Equation 83, whose solution has long been known.
+Note that Equations \ref{morantransition} are of the same form as Blythe-McKane ~\cite{Blythe2007} Equation 83, whose solution has long been known.
 The steady state distribution of this model is
 \begin{align}
 \begin{split}
@@ -401,15 +406,16 @@ We can now solve Equation ~\ref{simpleLVimmi} as a function of this $J$
 &= r( 1 - \alpha ){n_i}^2 + (\alpha J -K)n_i - K \mu / r,
 \end{align*} 
 which has solutions
-\begin{equation}\label{solstat}
+\begin{equation}
 n_i^\pm = \frac{-(\alpha J - K) \pm \sqrt{(\alpha J - K)^2 + 4r(1-\alpha)K \mu / r }}{2(1-\alpha )}.
 \end{equation}
 However if $0\leq \alpha \leq 1$ then only the positive solution is physical.
+We can go back to Equation~\ref{simpleLVimmi} and replace all $n_j$ by $n$ and solve to obarin
+\begin{equation}\label{solstat}
+n^{\pm} = \frac{K \pm \sqrt{K^2 + 4(1 + \alpha (S-1) )K \mu / r }}{2(1 + \alpha (S-1) )}.
+\end{equation}
 As such, the only true stationary solution that the system allows for corresponds to each species having a number of individuals in their population equal to the positive solution of Equation ~\ref{solstat}, $n^+$.
-We can find the total number of individuals in the system at steady state by solving $J=S n^+$,
-\begin{align*}
-J = .
-\end{align*}
+We can find the total number of individuals in the system at steady state by solving $J=S n^+$.
 Is $n^+$ stable? We investigate the Jacobian of $dn_i/dt$ at $n^+$ to answer this question:
 \begin{align*}
 \mathcal{J} &= \frac{r}{K} \begin{pmatrix}
@@ -429,31 +435,45 @@ The eigenvalues of this matrix are foudn using \textit{Wolfram Mathematica}:
 \begin{equation}
 \lambda_i =
 \begin{cases}
-\frac{r}{K}\left( K - 2 n^+(1-\alpha(S-1)) \right) & \text{, if } i=1 \\
-\frac{r}{K}\left( K - n^+(2-\alpha(S-2)) \right) & \text{, otherwise}.
+\frac{r}{K}\left( K - 2 n^+(1+\alpha(S-1)) \right) & \text{, if } i=1 \\
+\frac{r}{K}\left( K - n^+(2+\alpha(S-2)) \right) & \text{, otherwise}.
 \end{cases}
 \end{equation}
 We see a degeneracy for all eigenvalues except for one ($\lambda_1$). 
 The eigenvectors are similarly found:
-\begin{equation}
+\begin{align}
 \vec{v}_i =
 \begin{cases}
- & \text{, if } i=1 \\
- & \text{, otherwise}.
+(1,1,\cdots,1,1)^T & \text{, if } i=1 \\
+(-1,\delta_{2,i},\delta_{3,i},\cdots,\delta_{S-1,i},\delta_{S,i}) & \text{, otherwise}.
 \end{cases}
-\end{equation}
+\end{align}
 
-[FIGURE: PLOT DN/DT ALONG EIGENVECTORS]
+\begin{figure}[h]
+\def\tabularxcolumn#1{m{#1}}
+\begin{tabularx}{\linewidth}{@{}cXX@{}}
+%
+\begin{tabular}{cc}
+\subfloat[$\alpha = 0.1$]{\includegraphics[width=0.5\textwidth]{eigen_phase_diagram_10species_alpha0_1.pdf}\label{det_eigvec:1}}
+	& \subfloat[$\alpha =1.0$]{\includegraphics[width=0.5\textwidth]{eigen_phase_diagram_10species_alpha1_0.pdf}\label{det_eigvec:2}}
+\end{tabular}
+
+\end{tabularx}
+\caption{Phase diagram of our system of equations along 2 eigenvectors $\lambda_1$ and $\lambda_{i\neq 1}$. The blue points corresponds to the fixed point of the system. For these $S=10$, $\mu=0.25$, $r=10$ and $K=100$.}\label{det_eigvec}
+\end{figure}
 
 For the fixed point to be stable, we need eigenvalues to be negative. 
-Considering $\lambda_1$ is the smallest eigenvalue, we need only check that  $\lambda_1 < 0 $. For $\vec{n}^+$ to be stable:
-\begin{equation}
-K < 2n^+(1-\alpha (S-1) ).
-\end{equation}
-This tells us that necessarily $S<1+1/\alpha$ to ensure stability.
-Recall that we know the form of $n^+$ from Equation ~\ref{solstat}, so that we may find further conditions on $S$ and $\alpha$ to keep the point stable.
+Considering $\lambda_i$ is the largest eigenvalue, we need only check that  $\lambda_i < 0 $. For $\vec{n}^+$ to be stable:
+\begin{equation*}
+K < n^+(2+\alpha (S-2) ).
+\end{equation*}
+We can solve this inequality in \textit{Wolfram Mathametica} for a bound to $S$ as a function of $\alpha$, we find that the fixed point is always stable.
+It appears that the phase diagram does not show (from many plots) any instability in the $\vec{v}_1$.
 
 [FIGURE: $S=1+1/\alpha$ and the gillespie, $P_0$ from certain analytical models.]
+
+Alternatively we might be able to come up with some heuristic argument that explains the fact that not all species are present when $S>1+1/\alpha$.
+As we increase $\alpha$ (see Figure ~\ref{det_vec}) the fixed point gets closer to $n_i=0$. This probably means that fluctuations are more likely to make the species extinct.
 
 \section{First passage times}
 
@@ -467,6 +487,8 @@ How do we show that the transition of probabilities, how much the
 Plot of the times it takes to transition from stable point to... 0? or close to 0?
 
 \section*{References}
+\bibliography{library_02-03-20}{}
+\bibliographystyle{unsrt}
 %\begin{thebibliography}{10}
 %\bibitem{refX} J.~Doe, Article name, \textit{Phys. Rev. Lett.}
 %\end{thebibliography}
@@ -507,6 +529,28 @@ We investigate the Jacobian of $f_i=dn_i/dt$ to answer this question:
 \end{pmatrix} 
 \end{align*}
 \end{appendices}
+
+% Example of a more complex multifigure. width 
+\iffalse
+\begin{figure}
+\def\tabularxcolumn#1{m{#1}}
+\begin{tabularx}{\linewidth}{@{}cXX@{}}
+%
+\begin{tabular}{cc}
+\subfloat[A]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha0_01.pdf}}
+	& \subfloat[B]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha0_1.pdf}}\\
+\subfloat[C]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha0_5.pdf}}
+	& \subfloat[D]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha1_0.pdf}}
+\end{tabular}
+
+\subfloat[C]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha0_5.pdf}}
+	& \subfloat[D]{\includegraphics[width=0.25\textwidth]{eigen_phase_diagram_10species_alpha1_0.pdf}}
+
+\end{tabularx}
+\caption{Phase diagram of our system of equations along 2 eigenvectors $\lambda_1$ and $\lambda_{i\new 1}$. For these $S=10$, $\mu=0.25$, $r=10$ and $K=100$.}\label{det_eigenvector}
+\end{figure}
+
+\fi
 
 
 \end{document}

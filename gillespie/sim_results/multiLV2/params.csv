@@ -1,9 +1,12 @@
-birth_rate,1.5
-death_rate,0.5
-immi_rate,0.3
+birth_rate,20.0
+death_rate,1.0
+immi_rate,0.05
 emmi_rate,0.0
 K,100
 linear,0.0
 quadratic,0.0
 sim_dir,/home/jbrothschild/Documents/Population_Dynamics/project-abundance/gillespie/sim_results/multiLV2
-comp_overlap,1.0
+comp_overlap,0.0
+num_generations,1000000
+max_gen_save,1000000
+max_time,100000000
