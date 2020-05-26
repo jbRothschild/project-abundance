@@ -1,6 +1,5 @@
 import os; import csv
 import numpy as np
-from matplotlib import animation # animation
 
 RESULTS_DIR = "sim_results"
 
@@ -8,35 +7,66 @@ RESULTS_DIR = "sim_results"
 Need some explanation of how this works.
 """
 
-class MultiLV(object):
-    def __init__( self, num_generations, max_time, sim_dir='multiLV', birth_rate=20.0, death_rate=1.0, immi_rate=0.05, emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0, comp_overlap=0.0, **kwargs):
 
-        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap; self.num_generations = num_generations; self.max_gen_save = num_generations; self.max_time = max_time
-        self.sim_dir=sim_dir
-
-    def create_sim_folder( self ):
-        # create the directory with simulation results
-        save_dir =  os.getcwd() + os.sep + RESULTS_DIR + os.sep + self.sim_dir; i = 0;
-        while os.path.exists( save_dir + str(i) ): i += 1;
-        save_dir = save_dir + str(i)
-
-        self.sim_dir = save_dir; os.makedirs( save_dir )
-
-        # save the parameters of simulation
-        dict = self.__dict__
-        w = csv.writer( open(self.sim_dir + os.sep + "params.csv", "w"))
-        for key, val in dict.items():
-            w.writerow([key,val])
-
-        # figures subfolder
-        self.figure_dir = self.sim_dir + os.sep + 'figures'
-        if not os.path.exists( self.figure_dir):
-            os.makedirs(self.figure_dir)
-
-        return 0
+class Parent(object):
+    def __init__(self,  num_generations, max_time, sim_dir='default'):
+        self.sim_dir = sim_dir
 
     #def unpack( self ):
     #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.dz
+
+    def create_sim_folder( self ):
+        # create the directory with simulation results
+        save_dir =  os.getcwd() + os.sep + RESULTS_DIR + os.sep +  self.sim_dir;
+        save_subdir =  save_dir + os.sep + 'sim';
+
+        # figures subfolder
+        self.figure_dir = save_dir + os.sep + 'figures'
+        if not os.path.exists( self.figure_dir):
+            os.makedirs(self.figure_dir)
+
+        # simulation number directory
+        i = 0;
+        while os.path.exists( save_subdir + str(i) ): i += 1;
+        save_subdir = save_subdir + str(i)
+
+        self.sim_dir = save_dir;
+        self.sim_subdir = save_subdir; os.makedirs( save_subdir )
+
+        # save the parameters of simulation
+        dict = self.__dict__
+        w = csv.writer( open(self.sim_subdir + os.sep + "params.csv", "w"))
+        for key, val in dict.items():
+            w.writerow([key,val])
+
+        return 0
+
+    def generation_time_exceed( self, time, i ):
+        if self.num_generations < i:
+            print('END OF SIM >>>> Exceeded amount of generations permitted: ' + str(i) + ' generations')
+            return True
+        elif self.max_time < time:
+            print('END OF SIM >>>> Exceeded amount of generations permitted: '  + str(time) + ' time passed')
+            return True
+        return False
+
+    def save_trajectory( self, simulation, times, traj ):
+        """
+        For now simply saves each trajectory.
+        """
+        idx_sort = np.argsort(times)
+        np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s.txt' %(traj), simulation[idx_sort,:] )
+        np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s_time.txt' %(traj), times[idx_sort])
+        return 0
+
+
+############################## MULTISPECIES LOTKA-VOLTERA MODEL #############################
+
+class MultiLV(Parent):
+    def __init__( self, num_generations, max_time, sim_dir='multiLV', birth_rate=20.0, death_rate=1.0, immi_rate=0.05, emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0, comp_overlap=0.5, **kwargs):
+
+        self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap; self.num_generations = num_generations; self.max_gen_save = num_generations; self.max_time = max_time
+        self.sim_dir=sim_dir
 
     def propensity( self, current_state ):
         """
@@ -78,15 +108,6 @@ class MultiLV(object):
         """
         return False
 
-    def generation_time_exceed( self, time, i ):
-        if self.num_generations < i:
-            print('END OF SIM >>>> Exceeded amount of generations permitted: ' + str(i) + ' generations')
-            return True
-        elif self.max_time < time:
-            print('END OF SIM >>>> Exceeded amount of generations permitted: '  + str(time) + ' time passed')
-            return True
-        return False
-
     def initialize( self, num_states ):
         """
         Inital state of our simulation. Here close to the steady state solution
@@ -95,17 +116,8 @@ class MultiLV(object):
         initial_state += int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate*( self.comp_overlap*( num_states - 1 ) + 1 )/( self.K*(self.birth_rate-self.death_rate) ) ) )/( 2*( self.comp_overlap*( num_states - 1 ) + 1 ) ))
         return initial_state
 
-    def save_trajectory( self, simulation, times, traj ):
-        """
-        For now simply saves each trajectory.
-        """
-        idx_sort = np.argsort(times)
-        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s.txt' %(traj), simulation[idx_sort,:] )
-        np.savetxt(self.sim_dir + os.sep + 'trajectory_%s_time.txt' %(traj), times[idx_sort])
-        return 0
-
 ############################## SIR MODEL #############################
-class SIR(MultiLV):
+class SIR(Parent):
     """
     stochastic SIR model described by Kamenev and Meerson
     """

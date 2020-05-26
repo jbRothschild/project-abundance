@@ -1,0 +1,14 @@
+birth_rate,20.0
+death_rate,1.0
+immi_rate,0.05
+emmi_rate,0.0
+K,100
+linear,0.0
+quadratic,0.0
+sim_dir,/home/jbrothschild/Documents/project-abundance/gillespie/sim_results/multiLV
+comp_overlap,0.5
+num_generations,1000000
+max_gen_save,1000000
+max_time,100000000
+figure_dir,/home/jbrothschild/Documents/project-abundance/gillespie/sim_results/multiLV/figures
+sim_subdir,/home/jbrothschild/Documents/project-abundance/gillespie/sim_results/multiLV/sim0

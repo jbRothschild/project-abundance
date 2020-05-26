@@ -122,7 +122,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "Simulation of N species")
 
     #TODO in this new structure, I think number of species is useless... should be a done differently.f
-    parser.add_argument('-s', type = int, default = 50, nargs = '?', help = "Number of species in total.")
+    parser.add_argument('-s', type = int, default = 30, nargs = '?', help = "Number of species in total.")
     parser.add_argument('-g', type = int, default = 10**6, nargs = '?', help = "Number of generations (reactions) in total.")
     parser.add_argument('-T', type = int, default = 10**8, nargs = '?', help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?', help = "Number of runs/trajectories.")
