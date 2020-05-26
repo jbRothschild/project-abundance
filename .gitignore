@@ -1,4 +1,4 @@
-gillespie/results/*
+gillespie/sim_results/*
 *.pyc
 *.pdf
 *.png
