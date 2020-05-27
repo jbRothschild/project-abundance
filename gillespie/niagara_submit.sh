@@ -17,4 +17,4 @@ module load gnu-parallel
 export OMP_NUM_THREADS=1
 
 # EXECUTION COMMAND; ampersand off 40 jobs and wait
-parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 100" ::: {1..100} --bar
+parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE -N0 "python gillespie.py -m sir -t 100" ::: {1..100} --bar
