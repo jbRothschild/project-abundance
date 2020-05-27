@@ -79,15 +79,16 @@ def gillespie(Model, max_time, num_generations, num_states, traj):
     init_state = Model.initialize( num_states )
 
     # create output arrays output
-    simulation = np.zeros( ( Model.max_gen_save, num_states ) )
+    simulation = np.zeros( ( Model.max_gen_save, len(init_state) ) )
     times = np.zeros( ( Model.max_gen_save ) )
 
     # Initialize and perform simulation
     i = 1
     simulation[0,:] = init_state.copy()
     current_state = simulation[0,:].copy()
-    while not (Model.stop_condition(current_state, i) or Model.generation_time_exceed(times[i-1], i)):
-        current_state = simulation[i-1,:].copy()
+    while not (Model.stop_condition(current_state, i) or Model.generation_time_exceed(times[(i-1)%Model.max_gen_save], i)):
+        current_state = simulation[(i-1)%Model.max_gen_save,:].copy()
+        print(i)
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
@@ -116,23 +117,25 @@ class StoreDictKeyPair(argparse.Action):
 
 if __name__ == "__main__":
 
-    np.random.seed( 42 ) # set random seed
+    np.random.seed( ) # set random seed
 
     # get commandline arguments
     parser = argparse.ArgumentParser(description = "Simulation of N species")
 
     #TODO in this new structure, I think number of species is useless... should be a done differently.f
+    parser.add_argument('-m', type = str, default = 'multiLV', nargs = '?', help = "Model to use.")
     parser.add_argument('-s', type = int, default = 30, nargs = '?', help = "Number of species in total.")
-    parser.add_argument('-g', type = int, default = 10**6, nargs = '?', help = "Number of generations (reactions) in total.")
+    parser.add_argument('-g', type = int, default = 10**10, nargs = '?', help = "Number of generations (reactions) in total.")
     parser.add_argument('-T', type = int, default = 10**8, nargs = '?', help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?', help = "Number of runs/trajectories.")
-    parser.add_argument('-m', type = str, default = 'multiLV', nargs = '?', help = "Model to use.")
+    parser.add_argument('-n', type = int, default = 0, nargs = '?', help = "Simulation number.")
     parser.add_argument('-p', metavar='KEY=VAL', default= {'nada' : 0.0}, dest='my_dict', nargs='*', action=StoreDictKeyPair, required=False, help='Additional parameters to be passed on for the simulation')
     # TODO add multiprocessing. Will make it a lot better. Major changes need to happen to parallelize all this.
 
     args = parser.parse_args()
     model = args.m; num_states = args.s; num_generations = args.g; max_time = args.T; num_runs = args.t
     param_dict = vars(args)['my_dict']
+    param_dict['sim_number'] = args.n
 
     Model = gm.MODELS[model](num_generations, max_time, **param_dict) # select which class/model we are using
     Model.create_sim_folder()

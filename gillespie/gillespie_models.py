@@ -9,8 +9,9 @@ Need some explanation of how this works.
 
 
 class Parent(object):
-    def __init__(self,  num_generations, max_time, sim_dir='default'):
+    def __init__(self,  num_generations, max_time, sim_dir='default', sim_number=0):
         self.sim_dir = sim_dir
+        self.sim_number = sim_number
 
     #def unpack( self ):
     #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.dz
@@ -22,11 +23,11 @@ class Parent(object):
 
         # figures subfolder
         self.figure_dir = save_dir + os.sep + 'figures'
-        if not os.path.exists( self.figure_dir):
+        if not os.path.exists( self.figure_dir ) and self.sim_number == 0:
             os.makedirs(self.figure_dir)
 
         # simulation number directory
-        i = 0;
+        i = self.sim_number;
         while os.path.exists( save_subdir + str(i) ): i += 1;
         save_subdir = save_subdir + str(i)
 
@@ -63,10 +64,10 @@ class Parent(object):
 ############################## MULTISPECIES LOTKA-VOLTERA MODEL #############################
 
 class MultiLV(Parent):
-    def __init__( self, num_generations, max_time, sim_dir='multiLV', birth_rate=20.0, death_rate=1.0, immi_rate=0.05, emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0, comp_overlap=0.5, **kwargs):
+    def __init__( self, num_generations, max_time, sim_dir='multiLV', birth_rate=20.0, death_rate=1.0, immi_rate=0.05, emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0, comp_overlap=0.5, sim_number=0, **kwargs):
 
         self.birth_rate=birth_rate; self.death_rate=death_rate; self.immi_rate=immi_rate; self.emmi_rate=emmi_rate; self.K=K; self.linear=linear; self.quadratic=quadratic; self.sim_dir=sim_dir; self.comp_overlap=comp_overlap; self.num_generations = num_generations; self.max_gen_save = num_generations; self.max_time = max_time
-        self.sim_dir=sim_dir
+        self.sim_dir=sim_dir; self.sim_number = sim_number
 
     def propensity( self, current_state ):
         """
@@ -121,10 +122,10 @@ class SIR(Parent):
     """
     stochastic SIR model described by Kamenev and Meerson
     """
-    def __init__( self,  num_generations, max_time, max_gen_save = 10000, sim_dir='sir', renewal_rate=1.0, infected_death_rate=10.0, total_population=200, beta_rate=20.0, **kwargs):
+    def __init__( self,  num_generations, max_time, max_gen_save = 10000, sim_dir='sir', renewal_rate=1.0, infected_death_rate=10.0, total_population=200, beta_rate=20.0, sim_number=0, **kwargs):
 
         self.renewal_rate = renewal_rate; self.infected_death_rate = infected_death_rate; self.total_population = total_population; self.beta_rate = beta_rate; self.num_generations = num_generations; self.max_gen_save = max_gen_save; self.max_time = max_time
-        self.sim_dir=sim_dir
+        self.sim_dir=sim_dir; self.sim_number = sim_number
 
     def propensity( self, current_state ):
         """
@@ -140,7 +141,7 @@ class SIR(Parent):
         prop[0] = current_state[0] * self.renewal_rate
         prop[1] = current_state[1] *  self.infected_death_rate
         prop[2] = self.renewal_rate *  self.total_population
-        prop[3] = ( self.beta_rate/ self.total_population) * current_state[1] * current_state[0]
+        prop[3] = ( self.beta_rate / self.total_population) * current_state[1] * current_state[0]
 
         return prop
 
