@@ -156,7 +156,7 @@ class SIR(Parent):
         """
         update = np.zeros( len(current_state) )
         if idx_reaction == 0:
-            update[0] = 1
+            update[0] = -1
         elif idx_reaction == 1:
             update[1] = -1
         elif idx_reaction == 2:

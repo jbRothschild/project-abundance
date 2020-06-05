@@ -5,14 +5,13 @@
 
 Other info...
 
-Usage:
+Usage :
 
-Example usage:
-
+Example usage :
 
 """
 
-# TODO : num_states is poorly named, should be number of species or something
+# TODO : num_states is poorly named, should be number of species or something. Even deleted if if must.
 
 import numpy as np
 import random, datetime, argparse

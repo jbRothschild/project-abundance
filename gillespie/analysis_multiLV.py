@@ -9,7 +9,8 @@ from scipy.special import gamma, poch, factorial
 import seaborn as sns
 import itertools
 
-plt.style.use('parameters.mplstyle')
+#plt.style.use('parameters.mplstyle')
+plt.style.use('custom.mplstyle')
 
 ######################### THEORY FUNCTIONS ########################################
 
