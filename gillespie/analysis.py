@@ -140,10 +140,10 @@ def sir_mean_trajectory(sim_dir, plot = True):
             # check that it's not zero time
             if ( times[traj_idx,time_idx]-times[traj_idx,time_idx-1] != 0.0
                  and -int(np.floor(times[traj_idx,time_idx]/step_size))<FN):
-                mean_traj[0-int(np.floor(times[traj_idx,time_idx]
+                mean_traj[-1+int(np.floor(times[traj_idx,time_idx]
                                          /step_size)),:] \
                                          += all_traj[traj_idx,time_idx,:]
-                normalization[0-int(np.floor(times[traj_idx,time_idx]
+                normalization[-1+int(np.floor(times[traj_idx,time_idx]
                                                             /step_size) )]+= 1
 
     mean_traj = mean_traj / normalization[:,np.newaxis]
@@ -151,9 +151,10 @@ def sir_mean_trajectory(sim_dir, plot = True):
     if plot:
         fig = plt.figure(); ax = plt.gca()
         for i in range(0, len(mean_traj_times) - 1 ):
+            print(mean_traj[i:i+2,0],mean_traj[i:i+2,1])
             ax.plot(mean_traj[i:i+2,0], mean_traj[i:i+2,1],
                     color=plt.cm.plasma(int(255*i/len(mean_traj_times))))
-        #plt.ylim(bottom=0.0); plt.xlim(left=0.0)
+        plt.ylim(bottom=0.0); #plt.xlim(left=0.0)
         min_ylim, max_ylim = plt.ylim()
         min_xlim, max_xlim = plt.xlim()
         plt.xlabel(r'number susceptible ($S$)')
@@ -165,7 +166,7 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'sir'
+    sim_dir = RESULTS_DIR + os.sep + 'sir0'
 
-    fpt_distribution(sim_dir)
+    #fpt_distribution(sim_dir)
     sir_mean_trajectory(sim_dir)
