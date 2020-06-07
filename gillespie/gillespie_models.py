@@ -48,7 +48,7 @@ class Parent(object):
             print('END OF SIM >>>> Exceeded amount of generations permitted: '
                             + str(time) + ' time passed')
             return True
-            
+
         return False
 
     def save_trajectory( self, simulation, times, traj ):
@@ -77,7 +77,7 @@ class MultiLV(Parent):
         self.comp_overlap=comp_overlap; self.nbr_generations = nbr_generations;
         self.max_gen_save = nbr_generations; self.max_time = max_time
         self.sim_dir=sim_dir; self.sim_number = sim_number
-        self.nbr_species=nbr_species
+        self.nbr_states=nbr_species
 
     def propensity( self, current_state ):
         """
@@ -142,9 +142,9 @@ class MultiLV(Parent):
         """
         initial_state = np.zeros( (sel.nbr_species) ) #necessary, everything 0
         initial_state += int(self.K*( 1 + np.sqrt( 1 + 4*self.immi_rate
-                         * ( self.comp_overlap*( self.nbr_species -1 ) +1 )
+                         * ( self.comp_overlap*( self.nbr_states -1 ) +1 )
                          / ( self.K*(self.birth_rate-self.death_rate) ) ) )
-                         / ( 2*( self.comp_overlap*( self.nbr_species -1 ) +1)))
+                         / ( 2*( self.comp_overlap*( self.nbr_states -1 ) +1)))
         return initial_state
 
 ############################## SIR MODEL #############################
@@ -175,11 +175,11 @@ class SIR(Parent):
         """
         prop = np.zeros( len(current_state)*2 )
 
-        prop[0] = current_state[0] * self.renewal_rate
-        prop[1] = current_state[1] *  self.infected_death_rate
-        prop[2] = self.renewal_rate *  self.total_population
-        prop[3] = ( ( self.beta_rate / self.total_population)
-                  * current_state[1] * current_state[0] )
+        prop[0] = self.renewal_rate * current_state[0] # death of susceptible
+        prop[1] = current_state[1] *  self.infected_death_rate # death infected
+        prop[2] = self.renewal_rate *  self.total_population # birth susceptible
+        prop[3] = ( ( self.beta_rate / self.total_population) \
+                  * current_state[1] * current_state[0] ) #  infection
 
         return prop
 
@@ -224,7 +224,7 @@ class SIR(Parent):
         Inital state of our simulation. Here close to the steady state solution,
         see Kamenev and Meerson
         """
-        initial_state = np.zeros( 2, dtype=int ) #necessary, everything 0
+        initial_state = np.zeros( self.nbr_states, dtype=int ) #necessary, everything 0
         initial_state[0] = np.int( (self.infected_death_rate/self.beta_rate)
                            * self.total_population )
         initial_state[1] = np.int( self.renewal_rate * self.total_population

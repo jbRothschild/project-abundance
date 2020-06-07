@@ -56,7 +56,7 @@ def gillespie_draw(Model, current_state):
     prob_propensity = propensity/sum( propensity )
 
     # compute time
-    time = - np.log( r1 )/np.sum( prob_propensity )
+    time = - np.log( r1 )/np.sum( propensity )
 
     # draw reaction from this distribution
     reaction_index = sample_discrete(prob_propensity, r2)
@@ -86,12 +86,10 @@ def gillespie(Model, traj):
     i = 1
     simulation[0,:] = init_state.copy()
     current_state = simulation[0,:].copy()
-    print(current_state)
+
     while not ( ( Model.stop_condition(current_state) ) or
                   Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
-                                                i) ) :
-        current_state = simulation[(i-1)%Model.max_gen_save,:].copy()
-        print(i)
+                                                i-1) ) :
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
@@ -100,6 +98,7 @@ def gillespie(Model, traj):
         simulation[i%Model.max_gen_save,:] = Model.update( current_state,
                                                            reaction_idx );
         times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
+        current_state = simulation[i%Model.max_gen_save,:].copy()
         i += 1
 
     Model.save_trajectory(simulation, times, traj)
