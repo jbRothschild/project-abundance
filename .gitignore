@@ -4,3 +4,4 @@ gillespie/sim_results/*
 *.png
 *.eps
 *.txt
+*slurm*

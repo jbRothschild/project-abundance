@@ -163,7 +163,6 @@ class SIR(Parent):
         self.nbr_generations = nbr_generations;
         self.max_gen_save = max_gen_save; self.max_time = max_time
         self.sim_dir=sim_dir; self.sim_number = sim_number
-        self.nbr_states = 2
 
     def propensity( self, current_state ):
         """
@@ -225,7 +224,7 @@ class SIR(Parent):
         Inital state of our simulation. Here close to the steady state solution,
         see Kamenev and Meerson
         """
-        initial_state = np.zeros( self.nbr_states, dtype=int ) #necessary, everything 0
+        initial_state = np.zeros( self.nbr_states, dtype=int ) 
         initial_state[0] = np.int( (self.infected_death_rate/self.beta_rate)
                            * self.total_population )
         initial_state[1] = np.int( self.renewal_rate * self.total_population
