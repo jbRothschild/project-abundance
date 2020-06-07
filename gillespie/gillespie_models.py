@@ -163,6 +163,7 @@ class SIR(Parent):
         self.nbr_generations = nbr_generations;
         self.max_gen_save = max_gen_save; self.max_time = max_time
         self.sim_dir=sim_dir; self.sim_number = sim_number
+        self.nbr_states = 2
 
     def propensity( self, current_state ):
         """
