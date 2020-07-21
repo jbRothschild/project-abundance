@@ -16,8 +16,29 @@ module load gnu-parallel
 # Turn off implicit threading in Python, R
 export OMP_NUM_THREADS=1
 
+NUM_TASKS=40 # Generally 40, maybe more?
+NUM_TASKS_ZERO=$((NUM_TASKS-1))
+
+logspace () {
+    start=$1
+    end=$2
+    if [ $# -ne 3 ]
+    then
+        count=10
+    else
+        count=$3
+    fi
+
+    python -c "import numpy as np; print(np.logspace($start, $end, $count).tolist())"
+}
+
 # EXECUTION COMMAND; ampersand off 40 jobs and wait
+
 # SIR model
-parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: {0..39}
+#parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
 # multiLV model, varying parameters
+VAR=($(logspace -2 0 ${NUM_TASKS} | tr -d '[],'))
+VAR_NAME="comp_overlap"
+
+parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1 -n {} -p ${VAR_NAME}=${VAR[{}]} max_gen_save=10000" ::: `seq 0 ${NUM_TASKS_ZERO}`

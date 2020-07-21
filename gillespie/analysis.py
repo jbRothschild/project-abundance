@@ -14,7 +14,8 @@ def consolidate_trajectories(sim_dir, save_file=False, FORCE_NUMBER=3000):
 
     Input :
         sim_dir (string) : diretory to go through all the time files
-        plot (binary)    : whether or not to plot this distribution
+        plot (binary)    : whether or not to plot this Distribution
+        FORCE_NUMBER     : Maximum number of trajectories
 
     Return :
         all_traj (array) : all trajectories ( num_traj x length_traj
@@ -105,6 +106,36 @@ def fpt_distribution(sim_dir, plot = True):
 
     return fpt
 
+def sir_dstbn_fp(all_traj, plot = True):
+    """
+    Input :
+        all_traj (array) : all trajectories ( num_traj x length_traj
+                                              x num_species )
+
+    """
+
+    FORCE_NUMBER = 1000
+
+    final_pstn = [];
+
+    for i in range(0,FORCE_NUMBER):
+        final_pstn.append(all_traj[i,-1,0])
+
+    kwargs = dict( alpha=0.3, density=True, histtype='stepfilled',
+                   color='steelblue');
+    plt.hist( final_pstn, bins=100, **kwargs );
+    plt.xlim(left=0.0)
+    min_ylim, max_ylim = plt.ylim()
+    min_xlim, max_xlim = plt.xlim()
+    plt.yscale('log')
+    plt.ylabel(r'probability')
+    plt.xlabel(r'Susceptible at fpt')
+    plt.show()
+
+
+    return 0
+
+# TODO Somethimes should be able to just
 def sir_mean_trajectory(sim_dir, plot = True):
     """
     Assuming the trajectories all end at the same point (extinction of infected)
@@ -119,7 +150,7 @@ def sir_mean_trajectory(sim_dir, plot = True):
         mean_traj (array) : array of first passage times
 
     """
-    FN = 500
+    FN = 500;
 
     all_traj, times = consolidate_trajectories(sim_dir, FORCE_NUMBER=FN);
 
@@ -127,12 +158,11 @@ def sir_mean_trajectory(sim_dir, plot = True):
     for i in range(0,np.shape(times)[1]):
         times[:,i] = times[:,i] - times[:,-1]
 
-
     mean_traj_times, step_size = np.linspace( -2*fpt, np.max(times),
     #mean_traj_times, step_size = np.linspace( np.min(times), np.max(times),
-                                              FN, retstep=True )
-    mean_traj = np.zeros( ( len(mean_traj_times), np.shape(all_traj)[2]) )
-    normalization = np.zeros( len( mean_traj_times ) )
+                                              FN, retstep=True );
+    mean_traj = np.zeros( ( len(mean_traj_times), np.shape(all_traj)[2]) );
+    normalization = np.zeros( len( mean_traj_times ) );
 
     # Populate the mean position at each time point
     for traj_idx in range(0, np.shape(all_traj)[0]):
@@ -148,10 +178,12 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
     mean_traj = mean_traj / normalization[:,np.newaxis]
 
+    #sir_dstbn_fp(all_traj, plot) # TODO : somewhere else
+
     if plot:
         fig = plt.figure(); ax = plt.gca()
         for i in range(0, len(mean_traj_times) - 1 ):
-            print(mean_traj[i:i+2,0],mean_traj[i:i+2,1])
+
             ax.plot(mean_traj[i:i+2,0], mean_traj[i:i+2,1],
                     color=plt.cm.plasma(int(255*i/len(mean_traj_times))))
         plt.ylim(bottom=0.0); #plt.xlim(left=0.0)
@@ -166,7 +198,7 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'sir0'
+    sim_dir = RESULTS_DIR + os.sep + 'sir'
 
     #fpt_distribution(sim_dir)
     sir_mean_trajectory(sim_dir)

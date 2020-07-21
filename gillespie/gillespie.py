@@ -93,12 +93,15 @@ def gillespie(Model, traj):
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
+        Model.update_results(current_state, dt)
+
         # Update the system
         # TODO what if system size changes? Going to have to rethink this...
         simulation[i%Model.max_gen_save,:] = Model.update( current_state,
                                                            reaction_idx );
         times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
         current_state = simulation[i%Model.max_gen_save,:].copy()
+
         i += 1
 
     Model.save_trajectory(simulation, times, traj)
@@ -134,7 +137,7 @@ if __name__ == "__main__":
                         help = "Model to use.")
     parser.add_argument('-g', type = int, default = 10**10, nargs = '?',
                         help = "Number of generations (rxns) in total.")
-    parser.add_argument('-T', type = int, default = 10**8, nargs = '?',
+    parser.add_argument('-T', type = int, default = 10**9, nargs = '?',
                         help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?',
                         help = "Number of runs/trajectories.")
@@ -159,9 +162,14 @@ if __name__ == "__main__":
     # select which class/model we are using
     Model = gm.MODELS[model](**param_dict)
 
-    # make directory to save simulation number
-    Model.create_sim_folder()
+    # Probably not the best way to do this.
+    immi_rate = np.logspace(-2,0,40)
+
+    # make directory to save simulation number, change if already exists
+    Model.create_sim_folder(); param_dict['sim_number'] = Model.sim_number
 
     # run gillespie TODO parallelize. Have a couple savepoints?
     for traj in range( num_runs ):
+        param_dict[]
+        Model.__init__(**param_dict)
         gillespie(Model, traj)
