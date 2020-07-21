@@ -14,7 +14,7 @@ import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
 
-import seaborn as sns
+#import seaborn as sns
 
 import theory_equations as te
 

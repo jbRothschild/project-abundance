@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=40
-#SBATCH --time=00:15:00
+#SBATCH --time=12:00:00
 #SBATCH --job-name gillespie-sir
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
@@ -41,4 +41,5 @@ logspace () {
 VAR=($(logspace -2 0 ${NUM_TASKS} | tr -d '[],'))
 VAR_NAME="comp_overlap"
 
-parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1 -n {} -p ${VAR_NAME}=${VAR[{}]} max_gen_save=10000" ::: `seq 0 ${NUM_TASKS_ZERO}`
+parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1 -n {#} -p ${VAR_NAME}={} max_gen_save=10000" ::: ${VAR}
+

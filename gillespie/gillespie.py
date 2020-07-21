@@ -170,6 +170,5 @@ if __name__ == "__main__":
 
     # run gillespie TODO parallelize. Have a couple savepoints?
     for traj in range( num_runs ):
-        param_dict[]
         Model.__init__(**param_dict)
         gillespie(Model, traj)
