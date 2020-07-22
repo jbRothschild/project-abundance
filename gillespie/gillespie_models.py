@@ -85,7 +85,8 @@ class MultiLV(Parent):
                   emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0,
                   comp_overlap=0.5, sim_number=0, nbr_species=30,
                   **kwargs):
-        super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir, sim_number)
+        super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir,
+                                      sim_number)
         self.birth_rate=birth_rate; self.death_rate=death_rate;
         self.immi_rate=immi_rate; self.emmi_rate=emmi_rate;
         self.carry_capacity=K; self.linear=linear; self.quadratic=quadratic;
@@ -250,8 +251,8 @@ class SIR(Parent):
                   infected_death_rate=10.0, total_population=200,
                   beta_rate=20.0, sim_number=0, **kwargs):
 
-        super(SIR, self).__init__( nbr_generations, max_time, sim_dir, sim_number,
-                         max_gen_save)
+        super(SIR, self).__init__( nbr_generations, max_time, sim_dir,
+                                  sim_number)
         self.renewal_rate = renewal_rate;
         self.infected_death_rate = infected_death_rate;
         self.total_population = total_population; self.beta_rate = beta_rate;

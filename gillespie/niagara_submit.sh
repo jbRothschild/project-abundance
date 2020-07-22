@@ -41,5 +41,4 @@ logspace () {
 VAR=($(logspace -2 0 ${NUM_TASKS} | tr -d '[],'))
 VAR_NAME="comp_overlap"
 
-parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1 -n {#} -p ${VAR_NAME}={} max_gen_save=10000" ::: ${VAR}
-
+parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m multiLV -t 1 -n {#} -p ${VAR_NAME}={} max_gen_save=10000" ::: ${VAR}
