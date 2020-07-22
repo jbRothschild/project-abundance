@@ -14,9 +14,9 @@ TODO : Need some explanation of how this works. Give details and such. Working
 """
 
 class Parent(object):
-    def __init__(self,  nbr_generations, max_time, sim_dir='default'
+    def __init__(self,  nbr_generations, max_time, sim_dir
                  , sim_number=0):
-        self.sim_dir = sim_dir; self.sim_number = sim_number;
+        self.sim_number = sim_number; self.sim_dir = sim_dir;
         self.max_time = max_time; self.nbr_generations = nbr_generations;
 
     #def unpack( self ):
@@ -85,11 +85,11 @@ class MultiLV(Parent):
                   emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0,
                   comp_overlap=0.5, sim_number=0, nbr_species=30,
                   **kwargs):
-        super().__init__(nbr_generations, max_time, sim_dir, sim_number)
+        super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir, sim_number)
         self.birth_rate=birth_rate; self.death_rate=death_rate;
         self.immi_rate=immi_rate; self.emmi_rate=emmi_rate;
         self.carry_capacity=K; self.linear=linear; self.quadratic=quadratic;
-        self.comp_overlap=comp_overlap; self.max_gen_save=nbr_generations; 
+        self.comp_overlap=comp_overlap; self.max_gen_save=nbr_generations;
         self.nbr_species=nbr_species
 
         if 'max_gen_save' in kwargs.keys():
@@ -106,7 +106,7 @@ class MultiLV(Parent):
             #
             #
             self.results = {'ss_distribution' : np.zeros(self.carry_capacity*4)
-                            , 'richness' : np.zeros(self.nbr_species)
+                            , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
                             #,
@@ -232,7 +232,7 @@ class MultiLV(Parent):
 
 
 
-        super().save_trajectory(simulation, times, traj)
+        super(MultiLV, self).save_trajectory(simulation, times, traj)
 
         # with open('filename.pickle', 'rb') as handle:
         #    b = pickle.load(handle)
@@ -250,7 +250,7 @@ class SIR(Parent):
                   infected_death_rate=10.0, total_population=200,
                   beta_rate=20.0, sim_number=0, **kwargs):
 
-        super().__init__( nbr_generations, max_time, sim_dir, sim_number,
+        super(SIR, self).__init__( nbr_generations, max_time, sim_dir, sim_number,
                          max_gen_save)
         self.renewal_rate = renewal_rate;
         self.infected_death_rate = infected_death_rate;

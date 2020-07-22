@@ -1,4 +1,4 @@
-import numpy as np; import csv, os, glob, csv
+import numpy as np; import csv, os, glob, csv, time, datetime
 
 import matplotlib as mpl; import matplotlib.pyplot as plt
 import matplotlib.patches as patches # histgram animation
@@ -354,7 +354,7 @@ class Model_MultiLVim(object):
                 probability += self.dstbn_n_given_J(J) * prob_J
 
             # Not normalized???
-            probability = probability/(np.sum(probability))
+            #probability = probability/(np.sum(probability))
 
         abundance = self.nbr_species * probability
 
@@ -371,7 +371,7 @@ class CompareModels(object):
                  carry_capacity=(np.logspace(1,3,100)).astype(int),
                  immi_rate=np.logspace(-2,2,100),
                  nbr_species=(np.logspace(0,3,100)).astype(int),
-                 model=Model_MultiLVim()):
+                 model=Model_MultiLVim):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
@@ -550,63 +550,64 @@ class CompareModels(object):
 
             return H, richness
 
-        def compare_abundance_approx_MSLVim():
-            """
-            Compare different approximations for abundance Distribution
+    def compare_abundance_approx_MSLVim(self):
+        """
+        Compare different approximations for abundance Distribution
 
-            """
+        """
 
-            matlab_files = ['Results_01','Results_05','Results_1']
+        matlab_files = ['Results_01','Results_05','Results_1']
 
-            for i, comp_o in enumerate([0.1,0.5,0.999]):
-                EqnsMLV = self.model(comp_overlap=comp_o)
-                #abund_moranton_const = EqnsMLV.abund_moranton()
-                #abund_moranton = EqnsMLV.abund_moranton(const_J=False)
-                prob_sid, abund_sid = EqnsMLV.abund_sid()
-                #abund_kolmog = EqnsMLV.abund_kolmog(const_J=False)
-                #prob_jeremy, abund_jeremy = EqnsMLV.abund_1spec_MSLV(dstbn_approx='Jeremy')
-                prob_nava, abund_nava = EqnsMLV.abund_1spec_MSLV(dstbn_approx =
-                                                                 'Nava')
+        for i, comp_o in enumerate([0.1,0.5,0.999]):
+            EqnsMLV = self.model(comp_overlap=comp_o)
+            #abund_moranton_const = EqnsMLV.abund_moranton()
+            #abund_moranton = EqnsMLV.abund_moranton(const_J=False)
+            prob_sid, abund_sid = EqnsMLV.abund_sid()
+            #abund_kolmog = EqnsMLV.abund_kolmog(const_J=False)
+            #prob_jeremy, abund_jeremy = EqnsMLV.abund_1spec_MSLV(dstbn_approx='Jeremy')
+            tic = time.clock()
+            prob_nava, abund_nava = EqnsMLV.abund_1spec_MSLV(dstbn_approx =
+                                                             'Nava')
+            toc = time.clock()
+            print(str(datetime.timedelta(seconds=int(toc-tic))))
 
-                dict_matlab = spo.loadmat('nava_results'+os.sep+matlab_files[i])
+            dict_matlab = spo.loadmat('nava_results'+os.sep+matlab_files[i])
 
-                abund_nava_m = dict_matlab['QN']
-                abund_sid_m = dict_matlab['Q_Ant']
+            abund_nava_m = dict_matlab['QN']
+            abund_sid_m = dict_matlab['Q_Ant']
 
-                print(sum,np.sum(abund_nava_m))
+            #print(np.sum(abund_sid),np.sum(abund_jeremy),np.sum(abund_nava))
+            end = 300
+            fig = plt.figure()
+            #plt.plot(EqnsMLV.population,abund_moranton_const,
+                      #label='Moranton cst.')
+            #plt.plot(EqnsMLV.population,abund_moranton,label='Moranton')
+            plt.plot(EqnsMLV.population[:end], abund_sid[:end],
+                     label='A.-S. approx.')
+            #plt.plot(EqnsMLV.population,abund_kolmog,label='Kolmog. approx')
+            #plt.plot(EqnsMLV.population[:end], abund_jeremy[:end],
+                      #label='Jeremy approx.')
+            plt.plot(EqnsMLV.population[:end], abund_nava[:end],
+                     label='Nava approx.')
+            plt.plot(EqnsMLV.population[:end],
+                     EqnsMLV.nbr_species*abund_sid_m[:end],
+                     label='A.-S. Matlab', linestyle='-.')
+            plt.plot(EqnsMLV.population[:end],
+                     EqnsMLV.nbr_species*abund_nava_m[:end],
+                     label='Nava Matlab', linestyle='-.')
+            plt.legend(loc='best')
+            plt.ylabel("abundance")
+            plt.xlabel("population size")
+            plt.yscale('log')
+            plt.show()
 
-                #print(np.sum(abund_sid),np.sum(abund_jeremy),np.sum(abund_nava))
-                end = 300
-                fig = plt.figure()
-                #plt.plot(EqnsMLV.population,abund_moranton_const,
-                          #label='Moranton cst.')
-                #plt.plot(EqnsMLV.population,abund_moranton,label='Moranton')
-                plt.plot(EqnsMLV.population[:end], abund_sid[:end],
-                         label='A.-S. approx.')
-                #plt.plot(EqnsMLV.population,abund_kolmog,label='Kolmog. approx')
-                #plt.plot(EqnsMLV.population[:end], abund_jeremy[:end],
-                          #label='Jeremy approx.')
-                plt.plot(EqnsMLV.population[:end], abund_nava[:end],
-                         label='Nava approx.')
-                plt.plot(EqnsMLV.population[:end],
-                         EqnsMLV.nbr_species*abund_sid_m[:end],
-                         label='A.-S. Matlab', linestyle='-.')
-                plt.plot(EqnsMLV.population[:end],
-                         EqnsMLV.nbr_species*abund_nava_m[:end],
-                         label='Nava Matlab', linestyle='-.')
-                plt.legend(loc='best')
-                plt.ylabel("abundance")
-                plt.xlabel("population size")
-                plt.yscale('log')
-                plt.show()
-
-        return 0
+            return 0
 
 if __name__ == "__main__":
 
     #dict_matlab = spo.loadmat('nava_results/Results_01')
     #print(dict_matlab['NumberOfSpecies'])
 
-    #compare_abundance_approx_MSLVim()
     compare = CompareModels()
-    compare.metric_compare("carry_capacity","immi_rate")
+    compare.compare_abundance_approx_MSLVim()
+    #compare.metric_compare("carry_capacity","immi_rate")

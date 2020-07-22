@@ -90,6 +90,7 @@ def gillespie(Model, traj):
     while not ( ( Model.stop_condition(current_state) ) or
                   Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
                                                 i-1) ) :
+        print(i)
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
@@ -161,9 +162,6 @@ if __name__ == "__main__":
 
     # select which class/model we are using
     Model = gm.MODELS[model](**param_dict)
-
-    # Probably not the best way to do this.
-    immi_rate = np.logspace(-2,0,40)
 
     # make directory to save simulation number, change if already exists
     Model.create_sim_folder(); param_dict['sim_number'] = Model.sim_number
