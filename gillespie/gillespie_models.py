@@ -35,6 +35,7 @@ class Parent(object):
         self.sim_dir = save_dir;
         self.sim_number = i
         self.sim_subdir = save_subdir; os.makedirs( save_subdir )
+        print(i)
 
         # save the parameters of simulation
         # TODO : Change to pickling!
