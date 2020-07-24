@@ -136,9 +136,9 @@ if __name__ == "__main__":
     #     be a done differently.
     parser.add_argument('-m', type = str, default = 'multiLV', nargs = '?',
                         help = "Model to use.")
-    parser.add_argument('-g', type = int, default = 10**10, nargs = '?',
+    parser.add_argument('-g', type = int, default = 10**8, nargs = '?',
                         help = "Number of generations (rxns) in total.")
-    parser.add_argument('-T', type = int, default = 10**9, nargs = '?',
+    parser.add_argument('-T', type = int, default = 10**8, nargs = '?',
                         help = "Total time to not exceed.")
     parser.add_argument('-t', type = int, default = 1, nargs = '?',
                         help = "Number of runs/trajectories.")
