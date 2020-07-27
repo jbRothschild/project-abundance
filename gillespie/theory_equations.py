@@ -375,15 +375,15 @@ class CompareModels(object):
     def __init__(self, comp_overlap=np.logspace(-2,0,100),
                  birth_rate=np.logspace(-2,2,100),
                  death_rate=np.logspace(-2,2,100),
-                 carry_capacity=(np.logspace(1,3,100)).astype(int),
-                 immi_rate=np.logspace(-2,2,100),
+                 carry_capacity=(np.logspace(1,3,10)).astype(int),
+                 immi_rate=np.logspace(-2,2,10),
                  nbr_species=(np.logspace(0,3,100)).astype(int),
                  model=Model_MultiLVim):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
 
-        self.model = model
+        self.model = model()
 
     def metric_compare(self, key1, key2=None):
         """
@@ -396,6 +396,8 @@ class CompareModels(object):
             species_richness : average number of species in the system
             GS : Gini-Simpson index
         """
+        #ModelMLV = self.model()
+
         if key2 == None:
             H = np.zeros( np.shape(getattr(self,key1)) )
             richness = np.zeros( np.shape(getattr(self,key1)) )
@@ -403,10 +405,11 @@ class CompareModels(object):
 
             for i, value in enumerate(getattr(self,key1)):
                 setattr(self.model,key1,value)
-                probability, _ = self.model.abund_sid()
+                probability, _ = self.model.abund_1spec_MSLV()
                 richness[i] = 1.0 - probability[0]
                 # TODO : Should I be excluding probability[0] in shannon entropy and GS?
-                H[i] = - np.dot(probability,np.log(probability))
+                H[i] = - np.dot(probability[probability>0.0],
+                                np.log(probability[probability>0.0]))
                 GS[i] = 1 - np.dot(probability,probability)
                 print(i)
 
@@ -461,9 +464,10 @@ class CompareModels(object):
                 for j, valuej in enumerate(getattr(self,key2)):
                     setattr(self.model,key1,valuei)
                     setattr(self.model,key2,valuej)
-                    probability, _ = self.model.abund_sid()
+                    probability, _ = self.model.abund_1spec_MSLV()
             # TODO : Should I be excluding probability[0] in shannon entropy and GS?
-                    H[i,j] = - np.sum(probability*np.log(probability))
+                    H[i,j] = - np.dot(probability[probability>0.0],
+                                      np.log(probability[probability>0.0]))
                     GS[i,j] = 1 - np.dot(probability,probability)
                     richness[i,j] = 1.0 - probability[0]
 
@@ -476,8 +480,8 @@ class CompareModels(object):
                         }
 
             xrange = getattr(self,key1); yrange = getattr(self,key2)
-            POINTS_BETWEEN_X_TICKS = 20
-            POINTS_BETWEEN_Y_TICKS = 20
+            POINTS_BETWEEN_X_TICKS = 5
+            POINTS_BETWEEN_Y_TICKS = 5
             FS = 12
 
             ## Entropy 2D
@@ -542,8 +546,6 @@ class CompareModels(object):
                 im = ax.imshow(species_richness, interpolation='none', **imshow_kw)
 
                 # labels and ticks
-                POINTS_BETWEEN_X_TICKS = 20
-                POINTS_BETWEEN_Y_TICKS = 50
                 ax.set_xticks([i for i, cval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
                 ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if (i % POINTS_BETWEEN_X_TICKS==0)], fontsize=FS)
                 ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
@@ -616,5 +618,5 @@ if __name__ == "__main__":
     #print(dict_matlab['NumberOfSpecies'])
 
     compare = CompareModels()
-    compare.compare_abundance_approx_MSLVim()
-    #compare.metric_compare("carry_capacity","immi_rate")
+    #compare.compare_abundance_approx_MSLVim()
+    compare.metric_compare("carry_capacity","immi_rate")

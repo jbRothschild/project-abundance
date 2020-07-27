@@ -121,8 +121,12 @@ class StoreDictKeyPair(argparse.Action):
         my_dict = {}
         for kv in values:
             k, v = kv.split('=')
-            my_dict[k] = float(v)
+            if k = 'sim_dir':
+                my_dict[k] = str(v)
+            else:
+                my_dict[k] = float(v)
         setattr(namespace, self.dest, my_dict)
+
 
 if __name__ == "__main__":
 
