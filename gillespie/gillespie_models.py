@@ -35,14 +35,6 @@ class Parent(object):
         self.sim_dir = save_dir;
         self.sim_number = i
         self.sim_subdir = save_subdir; os.makedirs( save_subdir )
-        print(i)
-
-        # save the parameters of simulation
-        # TODO : Change to pickling!
-        dict = self.__dict__
-        w = csv.writer( open(self.sim_subdir + os.sep + "params.csv", "w"))
-        for key, val in dict.items():
-            w.writerow([key,val])
 
         return 0
 
@@ -111,7 +103,8 @@ class MultiLV(Parent):
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
-                            #,
+                            # 'J' : [],
+                            # '' : ,
                             }
 
     def propensity( self, current_state ):

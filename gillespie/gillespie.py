@@ -90,7 +90,6 @@ def gillespie(Model, traj):
     while not ( ( Model.stop_condition(current_state) ) or
                   Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
                                                 i-1) ) :
-        print(i)
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 

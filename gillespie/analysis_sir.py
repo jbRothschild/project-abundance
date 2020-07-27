@@ -97,7 +97,8 @@ def probability_steady_traj(trajectory, times, params, plots):
 
 def plot_traj(trajectory, times, params, range, species_list=None, sea_colours = True):
     """
-    Plots the end of a trajectory from end to -range
+    Plots many ends of trajectories from end to -range
+
     """
     palette = itertools.cycle(sns.color_palette())
     fig, ax = plt.subplots(figsize=(9,5))
@@ -125,6 +126,13 @@ def plot_traj(trajectory, times, params, range, species_list=None, sea_colours =
 def plot_total_indiv_time(trajectory, times, params, range):
     """
     Plot distribution of J
+
+    Input :
+        trajectory : 1 trajectory (nbr_species x nbr_time_points)
+        times      : UNNECESSARY
+        params     : UNNECESSARY
+        range      : What range of late times are we using (since it migth take some
+                     time to get to steady state)
     """
     tot_traj = np.sum(trajectory[-range:],axis=1)
     len(tot_traj)
@@ -143,7 +151,11 @@ def plot_total_indiv_time(trajectory, times, params, range):
 
 def first_passage_time(trajectory, times, params):
     """
-    Plots the distribution of first passage times.
+    Plots the distribution of first passage times, from 0 to 0.
+
+    Input :
+        trajectory : Using 1 trajectory only
+        times      : times from 1 trajectory
     """
     num_species = np.shape(trajectory)[1]
     num_times = np.shape(trajectory)[0]

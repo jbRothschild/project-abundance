@@ -4,7 +4,8 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-from gillespie_models import RESULTS_DIR
+from gillespie_models import RESULTS_DIR, MultiLV, SIR
+import theory_equations as theqs
 
 plt.style.use('custom.mplstyle')
 
@@ -30,6 +31,11 @@ def consolidate_trajectories(sim_dir, save_file=False, FORCE_NUMBER=3000):
             filepath = subdir + os.sep + filename
             if filepath.endswith("time.txt"):
                 num_traj += 1
+
+    # TODO : Change params-csv to loading pickle
+    # with open('results_%s.pickle' % i, 'rb') as handle:
+    #    param_dict = pickle.load(handle)
+    #
 
     file = sim_dir + os.sep + 'params.csv'
     reader = csv.reader(open(file))
@@ -92,13 +98,14 @@ def fpt_distribution(sim_dir, plot = True):
     if plot:
         kwargs = dict( alpha=0.3, density=True, histtype='stepfilled',
                        color='steelblue');
+        # TODO : np.histogram(x,nbins)
         plt.hist( fpt, bins=100, **kwargs );
         plt.axvline( fpt.mean(), color='k', linestyle='dashed', linewidth=1 );
         plt.xlim(left=0.0)
         min_ylim, max_ylim = plt.ylim()
         min_xlim, max_xlim = plt.xlim()
         plt.text( fpt.mean()*1.1, max_ylim*0.9,
-                  'Mean: {:.2f}'.format(fpt.mean()) )
+                  'Meanrichness: {:.2f}'.format(fpt.mean()) )
         plt.yscale('log')
         plt.ylabel(r'probability')
         plt.xlabel(r'time (gen.)')
@@ -106,8 +113,102 @@ def fpt_distribution(sim_dir, plot = True):
 
     return fpt
 
+### MULTILV
+
+def mlv_single_sim_results(dir, parameter, sim_nbr = 0, plot = True):
+    """
+    Analyze information collected in results_(sim_nbr).pickle
+
+    Input :
+        dir       : directory that we're plotting from
+        parameter : the parameter that changes between the different simulations
+                    (string)
+    Output :
+
+    """
+
+    with open((dir + os.sep + 'sim{0}' + os.sep +
+               'results_{0}.pickle').format(sim_nbr), 'rb') as handle:
+        param_dict = pickle.load(handle)
+
+    model = MultiLV(param_dict)
+
+    mean_richness = np.dot(model.results['richness']
+                           , np.arange(len(model.results['richness'])))
+    mean_time_btwn_exit = (model.results['time_btwn_ext']).mean()
+    mean_nbr_indvdl = np.dot(model.results['ss_distribution']
+                        , np.arange(len(model.results['ss_distribution'])))
+
+    if plot:
+        fig = plt.figure()
+        plt.scatter(np.arange(len(model.results['richness'])),
+                 model.results['richness'])
+        plt.ylabel(r"probability of richness")
+        plt.xlabel(r'richness')
+        plt.axvline( mean_richness, color='k' , linestyle='dashed', linewidth=1)
+        #plt.yscale('log')
+        #plt.xscale('log')
+        plt.show()
+
+        ## dstbn present
+        nbins = 100
+        logbins = np.logspace(np.log10(np.min(model.results['time_btwn_ext']))
+                              , np.log10(np.max(model.results['time_btwn_ext']))
+                              , nbins)
+        counts, bin_edges = np.histogram(model.results['time_btwn_ext']
+                                         , density=True
+        #                                 , bins=logbins)
+                                         , bins = nbins)
+        fig = plt.figure()
+        plt.scatter(np.arange(len(model.results['time_btwn_ext'])),
+                 counts)
+        plt.axvline( mean_time_btwn_exit, color='k', linestyle='dashed'
+                    , linewidth=1 ) # mean
+        plt.ylabel(r"probability of time present")
+        plt.xlabel(r'time present between extinction')
+        #plt.yscale('log')
+        #plt.xscale('log')
+        plt.show()
+
+        ## ss_dstbn (compare with deterministic mean)
+        fig = plt.figure()
+        plt.scatter(np.arange(len(model.results['ss_distribution'])),
+                 model.results['ss_distribution'])
+        plt.ylabel(r"probability distribution function")
+        plt.xlabel(r'n')
+        plt.axvline( mean_nbr_indvdl, color='k' , linestyle='dashed'
+                    , linewidth=1 ) #mean
+        #plt.yscale('log')
+        #plt.xscale('log')
+        plt.show()
+
+    # or should I return model? more things there
+    return param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl
+
+def mlv_results(dir, parameter):
+    """
+    Analyze how the results form different simulations differ for varying
+    (parameter)
+
+    Input :
+        dir       : directory that we're plotting from
+        parameter : the parameter that changes between the different simulations
+                    (string)
+    """
+
+    mlv_single_sim_results(dir, parameter, sim_nbr = i, plot = False)
+
+    # mean richness vs (1-P(0)*nbr_species) vs equation
+
+    # mean_time_btwn_exit vs mean extinciton time
+
+    # mean vs deterministic mean
+
+### SIR
+
 def sir_dstbn_fp(all_traj, plot = True):
     """
+    Plots distribution of Susceptible when infected get to zero
     Input :
         all_traj (array) : all trajectories ( num_traj x length_traj
                                               x num_species )
@@ -198,7 +299,7 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'sir'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV'
 
     #fpt_distribution(sim_dir)
     sir_mean_trajectory(sim_dir)

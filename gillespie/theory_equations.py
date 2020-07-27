@@ -320,11 +320,6 @@ class Model_MultiLVim(object):
         """
 
         if self.comp_overlap == 0.0:
-            a = self.immi_rate / self.birth_rate;
-            b = self.death_rate * self.carry_capacity / ( 1.0*(self.birth_rate
-                - self.death_rate) );
-            c = self.birth_rate * self.carry_capacity / ( 1.0*(self.birth_rate
-                - self.death_rate) );
 
             probability = np.zeros( np.shape(self.population) )
             #probability[0] = (1.0/hyp1f1(a,b,c))
@@ -337,10 +332,22 @@ class Model_MultiLVim(object):
                                    / self.carry_capacity )  )
 
             probability = probability/np.sum(probability)
+        """
+        elif self.comp_overlap == 1.0:
+            probability = np.zeros( np.shape(self.population) )
+            #probability[0] = (1.0/hyp1f1(a,b,c))
+            probability[0] = 1.0
 
-        #elif self.comp_overlap == 1.0:
-            # TODO : Type it all out
-        #    abundance = self.population
+            for i in np.arange(1,len(probability)):
+                probability[i] = probability[i-1]*(self.birth_rate*(i-1)
+                                   + self.immi_rate ) / (i*( self.death_rate +
+                                   (self.birth_rate-self.death_rate)*( i )
+                                   / self.carry_capacity )  )
+
+            probability = probability/np.sum(probability)
+
+            abundance = self.population
+        """
 
         else:
             """

@@ -38,7 +38,7 @@ logspace () {
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
 # multiLV model, varying parameters
-VAR=($(logspace -2 0 ${NUM_TASKS} | tr -d '[],'))
+VAR=($(logspace -2 -0.01 ${NUM_TASKS} | tr -d '[],'))
 VAR_NAME="comp_overlap"
 
 parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m multiLV -t 1 -n {#} -p ${VAR_NAME}={} max_gen_save=10000" ::: ${VAR[@]}
