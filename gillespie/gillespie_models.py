@@ -73,7 +73,7 @@ class Parent(object):
 ###################### MULTISPECIES LOTKA-VOLTERA MODEL ########################
 
 class MultiLV(Parent):
-    def __init__( self, nbr_generations, max_time, sim_dir='multiLV',
+    def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV',
                   birth_rate=20.0, death_rate=1.0, immi_rate=0.05,
                   emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0,
                   comp_overlap=0.5, sim_number=0, nbr_species=30,
@@ -89,7 +89,7 @@ class MultiLV(Parent):
         if 'max_gen_save' in kwargs.keys():
             self.max_gen_save = int(kwargs['max_gen_save'])
         else:
-            self.max_gen_save = int(nbr_generations)
+            self.max_gen_save = nbr_generations
 
         if 'results' in kwargs.keys():
             self.results = kwargs['results']

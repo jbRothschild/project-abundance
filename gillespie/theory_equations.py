@@ -367,6 +367,17 @@ class Model_MultiLVim(object):
 
         return probability, abundance
 
+    def deterministic_mean(self):
+        """
+        Calculates the mean of the LV equations, for com_overlap between 0
+        and 1.
+        """
+        return self.carry_capacity*( ( 1. + np.sqrt( 1.+ 4.*self.immi_rate*
+               ( 1. + self.comp_overlap*( self.nbr_species - 1. ) ) /
+               (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
+               / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
+
+
 class CompareModels(object):
     """
     Various solutions from different models of populations with competition in

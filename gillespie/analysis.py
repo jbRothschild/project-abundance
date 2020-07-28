@@ -7,6 +7,8 @@ import numpy as np
 from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
 
+import pickle
+
 plt.style.use('custom.mplstyle')
 
 def consolidate_trajectories(sim_dir, save_file=False, FORCE_NUMBER=3000):
@@ -115,7 +117,7 @@ def fpt_distribution(sim_dir, plot = True):
 
 ### MULTILV
 
-def mlv_single_sim_results(dir, parameter, sim_nbr = 0, plot = True):
+def mlv_single_sim_results(dir, parameter, sim_nbr = 1, plot = True):
     """
     Analyze information collected in results_(sim_nbr).pickle
 
@@ -127,22 +129,27 @@ def mlv_single_sim_results(dir, parameter, sim_nbr = 0, plot = True):
 
     """
 
-    with open((dir + os.sep + 'sim{0}' + os.sep +
-               'results_{0}.pickle').format(sim_nbr), 'rb') as handle:
+    with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+               'results_0.pickle', 'rb') as handle:
         param_dict = pickle.load(handle)
 
-    model = MultiLV(param_dict)
+    model = MultiLV(**param_dict)
 
+    # TODO : Why isn't this normalized? I think because of total time...
+    ss_dist = model.results['ss_distribution']/np.sum(model.results['ss_distribution'])
     mean_richness = np.dot(model.results['richness']
                            , np.arange(len(model.results['richness'])))
-    mean_time_btwn_exit = (model.results['time_btwn_ext']).mean()
-    mean_nbr_indvdl = np.dot(model.results['ss_distribution']
-                        , np.arange(len(model.results['ss_distribution'])))
+    mean_time_btwn_exit = np.mean(model.results['time_btwn_ext'])
+    mean_nbr_indvdl = np.dot(ss_dist, np.arange(len(ss_dist)))
+
+    # theory equations
+    theory_models = theqs.Model_MultiLVim(**param_dict)
+    theory_dist, theory_abund = theory_models.abund_1spec_MSLV()
 
     if plot:
         fig = plt.figure()
         plt.scatter(np.arange(len(model.results['richness'])),
-                 model.results['richness'])
+                 model.results['richness'], color='b')
         plt.ylabel(r"probability of richness")
         plt.xlabel(r'richness')
         plt.axvline( mean_richness, color='k' , linestyle='dashed', linewidth=1)
@@ -151,39 +158,55 @@ def mlv_single_sim_results(dir, parameter, sim_nbr = 0, plot = True):
         plt.show()
 
         ## dstbn present
-        nbins = 100
-        logbins = np.logspace(np.log10(np.min(model.results['time_btwn_ext']))
-                              , np.log10(np.max(model.results['time_btwn_ext']))
-                              , nbins)
-        counts, bin_edges = np.histogram(model.results['time_btwn_ext']
-                                         , density=True
-        #                                 , bins=logbins)
-                                         , bins = nbins)
-        fig = plt.figure()
-        plt.scatter(np.arange(len(model.results['time_btwn_ext'])),
-                 counts)
-        plt.axvline( mean_time_btwn_exit, color='k', linestyle='dashed'
-                    , linewidth=1 ) # mean
-        plt.ylabel(r"probability of time present")
-        plt.xlabel(r'time present between extinction')
-        #plt.yscale('log')
-        #plt.xscale('log')
-        plt.show()
+        if model.results['time_btwn_ext'] != []:
+            nbins = 100
+            logbins = np.logspace(np.log10(np.min(model.results['time_btwn_ext']))
+                                  , np.log10(np.max(model.results['time_btwn_ext']))
+                                  , nbins)
+            counts, bin_edges = np.histogram(model.results['time_btwn_ext']
+                                             , density=True
+            #                                 , bins=logbins)
+                                             , bins = nbins)
+            fig = plt.figure()
+            axes = plt.gca()
+            plt.scatter((bin_edges[1:]+bin_edges[:-1])/2,
+                     counts, color='g')
+            plt.axvline( mean_time_btwn_exit, color='k', linestyle='dashed'
+                        , linewidth=1 ) # mean
+            plt.ylabel(r"probability of time present")
+            plt.xlabel(r'time present between extinction')
+            plt.yscale('log')
+            axes.set_ylim([np.min(counts[counts!=0.0]),2*np.max(counts)])
+            #plt.xscale('log')
+            plt.show()
 
         ## ss_dstbn (compare with deterministic mean)
         fig = plt.figure()
-        plt.scatter(np.arange(len(model.results['ss_distribution'])),
-                 model.results['ss_distribution'])
+        axes = plt.gca()
+
+        # deterministic mean
+        det_mean = theory_models.deterministic_mean()
+
+        plt.scatter(np.arange(len(ss_dist)),ss_dist,label='simulation')
+        plt.plot(np.arange(len(theory_dist)),theory_dist,label='theory')
         plt.ylabel(r"probability distribution function")
         plt.xlabel(r'n')
         plt.axvline( mean_nbr_indvdl, color='k' , linestyle='dashed'
                     , linewidth=1 ) #mean
-        #plt.yscale('log')
+        plt.axvline( theory_models.deterministic_mean(), color='k' ,
+                    linestyle='dashdot', linewidth=1 ) #mean
+        plt.text( det_mean*1.1, 2*np.max(ss_dist)*0.9,
+                  'deterministic mean: {:.2f}'.format(det_mean) )
+        plt.yscale('log')
+        axes.set_ylim([np.min(ss_dist[ss_dist!=0.0]),2*np.max(ss_dist)])
+        axes.set_xlim([0.0,np.max(np.nonzero(ss_dist))])
+        plt.legend(loc='best')
         #plt.xscale('log')
         plt.show()
 
     # or should I return model? more things there
-    return param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl
+    return param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl \
+           , ss_dist[0]
 
 def mlv_results(dir, parameter):
     """
@@ -195,14 +218,18 @@ def mlv_results(dir, parameter):
         parameter : the parameter that changes between the different simulations
                     (string)
     """
-
-    mlv_single_sim_results(dir, parameter, sim_nbr = i, plot = False)
+    for i in np.arange(20):
+        param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl \
+           , ss_dist[0] = mlv_single_sim_results(dir, parameter, sim_nbr = i
+                                                 , plot = False)
 
     # mean richness vs (1-P(0)*nbr_species) vs equation
 
     # mean_time_btwn_exit vs mean extinciton time
 
     # mean vs deterministic mean
+
+def consolidate_simulation_results():
 
 ### SIR
 
@@ -294,12 +321,14 @@ def sir_mean_trajectory(sim_dir, plot = True):
         plt.ylabel(r'number infected ($I$)')
         plt.show()
 
-
     return mean_traj
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV0'
 
+    mlv_single_sim_results(sim_dir, 'comp_overlap', sim_nbr = 25, plot = True)
+
+    #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)
-    sir_mean_trajectory(sim_dir)
+    #sir_mean_trajectory(sim_dir)
