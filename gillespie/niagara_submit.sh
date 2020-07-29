@@ -49,4 +49,4 @@ SIM_DIR='multiLV2'
 mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m multiLV -t 1 -g 70000000 -n {#} -p ${VAR1_NAME}={} max_gen_save=10000 immi_rate=0.001 sim_dir=multiLV1" ::: ${VAR1[@]}
-parallel --joblog slurm-$SLURM_JOBID.log --wd $PWD "python gillespie.py -m multiL -t 1 -g 70000000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
+parallel --joblog slurm-$SLURM_JOBID.log --wd $PWD "python gillespie.py -m multiLV -t 1 -g 70000000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
