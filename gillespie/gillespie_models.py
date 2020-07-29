@@ -94,11 +94,7 @@ class MultiLV(Parent):
         if 'results' in kwargs.keys():
             self.results = kwargs['results']
         else:
-            # TODO : Need to calculate things
-            #        - distribution
-            #        -
-            #
-            #
+            # TODO : Add other results?
             self.results = {'ss_distribution' : np.zeros(self.carry_capacity*4)
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []

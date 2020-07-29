@@ -13,18 +13,15 @@ import scipy
 import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
-
 #import seaborn as sns
-
-import theory_equations as te
 
 plt.style.use('custom.mplstyle')
 
 # TODO : all these scripts are a bit of a mess. FIgure out a good modular way
 #        to do this all.
 
-
-FIGURE_DIR = 'figures'
+FIGURE_DIR = 'figures' + os.sep + 'theory'
+#THEORY_DIR = 'theory_results'
 
 while not os.path.exists( os.getcwd() + os.sep + FIGURE_DIR ):
     os.makedirs(os.getcwd() + os.sep + FIGURE_DIR);
@@ -88,7 +85,7 @@ class Model_MultiLVim(object):
 
         return prob_n_given_J
 
-    def abund_J(self, technique='Jeremy'):
+    def abund_J(self, technique='Nava'):
         """
         Various approximation for the probability distribution of the total
         population in the system (which we refer to as J)
@@ -319,6 +316,7 @@ class Model_MultiLVim(object):
         distribution of the total number of individuals for other comp_overlap
         """
 
+        # different models, rho = 0
         if self.comp_overlap == 0.0:
 
             probability = np.zeros( np.shape(self.population) )
@@ -333,6 +331,7 @@ class Model_MultiLVim(object):
 
             probability = probability/np.sum(probability)
 
+        # rho = 1
         elif self.comp_overlap == 1.0:
             """
             probability = np.zeros( np.shape(self.population) )
@@ -349,6 +348,7 @@ class Model_MultiLVim(object):
             """
             abundance = self.population
 
+        # 0 < rho < 1. TODO : rho > 1 ???
         else:
             """
             This is an approximation! Mean field... sort of?
@@ -377,17 +377,30 @@ class Model_MultiLVim(object):
                (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
                / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
 
+    def entropy(self, probability):
+        # calculate entropy of a distribution
+        return - np.dot(probability[probability>0.0],
+                         np.log(probability[probability>0.0]))
+
+    def ginisimpson_idx(self, probability):
+        # calculate gini-simpson index of a distribution
+        return 1.0 - np.dot(probability,probability)
+
+    def richness(self, probability ):
+        # Probability of not being absent in the simulation
+        return 1.0 - probability[0]
+
+
 
 class CompareModels(object):
     """
-    Various solutions from different models of populations with competition in
-    the death rate. Will describe where they come from each.
+    Trying to compare models in certain ways.
     """
     def __init__(self, comp_overlap=np.logspace(-2,0,100),
                  birth_rate=np.logspace(-2,2,100),
                  death_rate=np.logspace(-2,2,100),
-                 carry_capacity=(np.logspace(1,3,10)).astype(int),
-                 immi_rate=np.logspace(-2,2,10),
+                 carry_capacity=(np.logspace(1,3,100)).astype(int),
+                 immi_rate=np.logspace(-4,0,100),
                  nbr_species=(np.logspace(0,3,100)).astype(int),
                  model=Model_MultiLVim):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
@@ -396,10 +409,12 @@ class CompareModels(object):
 
         self.model = model()
 
-    def metric_compare(self, key1, key2=None):
+    def mlv_metric_compare(self, key1):
         """
+        Compares along 3 metrics: entropy, richness and gini-simpson index
+
         Input
-            key : The variable to vary
+            key1 : The variable to vary
 
         Output
             H : shannon entropy as a function of var (var_array)
@@ -407,107 +422,160 @@ class CompareModels(object):
             species_richness : average number of species in the system
             GS : Gini-Simpson index
         """
-        #ModelMLV = self.model()
+        #approximation = self.model.abund_1spec_MSLV
+        approximation = self.model.abund_sid
 
-        if key2 == None:
-            H = np.zeros( np.shape(getattr(self,key1)) )
-            richness = np.zeros( np.shape(getattr(self,key1)) )
-            GS = np.zeros( np.shape(getattr(self,key1)) )
+        if load == True:
+            H, richness, GS = np.load()
 
-            for i, value in enumerate(getattr(self,key1)):
-                setattr(self.model,key1,value)
-                probability, _ = self.model.abund_1spec_MSLV()
-                richness[i] = 1.0 - probability[0]
-                # TODO : Should I be excluding probability[0] in shannon entropy and GS?
-                H[i] = - np.dot(probability[probability>0.0],
-                                np.log(probability[probability>0.0]))
-                GS[i] = 1 - np.dot(probability,probability)
-                print(i)
+        H = np.zeros( np.shape(getattr(self,key1)) )
+        richness = np.zeros( np.shape(getattr(self,key1)) )
+        GS = np.zeros( np.shape(getattr(self,key1)) )
 
-            ## Entropy 1D
+        for i, value in enumerate(getattr(self,key1)):
+            setattr(self.model,key1,value)
+            #probability, _ = self.model.abund_1spec_MSLV()
+            probability, _ = approximation()
+            H[i]           = self.model.entropy(probability)
+            GS[i]          = self.model.ginisimpson_idx(probability)
+            richness[i]    = self.model.richness(probability)
+            print('>'+str(i))
+
+        ## Entropy 1D
+        fig = plt.figure()
+        plt.plot(getattr(self,key1),H)
+        plt.ylabel("Entropy")
+        plt.xlabel(key)
+        #plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+
+        ## Gini-Simpson index 1D
+        fig = plt.figure()
+        plt.plot(getattr(self,key1),GS)
+        plt.ylabel("Gini-Simspon Index")
+        plt.xlabel(key)
+        #plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+
+        ## Richness 1D
+        fig = plt.figure()
+        plt.plot(getattr(self,key1),richness)
+        plt.ylabel(r"$1-P(0)$")
+        plt.xlabel(key)
+        #plt.yscale('log')
+        plt.xscale('log')
+        plt.show()
+
+        ## Species richness 1D
+        species_richness = None
+        if key1 == 'nbr_species':
+            species_richness = richness * getattr(self,key1)
             fig = plt.figure()
-            plt.plot(getattr(self,key1),H)
-            plt.ylabel("entropy")
+            plt.plot(getattr(self,key1),species_richness)
+            plt.ylabel(r"$average species richness$")
             plt.xlabel(key)
             #plt.yscale('log')
             plt.xscale('log')
             plt.show()
 
-            ## Gini-Simpson index 1D
-            fig = plt.figure()
-            plt.plot(getattr(self,key1),GS)
-            plt.ylabel("Gini-Simspon Index")
-            plt.xlabel(key)
-            #plt.yscale('log')
-            plt.xscale('log')
-            plt.show()
+        return H, GS, richness
 
-            ## Richness 1D
-            fig = plt.figure()
-            plt.plot(getattr(self,key1),richness)
-            plt.ylabel(r"$1-P(0)$")
-            plt.xlabel(key)
-            #plt.yscale('log')
-            plt.xscale('log')
-            plt.show()
+    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics.npz', plot=False
+                                    , load_npz=False):
+        """
+        Compares along 3 metrics: entropy, richness and gini-simpson index
 
-            ## Species richness 1D
-            if key1 == 'nbr_species':
-                species_richness = richness * getattr(self,key1)
-                fig = plt.figure()
-                plt.plot(getattr(self,key1),species_richness)
-                plt.ylabel(r"$average species richness$")
-                plt.xlabel(key)
-                #plt.yscale('log')
-                plt.xscale('log')
-                plt.show()
+        Input
+            key1        : The variable to vary
+            key2        : 2nd variable
+            files       : Name of file we want to save
+            plot        : Whether or not to plot
+            load_npz    : Whether or not to load from an npz file
 
-        ### HEATMAPS
+        Output
+            H                   : shannon entropy as a function of var
+            richness            : 1 - P(0), probability of being present
+            species_richness    : average number of species in the system
+            GS                  : Gini-Simpson index
+        """
+        filename = FIGURE_DIR + os.sep + file
+
+        # approximation to use
+        approximation = self.model.abund_1spec_MSLV
+        #approximation = self.model.abund_sid
+
+        #load
+        if load_npz:
+            # check it exists
+            if not os.path.exists(filename):
+                print('No file to load!')
+                raise SystemExit
+            with np.load(filename) as f:
+                H = f['H']; GS = f['GS']; richness = f['richness'];
+
+        # Create the npz file
         else:
-            H = np.zeros( ( np.shape(getattr(self,key1))[0],
-                         np.shape(getattr(self,key2))[0] ) )
+            # initialize
+            H        = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
             richness = np.zeros( ( np.shape(getattr(self,key1))[0],
-                         np.shape(getattr(self,key2))[0] ) )
-            GS = np.zeros( ( np.shape(getattr(self,key1))[0],
-                         np.shape(getattr(self,key2))[0] ) )
+                                np.shape(getattr(self,key2))[0] ) )
+            GS       = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
 
+            # create heatmap array for metrics
             for i, valuei in enumerate(getattr(self,key1)):
                 for j, valuej in enumerate(getattr(self,key2)):
                     setattr(self.model,key1,valuei)
                     setattr(self.model,key2,valuej)
-                    probability, _ = self.model.abund_1spec_MSLV()
-            # TODO : Should I be excluding probability[0] in shannon entropy and GS?
-                    H[i,j] = - np.dot(probability[probability>0.0],
-                                      np.log(probability[probability>0.0]))
-                    GS[i,j] = 1 - np.dot(probability,probability)
-                    richness[i,j] = 1.0 - probability[0]
+                    probability, _ = approximation()
 
-                print(i)
+                    H[i,j]         = self.model.entropy(probability)
+                    GS[i,j]        = self.model.ginisimpson_idx(probability)
+                    richness[i,j]  = self.model.richness(probability)
+                    print('>'+str(j))
+                print('>>>'+str(i))
 
+            # save
+            metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness}
+            np.savez(filename, **metric_dict)
 
+        if plot:
+
+            # some settings for the heatmaps
             imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
                          #,'vmin': vmin, 'vmax': vmax
                          #,'norm': mpl.colors.LogNorm(vmin,vmax)
                         }
 
+            # array of axes
             xrange = getattr(self,key1); yrange = getattr(self,key2)
-            POINTS_BETWEEN_X_TICKS = 5
-            POINTS_BETWEEN_Y_TICKS = 5
-            FS = 12
+
+            # setting of xticks
+            POINTS_BETWEEN_X_TICKS = 50
+            POINTS_BETWEEN_Y_TICKS = 50
 
             ## Entropy 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
             im = ax.imshow(H, interpolation='none', **imshow_kw)
 
             # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if (i % POINTS_BETWEEN_X_TICKS==0)], fontsize=FS)
-            ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
-
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
             plt.xlabel(key1); plt.ylabel(key2)
             ax.invert_yaxis()
             #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax)
             plt.title('shannon entropy')
             plt.show()
 
@@ -516,15 +584,23 @@ class CompareModels(object):
             im = ax.imshow(GS, interpolation='none', **imshow_kw)
 
             # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if (i % POINTS_BETWEEN_X_TICKS==0)], fontsize=FS)
-            ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
-
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if (i % POINTS_BETWEEN_Y_TICKS==0)])
             plt.xlabel(key1); plt.ylabel(key2)
             ax.invert_yaxis()
-            #plt.xscale('log'); plt.yscale('log')
             plt.title(r'Gini-Simpson index')
+            #plt.xscale('log'); plt.yscale('log')
+
+            # colorbar
+            plt.colorbar(im,ax=ax)
             plt.show()
 
             ## Richness 2D
@@ -532,18 +608,26 @@ class CompareModels(object):
             im = ax.imshow(richness, interpolation='none', **imshow_kw)
 
             # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if (i % POINTS_BETWEEN_X_TICKS==0)], fontsize=FS)
-            ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
-
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
             plt.xlabel(key1); plt.ylabel(key2)
             ax.invert_yaxis()
             #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax)
             plt.title(r'$1-P(0)$')
             plt.show()
 
             ## Species richness 2D
+            # if species are changing, additionally give species richness, not
+            # just 1-P(0)
             if key1 == 'nbr_species' or key2 == 'nbr_species':
                 species_richness = np.zeros( ( np.shape(getattr(self,key1))[0],
                               np.shape(getattr(self,key2))[0] ) )
@@ -553,24 +637,36 @@ class CompareModels(object):
                 else:
                     species_richness = ( richness.T * getattr(self,key1) ).T
 
+                # initialize
                 f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-                im = ax.imshow(species_richness, interpolation='none', **imshow_kw)
+                im = ax.imshow(species_richness, interpolation='none'
+                                               , **imshow_kw)
 
                 # labels and ticks
-                ax.set_xticks([i for i, cval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
-                ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if (i % POINTS_BETWEEN_X_TICKS==0)], fontsize=FS)
-                ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
-                ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
-
+                ax.set_xticks([i for i, cval in enumerate(xrange)
+                                    if i % POINTS_BETWEEN_X_TICKS == 0])
+                ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                    for i, xval in enumerate(xrange)
+                                    if (i % POINTS_BETWEEN_X_TICKS==0)]
+                                    , fontsize=FS)
+                ax.set_yticks([i for i, kval in enumerate(yrange)
+                                    if i % POINTS_BETWEEN_Y_TICKS == 0])
+                ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                    for i, yval in enumerate(yrange)
+                                    if i % POINTS_BETWEEN_Y_TICKS==0]
+                                    , fontsize=FS)
                 plt.xlabel(key1); plt.ylabel(key2)
                 ax.invert_yaxis()
-                #plt.xscale('log'); plt.yscale('log')
                 plt.title(r'species richness')
+                #plt.xscale('log'); plt.yscale('log')
+
+                # colorbar
+                plt.colorbar(im,ax=ax)
                 plt.show()
 
-            return H, richness
+        return 0
 
-    def compare_abundance_approx_MSLVim(self):
+    def mlv_compare_abundance_approx(self):
         """
         Compare different approximations for abundance Distribution
 
@@ -578,43 +674,45 @@ class CompareModels(object):
 
         matlab_files = ['Results_01','Results_05','Results_1']
 
+        # plot a couple different abundance distributions
         for i, comp_o in enumerate([0.1,0.5,0.999]):
+
+            # similar models except for comp_o
             EqnsMLV = self.model(comp_overlap=comp_o)
+
+            # list of approximations to check
+            prob_sid, abund_sid = EqnsMLV.abund_sid()
+            prob_nava, abund_nava = EqnsMLV.abund_1spec_MSLV(
+                                                    dstbn_approx = 'Nava')
             #abund_moranton_const = EqnsMLV.abund_moranton()
             #abund_moranton = EqnsMLV.abund_moranton(const_J=False)
-            prob_sid, abund_sid = EqnsMLV.abund_sid()
             #abund_kolmog = EqnsMLV.abund_kolmog(const_J=False)
-            #prob_jeremy, abund_jeremy = EqnsMLV.abund_1spec_MSLV(dstbn_approx='Jeremy')
-            tic = time.clock()
-            prob_nava, abund_nava = EqnsMLV.abund_1spec_MSLV(dstbn_approx =
-                                                             'Nava')
-            toc = time.clock()
-            print(str(datetime.timedelta(seconds=int(toc-tic))))
+            #prob_jeremy, abund_jeremy = EqnsMLV.abund_1spec_MSLV(
+            #                                        dstbn_approx='Jeremy')
 
+            # Nava sent some mathematica files
             dict_matlab = spo.loadmat('nava_results'+os.sep+matlab_files[i])
-
             abund_nava_m = dict_matlab['QN']
             abund_sid_m = dict_matlab['Q_Ant']
 
-            #print(np.sum(abund_sid),np.sum(abund_jeremy),np.sum(abund_nava))
-            end = 300
-            fig = plt.figure()
+            # plot figure
+            fig = plt.figure(); end = 300 # cut somehere
+            plt.plot(EqnsMLV.population[:end], abund_sid[:end],
+                        label='A.-S. approx.')
+            plt.plot(EqnsMLV.population[:end], abund_nava[:end],
+                        label='Nava approx.')
+            plt.plot(EqnsMLV.population[:end],
+                        EqnsMLV.nbr_species*abund_sid_m[:end],
+                        label='A.-S. Matlab', linestyle='-.')
+            plt.plot(EqnsMLV.population[:end],
+                        EqnsMLV.nbr_species*abund_nava_m[:end],
+                        label='Nava Matlab', linestyle='-.')
             #plt.plot(EqnsMLV.population,abund_moranton_const,
                       #label='Moranton cst.')
             #plt.plot(EqnsMLV.population,abund_moranton,label='Moranton')
-            plt.plot(EqnsMLV.population[:end], abund_sid[:end],
-                     label='A.-S. approx.')
             #plt.plot(EqnsMLV.population,abund_kolmog,label='Kolmog. approx')
             #plt.plot(EqnsMLV.population[:end], abund_jeremy[:end],
                       #label='Jeremy approx.')
-            plt.plot(EqnsMLV.population[:end], abund_nava[:end],
-                     label='Nava approx.')
-            plt.plot(EqnsMLV.population[:end],
-                     EqnsMLV.nbr_species*abund_sid_m[:end],
-                     label='A.-S. Matlab', linestyle='-.')
-            plt.plot(EqnsMLV.population[:end],
-                     EqnsMLV.nbr_species*abund_nava_m[:end],
-                     label='Nava Matlab', linestyle='-.')
             plt.legend(loc='best')
             plt.ylabel("abundance")
             plt.xlabel("population size")
@@ -625,9 +723,6 @@ class CompareModels(object):
 
 if __name__ == "__main__":
 
-    #dict_matlab = spo.loadmat('nava_results/Results_01')
-    #print(dict_matlab['NumberOfSpecies'])
-
     compare = CompareModels()
-    #compare.compare_abundance_approx_MSLVim()
-    compare.metric_compare("carry_capacity","immi_rate")
+    #compare.mlv_compare_abundance_approx()
+    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate")#, plot=True)#, load_npz=True)

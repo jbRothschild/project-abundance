@@ -4,8 +4,11 @@ import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
+from scipy.signal import argrelextrema
+
 from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
+from settings import VAR_NAME_DICT
 
 import pickle
 
@@ -117,15 +120,104 @@ def fpt_distribution(sim_dir, plot = True):
 
 ### MULTILV
 
-def mlv_single_sim_results(dir, parameter, sim_nbr = 1, plot = True):
+def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
-    Analyze information collected in results_(sim_nbr).pickle
+    Plot information collected in a single results_(sim_nbr).pickle
 
     Input :
-        dir       : directory that we're plotting from
-        parameter : the parameter that changes between the different simulations
-                    (string)
+        dir     : directory that we're plotting from
+        sim_nbr : simulation number (subdir sim%i %(sim_nbr))
+
     Output :
+        Plots of a single simulation
+    """
+    # replace with a dict
+    param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
+              , mean_rich_sim, mean_time_present_sim, _, _  \
+              = extract_results_sim(dir, sim_nbr=sim_nbr)
+
+    # theory equations
+    theory_models   = theqs.Model_MultiLVim(**param_dict)
+    ss_dist_thry, _ = theory_models.abund_1spec_MSLV()
+    #theory_dist, theory_abund = theory_models.abund_sid()
+
+    fig = plt.figure()
+    plt.scatter(np.arange(len(richness_sim)), richness_sim], color='b')
+    plt.ylabel(r"probability of richness")
+    plt.xlabel(r'richness')
+    plt.axvline( mean_rich_sim, color='k' , linestyle='dashed', linewidth=1)
+    #plt.yscale('log')
+    #plt.xscale('log')
+    plt.show()
+
+    ## dstbn present
+    if time_present_sim != []:
+        nbins   = 100
+        logbins = np.logspace(np.log10(np.min(time_present_sim))
+                              , np.log10(np.max(time_present_sim)), nbins)
+        counts, bin_edges = np.histogram(time_present_sim, density=True
+        #                                , bins=logbins)
+                                         , bins = nbins)
+        fig  = plt.figure()
+        axes = plt.gca()
+        plt.scatter((bin_edges[1:]+bin_edges[:-1])/2,
+                 counts, color='g')
+        plt.axvline( mean_time_present_sim, color='k', linestyle='dashed'
+                    , linewidth=1 ) # mean
+        plt.ylabel(r"probability of time present")
+        plt.xlabel(r'time present between extinction')
+        plt.yscale('log')
+        axes.set_ylim([np.min(counts[counts!=0.0]),2*np.max(counts)])
+        #plt.xscale('log')
+        plt.show()
+
+    ## ss_dstbn (compare with deterministic mean)
+    fig  = plt.figure()
+    axes = plt.gca()
+
+    plt.scatter(np.arange(len(ss_dist_sim)),ss_dist_sim,label='simulation')
+    plt.plot(np.arange(len(ss_dist_thry)),ss_dist_thry,label='theory')
+    plt.ylabel(r"probability distribution function")
+    plt.xlabel(r'n')
+    plt.axvline( mean_pop_sim, color='k' , linestyle='dashed'
+                , linewidth=1 ) #mean
+    plt.axvline( theory_models.deterministic_mean(), color='k' ,
+                linestyle='dashdot', linewidth=1 ) #mean
+    plt.text( det_mean*1.1, 2*np.max(ss_dist)*0.9,
+              'deterministic mean: {:.2f}'.format(det_mean) )
+    plt.yscale('log')
+    axes.set_ylim([np.min(ss_dist[ss_dist!=0.0]),2*np.max(ss_dist)])
+    axes.set_xlim([0.0,np.max(np.nonzero(ss_dist))])
+    plt.legend(loc='best')
+    #plt.xscale('log')
+    plt.show()
+
+    return 0
+
+
+
+
+def mlv_extract_results_sim(dir, sim_nbr=1):
+    """
+    Analyze information collected in many results_(sim_nbr).pickle, output to
+    other functions as arrays.
+
+    Input :
+        dir     : directory that we're extracting
+        sim_nbr : simulation number (subdir sim%i %(sim_nbr))
+
+    Output :
+        param_dict          :
+        ss_dist             :
+        richness_dist       :
+        time_btwn_ext       :
+        mean_pop            :
+        mean_rich           :
+        mean_time_present   :
+        P0                  :
+        nbr_local_max       :
+        H                   :
+        GS                  :
 
     """
 
@@ -135,101 +227,197 @@ def mlv_single_sim_results(dir, parameter, sim_nbr = 1, plot = True):
 
     model = MultiLV(**param_dict)
 
-    # TODO : Why isn't this normalized? I think because of total time...
-    ss_dist = model.results['ss_distribution']/np.sum(model.results['ss_distribution'])
-    mean_richness = np.dot(model.results['richness']
+    sim_res
+
+    # distribution
+    if 'ss_distribution' in model.results:
+        ss_dist     = model.results['ss_distribution'] \
+                              / np.sum(model.results['ss_distribution'])
+        mean_pop    = np.dot(ss_dist, np.arange(len(ss_dist)))
+        P0          = ss_dist[0]
+        nbr_local_max = len( argrelextrema(ss_dist, np.greater) )
+        H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
+        GS          = 1.0 - np.dot(probability,probability)
+    else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
+                                                          , None, None
+
+    # richness
+    if 'richness' in model.results:
+        richness_dist =  mode.results['richness']
+        mean_rich     = np.dot(model.results['richness']
                            , np.arange(len(model.results['richness'])))
-    mean_time_btwn_exit = np.mean(model.results['time_btwn_ext'])
-    mean_nbr_indvdl = np.dot(ss_dist, np.arange(len(ss_dist)))
+    else: richness_dist, mean_rich = None, None
 
-    # theory equations
-    theory_models = theqs.Model_MultiLVim(**param_dict)
-    theory_dist, theory_abund = theory_models.abund_1spec_MSLV()
+    # time
+    if 'time_btwn_ext' in model.results:
+        time_btwn_ext    = model.results['time_btwn_ext']
+        mean_time_present = np.mean(model.results['time_btwn_ext'])
+    else: time_btwn_ext, mean_time_present = None, None
 
-    if plot:
-        fig = plt.figure()
-        plt.scatter(np.arange(len(model.results['richness'])),
-                 model.results['richness'], color='b')
-        plt.ylabel(r"probability of richness")
-        plt.xlabel(r'richness')
-        plt.axvline( mean_richness, color='k' , linestyle='dashed', linewidth=1)
-        #plt.yscale('log')
-        #plt.xscale('log')
-        plt.show()
+    # Change to dictionary
+    return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
+                     , mean_rich, mean_time_present, P0, nbr_local_max, H, GS
 
-        ## dstbn present
-        if model.results['time_btwn_ext'] != []:
-            nbins = 100
-            logbins = np.logspace(np.log10(np.min(model.results['time_btwn_ext']))
-                                  , np.log10(np.max(model.results['time_btwn_ext']))
-                                  , nbins)
-            counts, bin_edges = np.histogram(model.results['time_btwn_ext']
-                                             , density=True
-            #                                 , bins=logbins)
-                                             , bins = nbins)
-            fig = plt.figure()
-            axes = plt.gca()
-            plt.scatter((bin_edges[1:]+bin_edges[:-1])/2,
-                     counts, color='g')
-            plt.axvline( mean_time_btwn_exit, color='k', linestyle='dashed'
-                        , linewidth=1 ) # mean
-            plt.ylabel(r"probability of time present")
-            plt.xlabel(r'time present between extinction')
-            plt.yscale('log')
-            axes.set_ylim([np.min(counts[counts!=0.0]),2*np.max(counts)])
-            #plt.xscale('log')
-            plt.show()
 
-        ## ss_dstbn (compare with deterministic mean)
-        fig = plt.figure()
-        axes = plt.gca()
 
-        # deterministic mean
-        det_mean = theory_models.deterministic_mean()
 
-        plt.scatter(np.arange(len(ss_dist)),ss_dist,label='simulation')
-        plt.plot(np.arange(len(theory_dist)),theory_dist,label='theory')
-        plt.ylabel(r"probability distribution function")
-        plt.xlabel(r'n')
-        plt.axvline( mean_nbr_indvdl, color='k' , linestyle='dashed'
-                    , linewidth=1 ) #mean
-        plt.axvline( theory_models.deterministic_mean(), color='k' ,
-                    linestyle='dashdot', linewidth=1 ) #mean
-        plt.text( det_mean*1.1, 2*np.max(ss_dist)*0.9,
-                  'deterministic mean: {:.2f}'.format(det_mean) )
-        plt.yscale('log')
-        axes.set_ylim([np.min(ss_dist[ss_dist!=0.0]),2*np.max(ss_dist)])
-        axes.set_xlim([0.0,np.max(np.nonzero(ss_dist))])
-        plt.legend(loc='best')
-        #plt.xscale('log')
-        plt.show()
-
-    # or should I return model? more things there
-    return param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl \
-           , ss_dist[0]
-
-def mlv_results(dir, parameter):
+def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     """
-    Analyze how the results form different simulations differ for varying
+    Analyze how the results from different simulations differ for varying
     (parameter)
 
     Input :
         dir       : directory that we're plotting from
-        parameter : the parameter that changes between the different simulations
+        parameter1 : the parameter that changes between different simulations
+                    (string)
+        parameter2 : second parameter that changes between different simulations
                     (string)
     """
-    for i in np.arange(20):
-        param_dict, mean_richness, mean_time_btwn_exit, mean_nbr_indvdl \
-           , ss_dist[0] = mlv_single_sim_results(dir, parameter, sim_nbr = i
-                                                 , plot = False)
 
-    # mean richness vs (1-P(0)*nbr_species) vs equation
+    filename =  dir + os.sep + 'consolidated_results.npz'
 
-    # mean_time_btwn_exit vs mean extinciton time
+    # count number of subdirectories
+    nbr_sims = len( next( os.walk(dir) )[1] )
 
-    # mean vs deterministic mean
+    # initialize the
+    param1    = np.zeros(nbr_sims); mean_pop          = np.zeros(nbr_sims)
+    mean_rich = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
+    P0        = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
+    H         = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
 
-def consolidate_simulation_results():
+    # if 2 parameters vary in the simulation
+    if paramater2 != None: param2 = np.zeros(nbr_sims)
+
+    #
+    for i in np.arange(nbr_sims):
+        param_dict, _, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
+                  , P0[i], nbr_local_max[i], H[i], GS[i]\
+                  = mlv_extract_results_sim(dir, sim_nbr = i+1)
+
+        # Value of parameters
+        param1[i] = param_dict[parameter1]
+        if paramater2 != None: param2[i] = param_dict[parameter2]
+
+    # Single parameter changing
+    if paramater2 == None:
+        if len(np.unique(param1)) == 1:
+            print('Warning : ' + parameter1 + ' parameter does not vary!')
+            raise SystemExit
+        elif len(np.unique(param1)) != len(param1):
+            print('Warning : ' + parameter1 +
+                    ' is repeated here, hence there might be another param!')
+
+        # save arrays in a npz file, dict here
+        dict_arrays = {  parameter1 : param1, 'mean_pop'  : mean_pop
+                                        , 'mean_rich'     : mean_rich
+                                        , 'mean_time_present' : mean_time_present
+                                        , 'P0'            : P0
+                                        , 'nbr_local_max' : nbr_local_max
+                                        , 'entropy'       : H
+                                        , 'gs_idx'        : GS
+                                        }
+
+    # For heatmap stuff
+    else:
+        param1_2D = np.unique(param1); param1_2D = np.unique(param1)
+        dim_1     = len(param1_2D)  ; dim_2      = len(param2_2D)
+
+        if dim_1 == 1:
+            print('Warning : Parameter ' + parameter1 + ' does not vary!')
+            print('       > This will make for a very boring heatmap...')
+
+        elif dim_2 == 1:
+            print('Warning : Parameter ' + parameter2 + ' does not vary!')
+            print('       > This will make for a very boring heatmap...')
+
+        # initialize
+        mean_pop2D          = np.zeros((dim_1,dim_2))
+        mean_rich2D         = np.zeros((dim_1,dim_2))
+        mean_time_present2D = np.zeros((dim_1,dim_2))
+        P02D                = np.zeros((dim_1,dim_2))
+        nbr_local_max2D     = np.zeros((dim_1,dim_2))
+        H2D                 = np.zeros((dim_1,dim_2))
+        GS2D                = np.zeros((dim_1,dim_2))
+
+        # put into a 2d array all the previous results
+        for sim in np.arange(nbr_sims):
+            i = np.where(param1_2D==param1[sim])[0][0]
+            j = np.where(param2_2D==param2[sim])[0][0]
+            mean_pop2D[i,j]          = mean_pop[sim]
+            mean_rich2D[i,j]         = mean_rich[sim]
+            mean_time_present2D[i,j] = mean_time_present
+            P02D[i,j]                = P0[sim]
+            nbr_local_max2D[i,j]     = nbr_local_max[sim]
+            H2D[i,j]                 = H[sim]
+            GS2D[i,j]                = GS[sim]
+
+        # arrange into a dictionary to save
+        dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
+                                           , 'mean_pop'      : mean_pop2D
+                                           , 'mean_rich'     : mean_rich2D
+                                           , 'mean_time_present' : mean_time_present2D
+                                           , 'P0'            : P02D
+                                           , 'nbr_local_max' : nbr_local_max2D
+                                           , 'entropy'       : H2D
+                                           , 'gs_idx'        : GS2D
+                                            }
+    # save results in a npz file
+    np.savez(filename, **dict_arrays)
+
+    return 0
+
+
+
+
+def mlv_plot_sim_results(dir, parameter1):
+    """
+    Plot results from file consolidated results. If it doesn't exist,
+    creates it here.
+    """
+    filename =  dir + os.sep + 'consolidated_results.npz'
+
+    if not os.path.exists(filename):
+        mlv_consolidate_sim_results(dir, parameter1)
+
+    with np.load(filename) as f:
+        param1    = f[parameter1] ; mean_pop          = f['mean_pop']
+        mean_rich = f['mean_rich']; mean_time_present = f['mean_time_present']
+        P0        = f['P0']       ; nbr_local_max     = f['nb_local_max']
+        H         = f['H']        ; GS                = f['GS']
+
+    labelx = VAR_NAME_DICT[parameter1]
+
+    # richness
+
+
+    # maximum vs deterministic for richness
+
+
+    # heatmap of maximums USELESS UNLESS HEATMAP
+
+
+    # mean vs deterministic
+
+
+    # Entropy
+
+
+    # Gini-Simpson index
+
+
+    # mean_time_present
+
+
+    return 0
+
+
+
+
+def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None):
+
+    return 0
+
+
 
 ### SIR
 
@@ -327,7 +515,7 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV0'
 
-    mlv_single_sim_results(sim_dir, 'comp_overlap', sim_nbr = 25, plot = True)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)
