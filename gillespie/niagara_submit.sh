@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --nodes=40
-#SBATCH --ntasks=40
+#SBATCH --ntasks-per-node=40
 #SBATCH --time=24:00:00
-#SBATCH --job-name gillespie-mlv
+#SBATCH --job-name gnu-parallel-gillespie-mlv
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
 
