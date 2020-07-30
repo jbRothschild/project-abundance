@@ -37,7 +37,7 @@ class Model_MultiLVim(object):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
-        self.population = np.arange(10*self.carry_capacity);
+        self.population = np.arange(3*self.carry_capacity);
         self.total_population = np.size(self.population)*nbr_species;
 
     def __setattr__(self, name, value):
@@ -46,7 +46,7 @@ class Model_MultiLVim(object):
         """
         self.__dict__[name] = value;
         if name == "carry_capacity":
-            self.population = np.arange(10*self.carry_capacity);
+            self.population = np.arange(3*self.carry_capacity);
 
     def dstbn_n_given_J(self, J):
         """
@@ -390,6 +390,29 @@ class Model_MultiLVim(object):
         # Probability of not being absent in the simulation
         return 1.0 - probability[0]
 
+    def KL_divergence(self, P, Q):
+        # 1D kullback-leibler divergence between 2 distributions P and Q
+        dimP = len(P); dimQ = len(Q) # TODO change to np.shape
+
+        if dimP != dimQ:
+            print('Dimension of 2 distributions not equal!')
+            P = P[:]
+            P = P[:np.min(dimP,dimQ)]; Q = Q[:np.min(dimP,dimQ)];
+
+        KLpq = np.sum(P[P>0.0]*np.log(P[P>0.0])) \
+                            - np.sum(P[Q>0.0]*np.log(Q[Q>0.0]))
+
+        return KLpq
+
+    def JS_divergence(self, P, Q):
+        # 1D Jensen-Shannon between 2 distributions P and Q
+        dimP = len(P); dimQ = len(Q) # TODO change to np.shape
+        if dimP != dimQ:
+            print('Dimension of 2 distributions not equal!')
+            P = P[:np.min(dimP,dimQ)]; Q = Q[:np.min(dimP,dimQ)];
+
+        return (self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0
+
 
 
 class CompareModels(object):
@@ -422,8 +445,6 @@ class CompareModels(object):
             species_richness : average number of species in the system
             GS : Gini-Simpson index
         """
-        #approximation = self.model.abund_1spec_MSLV
-        approximation = self.model.abund_sid
 
         if load == True:
             H, richness, GS = np.load()
@@ -431,14 +452,20 @@ class CompareModels(object):
         H = np.zeros( np.shape(getattr(self,key1)) )
         richness = np.zeros( np.shape(getattr(self,key1)) )
         GS = np.zeros( np.shape(getattr(self,key1)) )
+        JS = np.zeros( np.shape(getattr(self,key1)) )
 
         for i, value in enumerate(getattr(self,key1)):
-            setattr(self.model,key1,value)
+            #setattr(self.model,key1,value)
             #probability, _ = self.model.abund_1spec_MSLV()
-            probability, _ = approximation()
-            H[i]           = self.model.entropy(probability)
-            GS[i]          = self.model.ginisimpson_idx(probability)
-            richness[i]    = self.model.richness(probability)
+            #approximation = self.model.abund_1spec_MSLV
+            probability_sid, _  = self.model.abund_sid()
+            probability_nava, _ = self.model.abund_1spec_MSLV()
+            H[i]           = self.model.entropy(probability_nava)
+            GS[i]          = self.model.ginisimpson_idx(probability_nava)
+            richness[i]    = self.model.richness(probability_nava)
+            JS[i]          = self.model.JS_divergence(probability_nava
+                                                        , probability_sid)
+
             print('>'+str(i))
 
         ## Entropy 1D
@@ -514,6 +541,7 @@ class CompareModels(object):
                 raise SystemExit
             with np.load(filename) as f:
                 H = f['H']; GS = f['GS']; richness = f['richness'];
+                JS = f['JS']
 
         # Create the npz file
         else:
@@ -524,22 +552,33 @@ class CompareModels(object):
                                 np.shape(getattr(self,key2))[0] ) )
             GS       = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
+            JS       = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+
 
             # create heatmap array for metrics
             for i, valuei in enumerate(getattr(self,key1)):
                 for j, valuej in enumerate(getattr(self,key2)):
                     setattr(self.model,key1,valuei)
                     setattr(self.model,key2,valuej)
-                    probability, _ = approximation()
+                    #t = time.time()
+                    probability_sid, _  = self.model.abund_sid()
+                    #print(time.time() - t)
 
-                    H[i,j]         = self.model.entropy(probability)
-                    GS[i,j]        = self.model.ginisimpson_idx(probability)
-                    richness[i,j]  = self.model.richness(probability)
+                    #t = time.time()
+                    probability_nava, _ = self.model.abund_1spec_MSLV()
+                    #print(time.time() - t)
+
+                    H[i,j]        = self.model.entropy(probability_nava)
+                    GS[i,j]       = self.model.ginisimpson_idx(probability_nava)
+                    richness[i,j] = self.model.richness(probability_nava)
+                    JS[i]         = self.model.JS_divergence(probability_nava
+                                                            , probability_sid)
                     print('>'+str(j))
                 print('>>>'+str(i))
 
             # save
-            metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness}
+            metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS}
             np.savez(filename, **metric_dict)
 
         if plot:
