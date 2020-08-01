@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --ntasks=40
-#SBATCH --time=12:00:00
+#SBATCH --time=1:00:00
 #SBATCH --job-name mlv-theory
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
@@ -16,4 +16,4 @@ module load gnu-parallel
 # Turn off implicit threading in Python, R
 export OMP_NUM_THREADS=40
 
-python theory_equations.py
+python analysis.py

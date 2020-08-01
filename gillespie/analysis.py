@@ -562,7 +562,7 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_consolidate_sim_results(dir, 'comp_overlap', 'immi_rate'):
+    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
 
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 5)

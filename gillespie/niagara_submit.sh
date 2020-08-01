@@ -40,7 +40,7 @@ logspace () {
 VAR1=($(logspace -2 -0.01 ${NUM_TASKS} | tr -d '[],'))
 VAR1_NAME="comp_overlap"
 
-VAR2=($(logspace -3 0 ${NUM_TASKS} | tr -d '[],'))
+VAR2=($(logspace -4 0 ${NUM_TASKS} | tr -d '[],'))
 VAR2_NAME="immi_rate"
 
 RESULTS_DIR='sim_results'
