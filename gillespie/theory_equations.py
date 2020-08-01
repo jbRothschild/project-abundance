@@ -541,7 +541,7 @@ class CompareModels(object):
                 raise SystemExit
             with np.load(filename) as f:
                 H = f['H']; GS = f['GS']; richness = f['richness'];
-                JS = f['JS']
+                JS = f['JS']; xrange = ['xrange']; yrange = ['yrange'];
 
         # Create the npz file
         else:
@@ -554,6 +554,11 @@ class CompareModels(object):
                                 np.shape(getattr(self,key2))[0] ) )
             JS       = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
+            approx_dist = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ),
+                                np.shape(getattr(self.model,'population'))[0]))
+            xrange   = getattr(self,key1)
+            yrange   = getattr(self,key2)
 
 
             # create heatmap array for metrics
@@ -574,6 +579,7 @@ class CompareModels(object):
                     richness[i,j] = self.model.richness(probability_nava)
                     JS[i]         = self.model.JS_divergence(probability_nava
                                                             , probability_sid)
+                    approx_dist[i,j] = probability_nava
                     print('>'+str(j))
                 print('>>>'+str(i))
 
@@ -587,10 +593,7 @@ class CompareModels(object):
             imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
                          #,'vmin': vmin, 'vmax': vmax
                          #,'norm': mpl.colors.LogNorm(vmin,vmax)
-                        }
-
-            # array of axes
-            xrange = getattr(self,key1); yrange = getattr(self,key2)
+                    }
 
             # setting of xticks
             POINTS_BETWEEN_X_TICKS = 50
