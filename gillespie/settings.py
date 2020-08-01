@@ -7,6 +7,17 @@ VAR_NAME_DICT = { 'birth_rate'      : r'$r^{+}$'
                 , 'nbr_species'     : r'$S$'
 }
 
+COLOURS = {   'time'            : 'g'
+            , 'population'      : 'r'
+            , 'metric'          : 'b'
+            , 'time_h'          : 'viridis'
+            , 'metric_h'        : 'cividis'
+            , 'population'      : 'magma'
+            , 'compare_zero_h'  : 'RdBu'
+            , 'compare_h'       : 'YlGnBu'
+
+}
+
 
 # TODO : save txt file with what parameters vary (is this possible?)
 

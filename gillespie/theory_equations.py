@@ -37,7 +37,7 @@ class Model_MultiLVim(object):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
-        self.population = np.arange(3*self.carry_capacity);
+        self.population = np.arange(10*self.carry_capacity);
         self.total_population = np.size(self.population)*nbr_species;
 
     def __setattr__(self, name, value):
@@ -46,7 +46,7 @@ class Model_MultiLVim(object):
         """
         self.__dict__[name] = value;
         if name == "carry_capacity":
-            self.population = np.arange(3*self.carry_capacity);
+            self.population = np.arange(10*self.carry_capacity);
 
     def dstbn_n_given_J(self, J):
         """
@@ -419,12 +419,12 @@ class CompareModels(object):
     """
     Trying to compare models in certain ways.
     """
-    def __init__(self, comp_overlap=np.logspace(-2,0,100),
-                 birth_rate=np.logspace(-2,2,100),
-                 death_rate=np.logspace(-2,2,100),
-                 carry_capacity=(np.logspace(1,3,100)).astype(int),
-                 immi_rate=np.logspace(-4,0,100),
-                 nbr_species=(np.logspace(0,3,100)).astype(int),
+    def __init__(self, comp_overlap=np.logspace(-2,0,40),
+                 birth_rate=np.logspace(-2,2,40),
+                 death_rate=np.logspace(-2,2,40),
+                 carry_capacity=(np.logspace(1,3,40)).astype(int),
+                 immi_rate=np.logspace(-4,0,40),
+                 nbr_species=(np.logspace(0,3,40)).astype(int),
                  model=Model_MultiLVim):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
@@ -565,9 +565,9 @@ class CompareModels(object):
                     probability_sid, _  = self.model.abund_sid()
                     #print(time.time() - t)
 
-                    #t = time.time()
+                    t = time.time()
                     probability_nava, _ = self.model.abund_1spec_MSLV()
-                    #print(time.time() - t)
+                    print(time.time() - t)
 
                     H[i,j]        = self.model.entropy(probability_nava)
                     GS[i,j]       = self.model.ginisimpson_idx(probability_nava)

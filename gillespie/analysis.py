@@ -8,7 +8,7 @@ from scipy.signal import argrelextrema
 
 from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
-from settings import VAR_NAME_DICT
+from settings import VAR_NAME_DICT, COLOURS
 
 import pickle
 
@@ -120,6 +120,68 @@ def fpt_distribution(sim_dir, plot = True):
 
 ### MULTILV
 
+def mlv_extract_results_sim(dir, sim_nbr=1):
+    """
+    Analyze information collected in many results_(sim_nbr).pickle, output to
+    other functions as arrays.
+
+    Input :
+        dir     : directory that we're extracting
+        sim_nbr : simulation number (subdir sim%i %(sim_nbr))
+
+    Output :
+        param_dict          :
+        ss_dist             :
+        richness_dist       :
+        time_btwn_ext       :
+        mean_pop            :
+        mean_rich           :
+        mean_time_present   :
+        P0                  :
+        nbr_local_max       :
+        H                   :
+        GS                  :
+
+    """
+
+    with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+               'results_0.pickle', 'rb') as handle:
+        param_dict = pickle.load(handle)
+
+    model = MultiLV(**param_dict)
+
+    # distribution
+    if 'ss_distribution' in model.results:
+        ss_dist     = model.results['ss_distribution'] \
+                              / np.sum(model.results['ss_distribution'])
+        mean_pop    = np.dot(ss_dist, np.arange(len(ss_dist)))
+        P0          = ss_dist[0]
+        nbr_local_max = np.min([len( argrelextrema(ss_dist, np.greater) ),2])
+        H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
+        GS          = 1.0 - np.dot(ss_dist,ss_dist)
+    else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
+                                                          , None, None
+
+    # richness
+    if 'richness' in model.results:
+        richness_dist =  model.results['richness']
+        mean_rich     = np.dot(model.results['richness']
+                           , np.arange(len(model.results['richness'])))
+    else: richness_dist, mean_rich = None, None
+
+    # time
+    if 'time_btwn_ext' in model.results:
+        time_btwn_ext    = model.results['time_btwn_ext']
+        mean_time_present = np.mean(model.results['time_btwn_ext'])
+    else: time_btwn_ext, mean_time_present = None, None
+
+    # Change to dictionary
+    return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
+                     , mean_rich, mean_time_present, P0, nbr_local_max, H, GS\
+                     , param_dict['nbr_species']
+
+
+
 def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
     Plot information collected in a single results_(sim_nbr).pickle
@@ -133,8 +195,10 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
     # replace with a dict
     param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
-              , mean_rich_sim, mean_time_present_sim, _, _  \
-              = extract_results_sim(dir, sim_nbr=sim_nbr)
+              , mean_rich_sim, mean_time_present_sim, _, _, _, _, _  \
+              = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
+
+    print(param_dict)
 
     # theory equations
     theory_models   = theqs.Model_MultiLVim(**param_dict)
@@ -142,7 +206,7 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     #theory_dist, theory_abund = theory_models.abund_sid()
 
     fig = plt.figure()
-    plt.scatter(np.arange(len(richness_sim)), richness_sim], color='b')
+    plt.scatter(np.arange(len(richness_sim)), richness_sim, color='b')
     plt.ylabel(r"probability of richness")
     plt.xlabel(r'richness')
     plt.axvline( mean_rich_sim, color='k' , linestyle='dashed', linewidth=1)
@@ -181,82 +245,17 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     plt.xlabel(r'n')
     plt.axvline( mean_pop_sim, color='k' , linestyle='dashed'
                 , linewidth=1 ) #mean
-    plt.axvline( theory_models.deterministic_mean(), color='k' ,
-                linestyle='dashdot', linewidth=1 ) #mean
-    plt.text( det_mean*1.1, 2*np.max(ss_dist)*0.9,
-              'deterministic mean: {:.2f}'.format(det_mean) )
+    #plt.axvline( theory_models.deterministic_mean(), color='k' ,
+    #            linestyle='dashdot', linewidth=1 ) #mean
     plt.yscale('log')
-    axes.set_ylim([np.min(ss_dist[ss_dist!=0.0]),2*np.max(ss_dist)])
-    axes.set_xlim([0.0,np.max(np.nonzero(ss_dist))])
+    axes.set_ylim([np.min(ss_dist_sim[ss_dist_sim!=0.0]),2*np.max(ss_dist_sim)])
+    axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
     plt.legend(loc='best')
     #plt.xscale('log')
     plt.show()
 
     return 0
 
-
-
-
-def mlv_extract_results_sim(dir, sim_nbr=1):
-    """
-    Analyze information collected in many results_(sim_nbr).pickle, output to
-    other functions as arrays.
-
-    Input :
-        dir     : directory that we're extracting
-        sim_nbr : simulation number (subdir sim%i %(sim_nbr))
-
-    Output :
-        param_dict          :
-        ss_dist             :
-        richness_dist       :
-        time_btwn_ext       :
-        mean_pop            :
-        mean_rich           :
-        mean_time_present   :
-        P0                  :
-        nbr_local_max       :
-        H                   :
-        GS                  :
-
-    """
-
-    with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
-               'results_0.pickle', 'rb') as handle:
-        param_dict = pickle.load(handle)
-
-    model = MultiLV(**param_dict)
-
-    sim_res
-
-    # distribution
-    if 'ss_distribution' in model.results:
-        ss_dist     = model.results['ss_distribution'] \
-                              / np.sum(model.results['ss_distribution'])
-        mean_pop    = np.dot(ss_dist, np.arange(len(ss_dist)))
-        P0          = ss_dist[0]
-        nbr_local_max = len( argrelextrema(ss_dist, np.greater) )
-        H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
-        GS          = 1.0 - np.dot(probability,probability)
-    else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
-                                                          , None, None
-
-    # richness
-    if 'richness' in model.results:
-        richness_dist =  mode.results['richness']
-        mean_rich     = np.dot(model.results['richness']
-                           , np.arange(len(model.results['richness'])))
-    else: richness_dist, mean_rich = None, None
-
-    # time
-    if 'time_btwn_ext' in model.results:
-        time_btwn_ext    = model.results['time_btwn_ext']
-        mean_time_present = np.mean(model.results['time_btwn_ext'])
-    else: time_btwn_ext, mean_time_present = None, None
-
-    # Change to dictionary
-    return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
-                     , mean_rich, mean_time_present, P0, nbr_local_max, H, GS
 
 
 
@@ -280,26 +279,27 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     nbr_sims = len( next( os.walk(dir) )[1] )
 
     # initialize the
-    param1    = np.zeros(nbr_sims); mean_pop          = np.zeros(nbr_sims)
-    mean_rich = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
-    P0        = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
-    H         = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
+    param1      = np.zeros(nbr_sims); mean_pop          = np.zeros(nbr_sims)
+    mean_rich   = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
+    P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
+    H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
+    nbr_species = np.zeros(nbr_sims)
 
     # if 2 parameters vary in the simulation
-    if paramater2 != None: param2 = np.zeros(nbr_sims)
+    if parameter2 != None: param2 = np.zeros(nbr_sims)
 
     #
     for i in np.arange(nbr_sims):
         param_dict, _, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
-                  , P0[i], nbr_local_max[i], H[i], GS[i]\
+                  , P0[i], nbr_local_max[i], H[i], GS[i], nbr_species[i]\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
 
         # Value of parameters
         param1[i] = param_dict[parameter1]
-        if paramater2 != None: param2[i] = param_dict[parameter2]
+        if parameter2 != None: param2[i] = param_dict[parameter2]
 
     # Single parameter changing
-    if paramater2 == None:
+    if parameter2 == None:
         if len(np.unique(param1)) == 1:
             print('Warning : ' + parameter1 + ' parameter does not vary!')
             raise SystemExit
@@ -315,6 +315,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                         , 'nbr_local_max' : nbr_local_max
                                         , 'entropy'       : H
                                         , 'gs_idx'        : GS
+                                        , 'nbr_species'   : nbr_species
                                         }
 
     # For heatmap stuff
@@ -338,6 +339,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         nbr_local_max2D     = np.zeros((dim_1,dim_2))
         H2D                 = np.zeros((dim_1,dim_2))
         GS2D                = np.zeros((dim_1,dim_2))
+        nbr_species2D       = np.zeros((dim_1,dim_2))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -350,6 +352,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             nbr_local_max2D[i,j]     = nbr_local_max[sim]
             H2D[i,j]                 = H[sim]
             GS2D[i,j]                = GS[sim]
+            nbr_species2D[i,j]       = nbr_species2D[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
@@ -360,7 +363,8 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                            , 'nbr_local_max' : nbr_local_max2D
                                            , 'entropy'       : H2D
                                            , 'gs_idx'        : GS2D
-                                            }
+                                           , 'nbr_species'   : nbr_species2D
+                                           }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
 
@@ -382,42 +386,85 @@ def mlv_plot_sim_results(dir, parameter1):
     with np.load(filename) as f:
         param1    = f[parameter1] ; mean_pop          = f['mean_pop']
         mean_rich = f['mean_rich']; mean_time_present = f['mean_time_present']
-        P0        = f['P0']       ; nbr_local_max     = f['nb_local_max']
-        H         = f['H']        ; GS                = f['GS']
+        P0        = f['P0']       ; nbr_local_max     = f['nbr_local_max']
+        H         = f['entropy']  ; GS                = f['gs_idx']
+        nbr_spec  = f['nbr_species']
 
     labelx = VAR_NAME_DICT[parameter1]
 
     # richness
+    fig = plt.figure()
+    plt.scatter(param1, (1.0-P0)*nbr_spec, marker='+', label=r'$(1-P(0))$')
+    plt.scatter(param1, mean_rich, marker='x', label='Gill. mean rich.')
+    plt.ylabel(r"richness")
+    plt.xlabel(labelx)
+    #plt.yscale('log')
+    plt.xscale('log')
+    plt.legend(loc='best')
+    plt.show()
 
-
-    # maximum vs deterministic for richness
-
-
-    # heatmap of maximums USELESS UNLESS HEATMAP
-
-
-    # mean vs deterministic
-
+    # mean
+    fig = plt.figure()
+    plt.scatter(param1, mean_pop, color='r')
+    plt.ylabel(r'$\langle n_i \rangle$')
+    plt.xlabel(labelx)
+    #plt.yscale('log')
+    plt.xscale('log')
+    plt.show()
 
     # Entropy
-
+    fig = plt.figure()
+    plt.scatter(param1, H, color='b')
+    plt.ylabel(r"entropy")
+    plt.xlabel(labelx)
+    #plt.yscale('log')
+    plt.xscale('log')
+    plt.show()
 
     # Gini-Simpson index
-
+    fig = plt.figure()
+    plt.scatter(param1, GS, color='b')
+    plt.ylabel(r"gini-simpson index")
+    plt.xlabel(labelx)
+    #plt.yscale('log')
+    plt.xscale('log')
+    plt.show()
 
     # mean_time_present
-
+    fig = plt.figure()
+    plt.scatter(param1, mean_time_present, color='g')
+    plt.ylabel(r"$\langle t_{present} \rangle$")
+    plt.xlabel(labelx)
+    #plt.yscale('log')
+    plt.xscale('log')
+    plt.show()
 
     return 0
 
+def mlv_sim2theory_results(dir, parameter1):
+    """
+    Plot results from file consolidated results. If it doesn't exist,
+    creates it here.
+    """
+    filename =  dir + os.sep + 'consolidated_results.npz'
 
+    if not os.path.exists(filename):
+        mlv_consolidate_sim_results(dir, parameter1)
 
 
 def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None):
 
     return 0
 
+def mlv_sim2theory_results_heatmaps(dir, parameter1):
+    """
+    Plot results from file consolidated results. If it doesn't exist,
+    creates it here.
+    """
+    filename =  dir + os.sep + 'consolidated_results.npz'
 
+    if not os.path.exists(filename):
+        mlv_consolidate_sim_results(dir, parameter1)
 
 ### SIR
 
@@ -513,9 +560,14 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV0'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
+    mlv_consolidate_sim_results(dir, 'comp_overlap', 'immi_rate'):
+
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 5)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 39)
+    #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)
