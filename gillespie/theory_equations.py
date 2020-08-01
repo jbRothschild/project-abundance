@@ -790,4 +790,4 @@ if __name__ == "__main__":
 
     compare = CompareModels()
     #compare.mlv_compare_abundance_approx()
-    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate")#, plot=True)#, load_npz=True)
+    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate"), plot=True)#, load_npz=True)
