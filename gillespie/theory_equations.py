@@ -577,7 +577,7 @@ class CompareModels(object):
                     H[i,j]        = self.model.entropy(probability_nava)
                     GS[i,j]       = self.model.ginisimpson_idx(probability_nava)
                     richness[i,j] = self.model.richness(probability_nava)
-                    JS[i]         = self.model.JS_divergence(probability_nava
+                    JS[i,j]         = self.model.JS_divergence(probability_nava
                                                             , probability_sid)
                     approx_dist[i,j] = probability_nava
                     print('>'+str(j))
@@ -596,8 +596,8 @@ class CompareModels(object):
                     }
 
             # setting of xticks
-            POINTS_BETWEEN_X_TICKS = 50
-            POINTS_BETWEEN_Y_TICKS = 50
+            POINTS_BETWEEN_X_TICKS = 9
+            POINTS_BETWEEN_Y_TICKS = 9
 
             ## Entropy 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
@@ -665,6 +665,29 @@ class CompareModels(object):
             #plt.xscale('log'); plt.yscale('log')
             plt.colorbar(im,ax=ax)
             plt.title(r'$1-P(0)$')
+            plt.show()
+
+
+            ## Jensen-shannon
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = ax.imshow(JS, interpolation='none', **imshow_kw)
+
+            # labels and ticks
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(key1); plt.ylabel(key2)
+            ax.invert_yaxis()
+            #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax)
+            plt.title(r'$Jensen-Shannon divergence$')
             plt.show()
 
             ## Species richness 2D
