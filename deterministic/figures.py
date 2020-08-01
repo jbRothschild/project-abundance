@@ -7,15 +7,16 @@ import matplotlib.ticker as ticker
 from decimal import Decimal
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
-plt.style.use('parameters.mplstyle')
+plt.style.use('custom_heatmap.mplstyle')
 
 FS = 20
 POINTS_BETWEEN_X_TICKS = 33
-POINTS_BETWEEN_Y_TICKS = 25
+POINTS_BETWEEN_Y_TICKS = 24
 
 
 def fixed_points(alpha, numspecies, K, r, mu):
     return K * ( 1 + np.sqrt( 1 + 4*( alpha*( numspecies-1 ) + 1  )*mu/(K*r) ) ) / ( 2*( alpha*( numspecies-1 ) + 1 ) )
+
 
 def eigen_ratio(alpha, numspecies, K, r, mu):
     lambda1 = (K - 2 * fixed_points(alpha, numspecies, K, r, mu) * ( 1 + alpha*(numspecies - 1 ) ) )
@@ -42,7 +43,7 @@ def plot_heatmap(arr, xrange, yrange, fname, label, show=True, save=True, **kwar
     else: fmt = ticker.LogFormatterMathtext()
 
     imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': vmin, 'vmax': vmax}
-    imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': vmin, 'vmax': vmax, 'norm': mpl.colors.LogNorm(vmin,vmax)}
+    #imshow_kw = {'cmap': 'YlGnBu', 'aspect': None, 'vmin': vmin, 'vmax': vmax, 'norm': mpl.colors.LogNorm(vmin,vmax)}
 
     # TODO change colour scheme, see https://matplotlib.org/examples/color/colormaps_reference.html
     """
@@ -59,8 +60,10 @@ def plot_heatmap(arr, xrange, yrange, fname, label, show=True, save=True, **kwar
     # method 1
     ax.set_xticks([i for i, xval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_yticks([i for i, kval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS == 0])
+
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval) for i, xval in enumerate(xrange) if i % POINTS_BETWEEN_X_TICKS==0], fontsize=FS)
-    ax.set_yticklabels([str(int(yval)) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
+    #ax.set_yticklabels([str(int(yval)) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
+    ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval) for i, yval in enumerate(yrange) if i % POINTS_BETWEEN_Y_TICKS==0], fontsize=FS)
 
     ax.invert_yaxis()
     ax.set_xlabel(label[0], fontsize=FS); ax.set_ylabel(label[1], fontsize=FS)
@@ -91,15 +94,17 @@ if __name__ == '__main__':
         os.makedirs(os.getcwd() + os.sep + "figures")
 
     # FIGURE 1 FIXED POINTS
-    K = 100; r = 10; mu = 0.25;
-    alpha =  np.logspace(-3,0,100); S = np.linspace(1,101,101);
-    X,Y = meshgrid(alpha,S)
+    K = 100; r = 20.0;
+    alpha =  np.logspace(-3,0,100);
+    S=30; mu = np.logspace(-4,0,100);
+    #S = np.linspace(1,101,101); mu = 0.1;
+    X,Y = meshgrid(alpha,mu)
 
-    Z1 = fixed_points(X, Y, K, r, mu)
+    Z1 = fixed_points(X, S, K, r, Y)
 
-    #plot_heatmap(Z, alpha, S, 'fixed_points', [r'$\alpha$',r'S',r'Fixed point'], show=True, save=True)
+    plot_heatmap(Z1, alpha, mu, 'fixed_points_mu_rho', [r'$\rho$',r'$\mu$',r'Fixed point'], show=True, save=True)
 
     #FIGURE 2 EIGENVALUE RATIO
-    Z2, l1, l2 = eigen_ratio(X, Y, K, r, mu)
-    print(l1, l2)
-    plot_heatmap(Z2, alpha, S, 'ratio_eigenvalues', [r'$\alpha$',r'S',r'$\lambda_1 / \lambda_i$'], show=True, save=True)
+    #Z2, l1, l2 = eigen_ratio(X, Y, K, r, mu)
+    #print(l1, l2)
+    #plot_heatmap(Z2, alpha, S, 'ratio_eigenvalues', [r'$\alpha$',r'S',r'$\lambda_1 / \lambda_i$'], show=True, save=True)
