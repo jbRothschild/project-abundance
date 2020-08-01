@@ -555,7 +555,7 @@ class CompareModels(object):
             JS       = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
             approx_dist = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ),
+                                np.shape(getattr(self,key2))[0],
                                 np.shape(getattr(self.model,'population'))[0]))
             xrange   = getattr(self,key1)
             yrange   = getattr(self,key2)
@@ -790,4 +790,4 @@ if __name__ == "__main__":
 
     compare = CompareModels()
     #compare.mlv_compare_abundance_approx()
-    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate"), plot=True)#, load_npz=True)
+    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=True)#, load_npz=True)
