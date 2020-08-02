@@ -8,7 +8,11 @@ from scipy.signal import argrelextrema
 
 from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
-from settings import VAR_NAME_DICT, COLOURS
+from settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW
+
+FIGURE_DIR = 'figures' + os.sep + 'simulations'
+while not os.path.exists( os.getcwd() + os.sep + FIGURE_DIR ):
+    os.makedirs(os.getcwd() + os.sep + FIGURE_DIR);
 
 import pickle
 
@@ -453,17 +457,54 @@ def mlv_sim2theory_results(dir, parameter1):
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
     """
-    filename =  dir + os.sep + 'consolidated_results.npz'
-
-    if not os.path.exists(filename):
-        mlv_consolidate_sim_results(dir, parameter1)
-
-
-def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None):
 
     return 0
 
-def mlv_sim2theory_results_heatmaps(dir, parameter1):
+def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=18, pbty=9
+            , save=False):
+
+    plt.style.use('custom_heatmap.mplstyle')
+
+    if title not in IMSHOW_KW:
+        imshow_kw = {'cmap': 'YlGnBu', 'aspect': None }
+    else:
+        imshow_kw = IMSHOW_KW[title]
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    im = ax.imshow(arr, interpolation='none', **imshow_kw)
+
+    POINTS_BETWEEN_X_TICKS = pbtx
+    POINTS_BETWEEN_Y_TICKS = pbty
+    # labels and ticks
+    ax.set_xticks([i for i, xval in enumerate(xrange)
+                        if i % POINTS_BETWEEN_X_TICKS == 0])
+    ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                        for i, xval in enumerate(xrange)
+                        if (i % POINTS_BETWEEN_X_TICKS==0)])
+    ax.set_yticks([i for i, kval in enumerate(yrange)
+                        if i % POINTS_BETWEEN_Y_TICKS == 0])
+    ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                        for i, yval in enumerate(yrange)
+                        if i % POINTS_BETWEEN_Y_TICKS==0])
+    plt.xlabel(xlabel); plt.ylabel(ylabel)
+    ax.invert_yaxis()
+    #plt.xscale('log'); plt.yscale('log')
+    plt.colorbar(im,ax=ax)
+    plt.title(title)
+    if save:
+        fname = ((title.replace(" ","")).replace('/','_')).replace("$","")
+        plt.savefig(FIGURE_DIR + os.sep + fname + '.pdf');
+        #plt.savefig(DIR_OUTPUT + os.sep + fname + '.eps');
+        plt.savefig(FIGURE_DIR + os.sep + fname + '.png')
+    else:
+        plt.show()
+
+    plt.close()
+
+    return 0
+
+def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None,
+                                    save=False):
     """
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
@@ -472,6 +513,50 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1):
 
     if not os.path.exists(filename):
         mlv_consolidate_sim_results(dir, parameter1)
+
+    with np.load(filename) as f:
+        param1_2D   = f[parameter1]  ; mean_pop2D          = f['mean_pop']
+        mean_rich2D = f['mean_rich'] ; mean_time_present2D = f['mean_time_present']
+        P02D        = f['P0']        ; nbr_local_max2D     = f['nbr_local_max']
+        H2D         = f['entropy']   ; GS2D                = f['gs_idx']
+        nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
+
+    labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
+
+    ## Entropy 2D
+    #heatmap(xrange, yrange, arr, xlabel, ylabel, title)
+    heatmap(param1_2D, param2_2D, H2D, labelx, labely, 'entropy', save=save)
+
+    ## Gini-Simpson
+    heatmap(param1_2D, param2_2D, GS2D, labelx, labely, 'Gini-Simpson index'
+                    , save=save)
+
+    ## Richness ( divide nbr_species*(1-P0) by mean_pop )
+    heatmap(param1_2D, param2_2D, nbr_spec2D*(1.0-P02D), labelx, labely
+            , r'$S(1-P(0))$', save=save)
+    heatmap(param1_2D, param2_2D, mean_rich2D, labelx, labely
+            , r'$\langle S \rangle$', save=save)
+
+    heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D)
+            , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+
+    ## Mean time present
+
+
+
+    return 0
+
+def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2=None):
+    """
+    Plot results from file consolidated results. If it doesn't exist,
+    creates it here.
+    """
+    filename =  dir + os.sep + 'consolidated_results.npz'
+
+    if not os.path.exists(filename):
+        mlv_consolidate_sim_results(dir, parameter1, parameter2)
+
+
 
 ### SIR
 
@@ -569,7 +654,8 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
+    #mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
 
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 5)

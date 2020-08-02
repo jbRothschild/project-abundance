@@ -18,6 +18,15 @@ COLOURS = {   'time'            : 'g'
 
 }
 
+IMSHOW_KW = { 'entropy'                 : {'cmap': 'cividis', 'aspect': None }
+                , 'Gini-Simpson index'  : {'cmap': 'cividis', 'aspect': None }
+                ,  r'$S(1-P(0))$'       : {'cmap': 'magma', 'aspect': None }
+                , r'$\langle S \rangle$': {'cmap': 'magma', 'aspect': None }
+                , r'$S(1-P(0))/\langle S \rangle$' : {'cmap': 'RdBu',
+                                    'aspect': None , 'vmin' : 0, 'vmax': 2}
+}
+
+imshow_kw = {'cmap': 'YlGnBu', 'aspect': None }
 
 # TODO : save txt file with what parameters vary (is this possible?)
 
