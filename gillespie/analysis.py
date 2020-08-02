@@ -147,7 +147,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     while not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle'):
         sim_nbr += 1
-        
+
     with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle', 'rb') as handle:
         param_dict = pickle.load(handle)
@@ -176,9 +176,9 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     # time
     if 'time_btwn_ext' in model.results:
         time_btwn_ext = model.results['time_btwn_ext'];
-	if time_btwn_ext != []:
+	    if time_btwn_ext != []:
             mean_time_present = np.mean(model.results['time_btwn_ext'])
-	else: mean_time_present = np.nan
+	    else: mean_time_present = np.nan
     else: time_btwn_ext, mean_time_present = None, None
 
     # Change to dictionary
