@@ -175,8 +175,10 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
 
     # time
     if 'time_btwn_ext' in model.results:
-        time_btwn_ext    = model.results['time_btwn_ext']
-        mean_time_present = np.mean(model.results['time_btwn_ext'])
+        time_btwn_ext = model.results['time_btwn_ext'];
+	if time_btwn_ext != []:
+            mean_time_present = np.mean(model.results['time_btwn_ext'])
+	else: mean_time_present = np.nan
     else: time_btwn_ext, mean_time_present = None, None
 
     # Change to dictionary
@@ -324,7 +326,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
 
     # For heatmap stuff
     else:
-        param1_2D = np.unique(param1); param1_2D = np.unique(param1)
+        param1_2D = np.unique(param1); param2_2D = np.unique(param2)
         dim_1     = len(param1_2D)  ; dim_2      = len(param2_2D)
 
         if dim_1 == 1:
@@ -351,12 +353,12 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             j = np.where(param2_2D==param2[sim])[0][0]
             mean_pop2D[i,j]          = mean_pop[sim]
             mean_rich2D[i,j]         = mean_rich[sim]
-            mean_time_present2D[i,j] = mean_time_present
+            mean_time_present2D[i,j] = mean_time_present[sim]
             P02D[i,j]                = P0[sim]
             nbr_local_max2D[i,j]     = nbr_local_max[sim]
             H2D[i,j]                 = H[sim]
             GS2D[i,j]                = GS[sim]
-            nbr_species2D[i,j]       = nbr_species2D[sim]
+            nbr_species2D[i,j]       = nbr_species[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
