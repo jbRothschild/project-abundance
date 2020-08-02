@@ -143,7 +143,11 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         GS                  :
 
     """
-
+    # TODO QUICK FIX
+    while not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+               'results_0.pickle'):
+        sim_nbr += 1
+        
     with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle', 'rb') as handle:
         param_dict = pickle.load(handle)
