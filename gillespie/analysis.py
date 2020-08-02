@@ -178,7 +178,8 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         time_btwn_ext = model.results['time_btwn_ext'];
         if time_btwn_ext != []:
             mean_time_present = np.mean(model.results['time_btwn_ext']);
-	    else: mean_time_present = np.nan
+	    else:
+            mean_time_present = np.nan
     else: time_btwn_ext, mean_time_present = None, None
 
     # Change to dictionary
