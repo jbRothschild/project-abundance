@@ -575,13 +575,13 @@ class CompareModels(object):
                     #t = time.time()
                     #probability_nava, _ = self.model.abund_1spec_MSLV()
                     #print(time.time() - t)
-		    probability = probability_sid
+                    probability = probability_sid
                     H[i,j]        = self.model.entropy(probability)
                     GS[i,j]       = self.model.ginisimpson_idx(probability)
                     richness[i,j] = self.model.richness(probability)
                     #JS[i,j]         = self.model.JS_divergence(probability_nava
                      #                                       , probability)
-                    approx_dist[i,j] = probability_nava
+                    approx_dist[i,j] = probability
                     print('>'+str(j))
                 print('>>>'+str(i))
 
