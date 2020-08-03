@@ -608,11 +608,11 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
             , labelx, labely, r'Model 2 richness / richness simulation', save=save)
 
     ## mean deterministic vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean, pop2D).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean, pop2D)).T
             , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
 
     ## mean deterministic with S(1-P(0)) vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, pop2D).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, pop2D)).T
             , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
 
     return 0

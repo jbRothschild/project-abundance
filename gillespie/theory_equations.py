@@ -367,6 +367,27 @@ class Model_MultiLVim(object):
 
         return probability, abundance
 
+    def mean_time_extinction(self, n_start, n_end):
+        """
+        Using theory of mean first passage times of 1 specie, here is the equation for the
+        mean time it takes to go from n_start to n_end
+        """
+        if n_end > n_start:
+            print('Warning : ' + str(n_end) + " larger than "
+                            + str(n_start)  + ", for now can only check opposite!")
+            raise SystemExit
+        mte = 0.0
+        def birth_rate_eqn(self, n):
+            return self.birth_rate*n + self.immi_rate
+
+        probability = self.abund_1spec_MSLV(self, dstbn_approx = 'Nava')
+
+        for i in range(n_end, n_start):
+            mte += np.sum(probability[i+1:])/(birth_rate_eqn(i)*probability[i])
+
+        return mte
+
+
     def deterministic_mean(self):
         """
         Calculates the mean of the LV equations, for com_overlap between 0
