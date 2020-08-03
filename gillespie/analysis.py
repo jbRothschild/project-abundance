@@ -157,6 +157,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         param_dict = pickle.load(handle)
 
     model = MultiLV(**param_dict)
+    theory_model = theqs.Model_MultiLVim(**param_dict)
 
     # distribution
     if 'ss_distribution' in model.results:
@@ -168,7 +169,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
         GS          = 1.0 - np.dot(ss_dist,ss_dist)
         setattr(model,'nbr_species',int( (1.0-P0)*param_dict['nbr_species']))
-        det_mean_present = model.deterministic_mean()
+        det_mean_present = theory_model.deterministic_mean()
     else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
                                                           , None, None
 
