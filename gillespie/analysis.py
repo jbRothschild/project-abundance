@@ -655,11 +655,12 @@ if __name__ == "__main__":
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
     #mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
 
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 25)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 5)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 39)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 401)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 361)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 381)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 122)
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
