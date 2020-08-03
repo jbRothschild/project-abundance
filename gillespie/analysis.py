@@ -358,7 +358,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         H2D                 = np.zeros((dim_1,dim_2))
         GS2D                = np.zeros((dim_1,dim_2))
         nbr_species2D       = np.zeros((dim_1,dim_2))
-        ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn)))
+        ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -510,8 +510,7 @@ def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=18, pbty=9
 
     return 0
 
-def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None,
-                                    save=False):
+def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     """
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
@@ -549,7 +548,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None,
 
 
     heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
-    #        , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+            , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
 
     ## Mean time present
 
@@ -557,7 +556,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None,
 
     return 0
 
-def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2=None):
+def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     """
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
@@ -578,16 +577,17 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2=None):
         P02D        = f['P0']         ; nbr_local_max2D     = f['nbr_local_max']
         H2D         = f['entropy']    ; GS2D                = f['gs_idx']
         nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
+        dist_sim    = f['ss_dist']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
     with np.load(simulation_fname) as f:
         dist_thry   = f['approx_dist']; richness_thry = f['richness']
 
-    heatmap(param1_2D, param2_2D, self.model.JS_divergence().T, labelx, labely
-            , r'Jensen-Shannon Divergence', save=save)
+    heatmap(param1_2D, param2_2D, self.model.JS_divergence(dist_sim, dist_thry).T
+            , labelx, labely, r'Jensen-Shannon Divergence', save=save)
 
-    heatmap()
+    return 0
 
 
 
@@ -687,8 +687,9 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
+    #mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
+    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 401)
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 361)
