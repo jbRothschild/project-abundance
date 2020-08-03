@@ -364,7 +364,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         GS2D                = np.zeros((dim_1,dim_2))
         nbr_species2D       = np.zeros((dim_1,dim_2))
         ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
-        det_mean_present    = np.zeros((dim_1,dim_2))
+        det_mean_present2D  = np.zeros((dim_1,dim_2))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
