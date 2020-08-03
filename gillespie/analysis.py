@@ -10,9 +10,9 @@ from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
 from settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW
 
-FIGURE_DIR = 'figures' + os.sep + 'simulations'
-while not os.path.exists( os.getcwd() + os.sep + FIGURE_DIR ):
-    os.makedirs(os.getcwd() + os.sep + FIGURE_DIR);
+SIM_FIG_DIR = 'figures' + os.sep + 'simulations'
+while not os.path.exists( os.getcwd() + os.sep + SIM_FIG_DIR ):
+    os.makedirs(os.getcwd() + os.sep + SIM_FIG_DIR);
 
 import pickle
 
@@ -267,10 +267,6 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
 
     return 0
 
-
-
-
-
 def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     """
     Analyze how the results from different simulations differ for varying
@@ -294,20 +290,28 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     mean_rich   = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
     P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
     H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
-    nbr_species = np.zeros(nbr_sims)
+    nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
 
     # if 2 parameters vary in the simulation
     if parameter2 != None: param2 = np.zeros(nbr_sims)
 
     #
     for i in np.arange(nbr_sims):
-        param_dict, _, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
+        param_dict, ss_dist_sim, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
                   , P0[i], nbr_local_max[i], H[i], GS[i], nbr_species[i]\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
+        # sims might not have same distribution length
+        ss_dist_vary.append(np.array(ss_dist_sim))
 
         # Value of parameters
         param1[i] = param_dict[parameter1]
         if parameter2 != None: param2[i] = param_dict[parameter2]
+
+    # making all sims have same distribution length
+    length_longest_dstbn = len(max(ss_dist,key=len))
+    ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
+    for i in np.arange(nbr_sims):
+        ss_dist[i,:len(ss_dist_vary)] = ss_dist_vary[i]
 
     # Single parameter changing
     if parameter2 == None:
@@ -318,6 +322,8 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             print('Warning : ' + parameter1 +
                     ' is repeated here, hence there might be another param!')
 
+
+
         # save arrays in a npz file, dict here
         dict_arrays = {  parameter1 : param1, 'mean_pop'  : mean_pop
                                         , 'mean_rich'     : mean_rich
@@ -327,12 +333,13 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                         , 'entropy'       : H
                                         , 'gs_idx'        : GS
                                         , 'nbr_species'   : nbr_species
+                                        , 'ss_dist'       : ss_dist
                                         }
 
     # For heatmap stuff
     else:
         param1_2D = np.unique(param1); param2_2D = np.unique(param2)
-        dim_1     = len(param1_2D)  ; dim_2      = len(param2_2D)
+        dim_1     = len(param1_2D)   ; dim_2      = len(param2_2D)
 
         if dim_1 == 1:
             print('Warning : Parameter ' + parameter1 + ' does not vary!')
@@ -351,6 +358,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         H2D                 = np.zeros((dim_1,dim_2))
         GS2D                = np.zeros((dim_1,dim_2))
         nbr_species2D       = np.zeros((dim_1,dim_2))
+        ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn)))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -364,6 +372,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             H2D[i,j]                 = H[sim]
             GS2D[i,j]                = GS[sim]
             nbr_species2D[i,j]       = nbr_species[sim]
+            ss_dist2D[i,j]           = ss_dist[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
@@ -375,14 +384,12 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                            , 'entropy'       : H2D
                                            , 'gs_idx'        : GS2D
                                            , 'nbr_species'   : nbr_species2D
+                                           , 'ss_dist'       : ss_dist2D
                                            }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
 
     return 0
-
-
-
 
 def mlv_plot_sim_results(dir, parameter1):
     """
@@ -493,9 +500,9 @@ def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=18, pbty=9
     plt.title(title)
     if save:
         fname = ((title.replace(" ","")).replace('/','_')).replace("$","")
-        plt.savefig(FIGURE_DIR + os.sep + fname + '.pdf');
+        plt.savefig(SIM_FIG_DIR + os.sep + fname + '.pdf');
         #plt.savefig(DIR_OUTPUT + os.sep + fname + '.eps');
-        plt.savefig(FIGURE_DIR + os.sep + fname + '.png')
+        plt.savefig(SIM_FIG_DIR + os.sep + fname + '.png')
     else:
         plt.show()
 
@@ -525,20 +532,24 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2=None,
 
     ## Entropy 2D
     #heatmap(xrange, yrange, arr, xlabel, ylabel, title)
-    heatmap(param1_2D, param2_2D, H2D, labelx, labely, 'entropy', save=save)
+    heatmap(param1_2D, param2_2D, H2D.T, labelx, labely, 'entropy', save=save)
 
     ## Gini-Simpson
-    heatmap(param1_2D, param2_2D, GS2D, labelx, labely, 'Gini-Simpson index'
+    heatmap(param1_2D, param2_2D, GS2D.T, labelx, labely, 'Gini-Simpson index'
                     , save=save)
 
     ## Richness ( divide nbr_species*(1-P0) by mean_pop )
-    heatmap(param1_2D, param2_2D, nbr_spec2D*(1.0-P02D), labelx, labely
+    heatmap(param1_2D, param2_2D, nbr_spec2D.T*(1.0-P02D).T, labelx, labely
             , r'$S(1-P(0))$', save=save)
-    heatmap(param1_2D, param2_2D, mean_rich2D, labelx, labely
+    heatmap(param1_2D, param2_2D, mean_rich2D.T, labelx, labely
             , r'$\langle S \rangle$', save=save)
 
-    heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D)
-            , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+    #heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
+    #        , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+
+
+    heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
+    #        , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
 
     ## Mean time present
 
@@ -551,10 +562,32 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2=None):
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
     """
-    filename =  dir + os.sep + 'consolidated_results.npz'
+    theory_fname = theqs.THRY_FIG_DIR + os.sep + 'metrics2.npz'
+    simulation_fname = dir + os.sep + 'consolidated_results.npz'
 
-    if not os.path.exists(filename):
+    if not os.path.exists(simulation_fname):
         mlv_consolidate_sim_results(dir, parameter1, parameter2)
+
+    if not os.path.exists(theory_fname):
+        print('Warning : ' + theory_fname + " doesn't exist!")
+        raise SystemExit
+
+    with np.load(simulation_fname) as f:
+        param1_2D   = f[parameter1]   ; mean_pop2D          = f['mean_pop']
+        mean_rich_sim = f['mean_rich']; mean_time_present2D = f['mean_time_present']
+        P02D        = f['P0']         ; nbr_local_max2D     = f['nbr_local_max']
+        H2D         = f['entropy']    ; GS2D                = f['gs_idx']
+        nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
+
+    labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
+
+    with np.load(simulation_fname) as f:
+        dist_thry   = f['approx_dist']; richness_thry = f['richness']
+
+    heatmap(param1_2D, param2_2D, self.model.JS_divergence().T, labelx, labely
+            , r'Jensen-Shannon Divergence', save=save)
+
+    heatmap()
 
 
 
@@ -654,13 +687,13 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    #mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
+    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
 
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 401)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 361)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 381)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 122)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 401)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 361)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 381)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 122)
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'

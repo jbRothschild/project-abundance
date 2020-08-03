@@ -20,11 +20,11 @@ plt.style.use('custom.mplstyle')
 # TODO : all these scripts are a bit of a mess. FIgure out a good modular way
 #        to do this all.
 
-FIGURE_DIR = 'figures' + os.sep + 'theory'
+THRY_FIG_DIR = 'figures' + os.sep + 'theory'
 #THEORY_DIR = 'theory_results'
 
-while not os.path.exists( os.getcwd() + os.sep + FIGURE_DIR ):
-    os.makedirs(os.getcwd() + os.sep + FIGURE_DIR);
+while not os.path.exists( os.getcwd() + os.sep + THRY_FIG_DIR ):
+    os.makedirs(os.getcwd() + os.sep + THRY_FIG_DIR);
 
 class Model_MultiLVim(object):
     """
@@ -377,6 +377,8 @@ class Model_MultiLVim(object):
                (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
                / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
 
+
+    #NONE OF THESE NEED TO BE IN THE MODEL CLASS
     def entropy(self, probability):
         # calculate entropy of a distribution
         return - np.dot(probability[probability>0.0],
@@ -527,7 +529,7 @@ class CompareModels(object):
             species_richness    : average number of species in the system
             GS                  : Gini-Simpson index
         """
-        filename = FIGURE_DIR + os.sep + file
+        filename = THRY_FIG_DIR + os.sep + file
 
         # approximation to use
         #approximation = self.model.abund_1spec_MSLV
@@ -584,7 +586,8 @@ class CompareModels(object):
                 print('>>>'+str(i))
 
             # save
-            metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS}
+            metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS
+                            , 'approx_dist' : approx_dist}
             np.savez(filename, **metric_dict)
 
         if plot:
