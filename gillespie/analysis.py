@@ -526,7 +526,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     filename =  dir + os.sep + 'consolidated_results.npz'
 
     if not os.path.exists(filename):
-        mlv_consolidate_sim_results(dir, parameter1)
+        mlv_consolidate_sim_results(dir, parameter1, parameter2)
 
     with np.load(filename) as f:
         param1_2D   = f[parameter1]  ; mean_pop2D          = f['mean_pop']
