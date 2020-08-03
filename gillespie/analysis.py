@@ -561,7 +561,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
 
     ## det_mean_n_present
     heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
-            , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
+            , r'Lotka Voltera steady state with $S(1-P(0))$', save=save)
 
     ## Mean time present
 
