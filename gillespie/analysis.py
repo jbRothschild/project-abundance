@@ -308,7 +308,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         if parameter2 != None: param2[i] = param_dict[parameter2]
 
     # making all sims have same distribution length
-    length_longest_dstbn = len(max(ss_dist,key=len))
+    length_longest_dstbn = len(max(ss_dist_vary,key=len))
     ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
     for i in np.arange(nbr_sims):
         ss_dist[i,:len(ss_dist_vary)] = ss_dist_vary[i]

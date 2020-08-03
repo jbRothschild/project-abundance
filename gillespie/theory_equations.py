@@ -511,7 +511,7 @@ class CompareModels(object):
 
         return H, GS, richness
 
-    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics3.npz', plot=False
+    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics2.npz', plot=False
                                     , load_npz=False):
         """
         Compares along 3 metrics: entropy, richness and gini-simpson index
@@ -573,14 +573,14 @@ class CompareModels(object):
                     #print(time.time() - t)
 
                     #t = time.time()
-                    probability_nava, _ = self.model.abund_1spec_MSLV()
+                    #probability_nava, _ = self.model.abund_1spec_MSLV()
                     #print(time.time() - t)
-
-                    H[i,j]        = self.model.entropy(probability_nava)
-                    GS[i,j]       = self.model.ginisimpson_idx(probability_nava)
-                    richness[i,j] = self.model.richness(probability_nava)
-                    JS[i,j]         = self.model.JS_divergence(probability_nava
-                                                            , probability_sid)
+		    probability = probability_sid
+                    H[i,j]        = self.model.entropy(probability)
+                    GS[i,j]       = self.model.ginisimpson_idx(probability)
+                    richness[i,j] = self.model.richness(probability)
+                    #JS[i,j]         = self.model.JS_divergence(probability_nava
+                     #                                       , probability)
                     approx_dist[i,j] = probability_nava
                     print('>'+str(j))
                 print('>>>'+str(i))
