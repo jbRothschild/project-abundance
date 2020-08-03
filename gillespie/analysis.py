@@ -604,7 +604,7 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     ## mean richness
     heatmap(param1_2D, param2_2D, (nbr_species*richness_theory).T
             , labelx, labely, r'Model 2 richness', save=save)
-    heatmap(param1_2D, param2_2D, (np.divide(nbr_species*richness_theory, mean_rich_sim).T
+    heatmap(param1_2D, param2_2D, np.divide(nbr_species*richness_theory, mean_rich_sim).T
             , labelx, labely, r'Model 2 richness / richness simulation', save=save)
 
     ## mean deterministic vs mean simulation
