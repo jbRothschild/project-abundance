@@ -167,6 +167,8 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         nbr_local_max = np.min([len( argrelextrema(ss_dist, np.greater) ),2])
         H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
         GS          = 1.0 - np.dot(ss_dist,ss_dist)
+        setattr(model,'nbr_species',int( (1.0-P0)*param_dict['nbr_species']))
+        det_mean_present = model.deterministic_mean()
     else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
                                                           , None, None
 
@@ -189,7 +191,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     # Change to dictionary
     return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
                      , mean_rich, mean_time_present, P0, nbr_local_max, H, GS\
-                     , param_dict['nbr_species']
+                     , param_dict['nbr_species'], det_mean_present
 
 
 
@@ -291,14 +293,15 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
     H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
     nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
+    det_mean_present = np.zeros(nbr_sims)
 
     # if 2 parameters vary in the simulation
     if parameter2 != None: param2 = np.zeros(nbr_sims)
 
-    #
+    # TODO change to dictionary
     for i in np.arange(nbr_sims):
         param_dict, ss_dist_sim, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
-                  , P0[i], nbr_local_max[i], H[i], GS[i], nbr_species[i]\
+                  , P0[i], nbr_local_max[i], H[i], GS[i], nbr_species[i], det_mean_present[i]\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
         # sims might not have same distribution length
         ss_dist_vary.append(np.array(ss_dist_sim))
@@ -334,6 +337,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                         , 'gs_idx'        : GS
                                         , 'nbr_species'   : nbr_species
                                         , 'ss_dist'       : ss_dist
+                                        , 'det_mean_present' : det_mean_present
                                         }
 
     # For heatmap stuff
@@ -359,6 +363,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         GS2D                = np.zeros((dim_1,dim_2))
         nbr_species2D       = np.zeros((dim_1,dim_2))
         ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
+        det_mean_present    = np.zeros((dim_1,dim_2))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -373,6 +378,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             GS2D[i,j]                = GS[sim]
             nbr_species2D[i,j]       = nbr_species[sim]
             ss_dist2D[i,j]           = ss_dist[sim]
+            det_mean_present2D[i,j]  = det_mean_present[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
@@ -385,6 +391,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                            , 'gs_idx'        : GS2D
                                            , 'nbr_species'   : nbr_species2D
                                            , 'ss_dist'       : ss_dist2D
+                                           , 'det_mean_present' : det_mean_present2D
                                            }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
@@ -526,6 +533,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
         P02D        = f['P0']        ; nbr_local_max2D     = f['nbr_local_max']
         H2D         = f['entropy']   ; GS2D                = f['gs_idx']
         nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
+        det_mean_present2D = f['det_mean_present']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
@@ -543,12 +551,16 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, mean_rich2D.T, labelx, labely
             , r'$\langle S \rangle$', save=save)
 
-    #heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
-    #        , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
-
-
     heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
             , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+
+    ## mean_n
+    heatmap(param1_2D, param2_2D, mean_pop2D.T, labelx, labely
+            , r'$\langle n \rangle$', save=save)
+
+    ## det_mean_n_present
+    heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
+            , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
 
     ## Mean time present
 
@@ -577,15 +589,31 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
         P02D        = f['P0']         ; nbr_local_max2D     = f['nbr_local_max']
         H2D         = f['entropy']    ; GS2D                = f['gs_idx']
         nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
-        dist_sim    = f['ss_dist']
+        dist_sim    = f['ss_dist']    ; det_mean_present2D = f['det_mean_species']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
     with np.load(simulation_fname) as f:
         dist_thry   = f['approx_dist']; richness_thry = f['richness']
+        det_mean    = f['det_mean']
 
+    ## J-S divergence
     heatmap(param1_2D, param2_2D, self.model.JS_divergence(dist_sim, dist_thry).T
             , labelx, labely, r'Jensen-Shannon Divergence', save=save)
+
+    ## mean richness
+    heatmap(param1_2D, param2_2D, (nbr_species*richness_theory).T
+            , labelx, labely, r'Model 2 richness', save=save)
+    heatmap(param1_2D, param2_2D, (np.divide(nbr_species*richness_theory, mean_rich_sim).T
+            , labelx, labely, r'Model 2 richness / richness simulation', save=save)
+
+    ## mean deterministic vs mean simulation
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean, pop2D).T
+            , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
+
+    ## mean deterministic with S(1-P(0)) vs mean simulation
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, pop2D).T
+            , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
 
     return 0
 
@@ -687,7 +715,7 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    #mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate')
+    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate', save=False)
     mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 

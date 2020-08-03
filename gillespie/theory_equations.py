@@ -559,6 +559,10 @@ class CompareModels(object):
             approx_dist = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0],
                                 np.shape(getattr(self.model,'population'))[0]))
+            det_mean = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            det_mean_spec_present = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
             xrange   = getattr(self,key1)
             yrange   = getattr(self,key2)
 
@@ -580,14 +584,16 @@ class CompareModels(object):
                     GS[i,j]       = self.model.ginisimpson_idx(probability)
                     richness[i,j] = self.model.richness(probability)
                     #JS[i,j]         = self.model.JS_divergence(probability_nava
-                     #                                       , probability)
+                    #                                       , probability)
                     approx_dist[i,j] = probability
+                    det_mean[i,j] = self.model.deterministic_mean()
+
                     print('>'+str(j))
                 print('>>>'+str(i))
 
             # save
             metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS
-                            , 'approx_dist' : approx_dist}
+                            , 'approx_dist' : approx_dist, 'det_mean' : det_mean}
             np.savez(filename, **metric_dict)
 
         if plot:
