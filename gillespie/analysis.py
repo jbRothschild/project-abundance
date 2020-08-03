@@ -715,7 +715,7 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_consolidate_sim_results(sim_dir, 'comp_overlap', 'immi_rate', save=False)
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
     mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 
