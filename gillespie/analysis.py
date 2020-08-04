@@ -168,7 +168,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         nbr_local_max = np.min([len( argrelextrema(ss_dist, np.greater) ),2])
         H           = -np.dot(ss_dist[ss_dist>0.0],np.log(ss_dist[ss_dist>0.0]))
         GS          = 1.0 - np.dot(ss_dist,ss_dist)
-        setattr(model,'nbr_species',int( (1.0-P0)*param_dict['nbr_species']))
+        setattr(theory_model,'nbr_species',int( (1.0-P0)*param_dict['nbr_species']))
         det_mean_present = theory_model.deterministic_mean()
     else: ss_dist, mean_pop, P0, nbr_local_max, H, GS = None, None, None, None \
                                                           , None, None
@@ -630,6 +630,7 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, (np.divide(det_mean, det_mean_present2D)).T
             , labelx, labely, r'WHAT', save=save)
 
+
     return 0
 
 
@@ -730,13 +731,13 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
-    #mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
+    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 820)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1220)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1580)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 820)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 1220)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 1580)
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
