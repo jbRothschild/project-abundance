@@ -734,9 +734,9 @@ if __name__ == "__main__":
     #mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 420)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 430)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 440)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 820)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1220)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1580)
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
