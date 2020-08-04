@@ -420,7 +420,7 @@ class Model_MultiLVim(object):
         if dimP != dimQ:
             print('Dimension of 2 distributions not equal!')
             P = P[:]
-            P = P[:np.min(dimP,dimQ)]; Q = Q[:np.min(dimP,dimQ)];
+            P = P[:np.min([dimQ,dimP])]; Q = Q[:np.min([dimQ,dimP])];
 
         KLpq = np.sum(P[P>0.0]*np.log(P[P>0.0])) \
                             - np.sum(P[Q>0.0]*np.log(Q[Q>0.0]))
@@ -432,7 +432,9 @@ class Model_MultiLVim(object):
         dimP = len(P); dimQ = len(Q) # TODO change to np.shape
         if dimP != dimQ:
             print('Dimension of 2 distributions not equal!')
-            P = P[:np.min(dimP,dimQ)]; Q = Q[:np.min(dimP,dimQ)];
+            P = P[:np.min([dimQ,dimP])]; Q = Q[:np.min([dimQ,dimP])];
+
+        print((self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0)
 
         return (self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0
 
@@ -766,7 +768,6 @@ class CompareModels(object):
         Compare different approximations for abundance Distribution
 
         """
-
         matlab_files = ['Results_01','Results_05','Results_1']
 
         # plot a couple different abundance distributions

@@ -209,7 +209,7 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
     # replace with a dict
     param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
-              , mean_rich_sim, mean_time_present_sim, _, _, _, _, _  \
+              , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _ \
               = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
 
     print(param_dict)
@@ -257,12 +257,18 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     plt.plot(np.arange(len(ss_dist_thry)),ss_dist_thry,label='theory')
     plt.ylabel(r"probability distribution function")
     plt.xlabel(r'n')
-    plt.axvline( mean_pop_sim, color='k' , linestyle='dashed'
+    plt.axvline( mean_pop_sim, color='r' , linestyle='dashed'
                 , linewidth=1 ) #mean
-    #plt.axvline( theory_models.deterministic_mean(), color='k' ,
-    #            linestyle='dashdot', linewidth=1 ) #mean
+    plt.axvline( theory_models.deterministic_mean(), color='k' ,
+                linestyle='dashdot', linewidth=1 ) #mean
+    setattr(theory_models,'nbr_species',int(mean_rich_sim))
+    plt.axvline( theory_models.deterministic_mean(), color='b' ,
+                linestyle='-', linewidth=1 ) #mean
     plt.yscale('log')
     axes.set_ylim([np.min(ss_dist_sim[ss_dist_sim!=0.0]),2*np.max(ss_dist_sim)])
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
+    plt.title(title)
     axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
     plt.legend(loc='best')
     #plt.xscale('log')
@@ -561,7 +567,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
 
     ## det_mean_n_present
     heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
-            , r'Lotka Voltera steady state with $S(1-P(0))$', save=save)
+            , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
 
     ## Mean time present
 
@@ -590,31 +596,39 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
         P02D        = f['P0']         ; nbr_local_max2D     = f['nbr_local_max']
         H2D         = f['entropy']    ; GS2D                = f['gs_idx']
         nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
-        dist_sim    = f['ss_dist']    ; det_mean_present2D = f['det_mean_species']
+        dist_sim    = f['ss_dist']    ; det_mean_present2D = f['det_mean_present']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
-    with np.load(simulation_fname) as f:
+    with np.load(theory_fname) as f:
         dist_thry   = f['approx_dist']; richness_thry = f['richness']
         det_mean    = f['det_mean']
 
     ## J-S divergence
-    heatmap(param1_2D, param2_2D, self.model.JS_divergence(dist_sim, dist_thry).T
-            , labelx, labely, r'Jensen-Shannon Divergence', save=save)
+    JS = np.zeros(np.shape(H2D))
+    for i in range(np.shape(H2D)[0]):
+        for j in range(np.shape(H2D)[1]):
+            JS[i,j]=theqs.Model_MultiLVim().JS_divergence(dist_sim[i,j], dist_thry[i,j])
+
+    heatmap(param1_2D, param2_2D, JS.T, labelx, labely
+                , r'Jensen-Shannon Divergence', save=save)
 
     ## mean richness
-    heatmap(param1_2D, param2_2D, (nbr_species*richness_theory).T
-            , labelx, labely, r'Model 2 richness', save=save)
-    heatmap(param1_2D, param2_2D, np.divide(nbr_species*richness_theory, mean_rich_sim).T
-            , labelx, labely, r'Model 2 richness / richness simulation', save=save)
+    heatmap(param1_2D, param2_2D, (30*richness_thry).T
+            , labelx, labely, r'Method 2 richness', save=save)
+    heatmap(param1_2D, param2_2D, np.divide(30*richness_thry, mean_rich_sim).T
+            , labelx, labely, r'Method 2 richness / richness simulation', save=save)
 
     ## mean deterministic vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean, pop2D)).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean, mean_pop2D)).T
             , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
 
     ## mean deterministic with S(1-P(0)) vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, pop2D)).T
-            , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, mean_pop2D)).T
+            , labelx, labely, r'LV mean $S(1-P(0))$ / $\langle n \rangle_{sim}$', save=save)
+
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean, det_mean_present2D)).T
+            , labelx, labely, r'WHAT', save=save)
 
     return 0
 
@@ -716,14 +730,13 @@ if __name__ == "__main__":
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
 
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
-    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
+    #mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
 
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 401)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 361)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 381)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 122)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 420)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 430)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 440)
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
