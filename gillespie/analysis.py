@@ -510,7 +510,12 @@ def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=18, pbty=9
     plt.xlabel(xlabel); plt.ylabel(ylabel)
     ax.invert_yaxis()
     #plt.xscale('log'); plt.yscale('log')
-    plt.colorbar(im,ax=ax)
+    plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap'])
+    if title == 'Local maxima':
+        cbar = plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap']
+                        , boundaries=[-0.5,0.5,1.5,2.5]
+                        , ticks=[-0.5,0.5,1.5,2.5])
+        cbar.ax.set_yticklabels(['Max 0', 'Max n', '2 Maxs', ''])
     plt.title(title)
     if save:
         fname = ((title.replace(" ","")).replace('/','_')).replace("$","")
@@ -605,9 +610,9 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
         det_mean    = f['det_mean']
 
     ## J-S divergence
-    JS = np.zeros(np.shape(H2D))
-    for i in range(np.shape(H2D)[0]):
-        for j in range(np.shape(H2D)[1]):
+    JS = np.zeros( ( len(param1_2D) , len(param2_2D) ) )
+    for i in range(np.shape(dist_sim)[0]):
+        for j in range(np.shape(dist_sim)[1]):
             JS[i,j]=theqs.Model_MultiLVim().JS_divergence(dist_sim[i,j], dist_thry[i,j])
 
     heatmap(param1_2D, param2_2D, JS.T, labelx, labely
@@ -627,9 +632,25 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, mean_pop2D)).T
             , labelx, labely, r'LV mean $S(1-P(0))$ / $\langle n \rangle_{sim}$', save=save)
 
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean, det_mean_present2D)).T
-            , labelx, labely, r'WHAT', save=save)
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, det_mean)).T
+            , labelx, labely, r'LV mean $(S(1-P(0)))$ / LV mean $S$', save=save)
 
+    ## Number of peaks
+    peaks = np.zeros( ( len(param1_2D) , len(param2_2D) ) )
+    for i in range(np.shape(dist_sim)[0]):
+        for j in range(np.shape(dist_sim)[1]):
+            peakhigh = 0; peak0 = 0
+            if np.argmax(dist_sim[i,j,1:]) > 1:
+                peakhigh = 1;
+                peak0 = int( dist_sim[i,j,0] > dist_sim[i,j,1] )
+
+            peaks[i,j] = peak0 + peakhigh
+
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, det_mean)).T
+            , labelx, labely, r'Local maxima', save=save)
+
+    heatmap(param1_2D, param2_2D, ().T
+            , labelx, labely, r'Mean time fall from dominance', save=save)
 
     return 0
 

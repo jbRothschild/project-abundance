@@ -4,6 +4,7 @@ import matplotlib as mpl; import matplotlib.pyplot as plt
 import matplotlib.patches as patches # histgram animation
 import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
+from matplotlib.colors import LogNorm
 
 import itertools
 from itertools import combinations
@@ -14,6 +15,7 @@ import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
 #import seaborn as sns
+from settings import VAR_NAME_DICT
 
 plt.style.use('custom.mplstyle')
 
@@ -31,7 +33,7 @@ class Model_MultiLVim(object):
     Various solutions from different models of populations with competition in
     the death rate. Will describe where they come from each.
     """
-    def __init__(self, comp_overlap=0.5, birth_rate=2.0, death_rate=1.0,
+    def __init__(self, comp_overlap=0.5, birth_rate=20.0, death_rate=1.0,
                  carry_capacity=100, immi_rate=0.01, nbr_species=30,
                  population=np.arange(250), **kwargs ):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
@@ -367,7 +369,7 @@ class Model_MultiLVim(object):
 
         return probability, abundance
 
-    def mean_time_extinction(self, n_start, n_end):
+    def mean_time_extinction(self, n_start, n_end, dstbn=[]):
         """
         Using theory of mean first passage times of 1 specie, here is the equation for the
         mean time it takes to go from n_start to n_end
@@ -377,10 +379,13 @@ class Model_MultiLVim(object):
                             + str(n_start)  + ", for now can only check opposite!")
             raise SystemExit
         mte = 0.0
-        def birth_rate_eqn(self, n):
+        def birth_rate_eqn(n):
             return self.birth_rate*n + self.immi_rate
 
-        probability = self.abund_1spec_MSLV(self, dstbn_approx = 'Nava')
+        if dstbn == []:
+            probability = self.abund_1spec_MSLV(self, dstbn_approx = 'Nava')
+        else:
+            probability = dstbn
 
         for i in range(n_end, n_start):
             mte += np.sum(probability[i+1:])/(birth_rate_eqn(i)*probability[i])
@@ -534,7 +539,7 @@ class CompareModels(object):
 
         return H, GS, richness
 
-    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics2.npz', plot=False
+    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics3.npz', plot=False
                                     , load_npz=False):
         """
         Compares along 3 metrics: entropy, richness and gini-simpson index
@@ -567,6 +572,8 @@ class CompareModels(object):
             with np.load(filename) as f:
                 H = f['H']; GS = f['GS']; richness = f['richness'];
                 JS = f['JS']; xrange = ['xrange']; yrange = ['yrange'];
+                approx_dist_sid = f['approx_dist_sid']
+                approx_dist_nava = f['approx_dist_nava']
 
         # Create the npz file
         else:
@@ -579,10 +586,15 @@ class CompareModels(object):
                                 np.shape(getattr(self,key2))[0] ) )
             JS       = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
-            approx_dist = np.zeros( ( np.shape(getattr(self,key1))[0],
+            approx_dist_sid = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0],
+                                np.shape(getattr(self.model,'population'))[0]))
+            approx_dist_nava = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0],
                                 np.shape(getattr(self.model,'population'))[0]))
             det_mean = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            mean_time_dominance = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
             det_mean_spec_present = np.zeros( ( np.shape(getattr(self,key1))[0],
                                 np.shape(getattr(self,key2))[0] ) )
@@ -600,15 +612,21 @@ class CompareModels(object):
                     #print(time.time() - t)
 
                     #t = time.time()
-                    #probability_nava, _ = self.model.abund_1spec_MSLV()
+                    probability_nava, _ = self.model.abund_1spec_MSLV()
                     #print(time.time() - t)
-                    probability = probability_sid
+                    approx_dist_sid[i,j] = probability_sid
+                    approx_dist_nava[i,j] = probability_nava
+
+                    probability = probability_nava
+
                     H[i,j]        = self.model.entropy(probability)
                     GS[i,j]       = self.model.ginisimpson_idx(probability)
                     richness[i,j] = self.model.richness(probability)
                     #JS[i,j]         = self.model.JS_divergence(probability_nava
                     #                                       , probability)
-                    approx_dist[i,j] = probability
+
+                    mean_time_dominance[i,j] = self.model.mean_time_extinction(
+                                    int(self.model.nbr_species*(1.-probability[0])), 0, probability)
                     det_mean[i,j] = self.model.deterministic_mean()
 
                     print('>'+str(j))
@@ -616,7 +634,10 @@ class CompareModels(object):
 
             # save
             metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS
-                            , 'approx_dist' : approx_dist, 'det_mean' : det_mean}
+                            , 'approx_dist_sid' : approx_dist_sid
+                            , 'approx_dist_nava' : approx_dist_nava
+                            , 'det_mean' : det_mean,
+                            'xrange' : xrange, 'yrange' : yrange}
             np.savez(filename, **metric_dict)
 
         if plot:
@@ -626,7 +647,7 @@ class CompareModels(object):
                          #,'vmin': vmin, 'vmax': vmax
                          #,'norm': mpl.colors.LogNorm(vmin,vmax)
                     }
-
+            approx_dist = approx_dist_nava
             # setting of xticks
             POINTS_BETWEEN_X_TICKS = 9
             POINTS_BETWEEN_Y_TICKS = 9
@@ -721,6 +742,35 @@ class CompareModels(object):
             plt.colorbar(im,ax=ax)
             plt.title(r'$Jensen-Shannon divergence$')
             plt.show()
+
+            ## Mean time extinction
+            plt.style.use('custom_heatmap.mplstyle')
+            imshow_kw ={'cmap': 'viridis', 'aspect': None }
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = ax.imshow(mean_time_dominance, interpolation='none'
+                                , norm=LogNorm(vmin=np.min(mean_time_dominance)
+                                            ,vmax=np.max(mean_time_dominance))
+                                ,**imshow_kw)
+
+            # labels and ticks
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
+            ax.invert_yaxis()
+            #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax)
+            plt.title(r'Mean time to lose dominance')
+            plt.show()
+
+
 
             ## Species richness 2D
             # if species are changing, additionally give species richness, not
@@ -821,4 +871,4 @@ if __name__ == "__main__":
 
     compare = CompareModels()
     #compare.mlv_compare_abundance_approx()
-    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=True, load_npz=False)
+    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
