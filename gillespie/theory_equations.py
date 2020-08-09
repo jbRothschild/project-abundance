@@ -449,7 +449,7 @@ class CompareModels(object):
     """
     Trying to compare models in certain ways.
     """
-    def __init__(self, comp_overlap=np.logspace(-2,0,40),
+    def __init__(self, comp_overlap=np.logspace(-2,-0.01,40),
                  birth_rate=np.logspace(-2,2,40),
                  death_rate=np.logspace(-2,2,40),
                  carry_capacity=(np.logspace(1,3,40)).astype(int),
