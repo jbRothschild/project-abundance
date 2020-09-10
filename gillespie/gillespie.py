@@ -63,7 +63,7 @@ def gillespie_draw(Model, current_state):
 
     return reaction_index, time
 
-def gillespie(Model, traj):
+def gillespie(Model, traj, tau_leap):
     """
     Running 1 trajectory
 
@@ -71,6 +71,7 @@ def gillespie(Model, traj):
         Model (Class)   : Model object that has functions to get propensities,
                           updates, etc.
         traj            : trajectory index we are following
+        tau_leap (bool) : Whether or not tau leaping is used
 
     Returns:
         simulation : the whole simulated trajectory
@@ -87,24 +88,84 @@ def gillespie(Model, traj):
     simulation[0,:] = init_state.copy()
     current_state = simulation[0,:].copy()
 
-    while not ( ( Model.stop_condition(current_state) ) or
-                  Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
-                                                i-1) ) :
-        # draw the event and time step
-        reaction_idx, dt = gillespie_draw(Model, current_state)
+    if not tau_leap: # regular SSM
+        while not ( ( Model.stop_condition(current_state) ) or
+                      Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
+                                                    i-1) ) :
+            # draw the event and time step
+            reaction_idx, dt = gillespie_draw(Model, current_state)
 
-        Model.update_results(current_state, dt)
+            Model.update_results(current_state, dt)
 
-        # Update the system
-        # TODO what if system size changes? Going to have to rethink this...
-        simulation[i%Model.max_gen_save,:] = Model.update( current_state,
-                                                           reaction_idx );
-        times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
-        current_state = simulation[i%Model.max_gen_save,:].copy()
+            # Update the system
+            # TODO what if system size changes? Going to have to rethink this...
+            simulation[i%Model.max_gen_save,:] = Model.update( current_state,
+                                                               reaction_idx );
+            times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
+            current_state = simulation[i%Model.max_gen_save,:].copy()
 
-        i += 1
+            i += 1
+
+    else: # tau leaping
+        while not ( ( Model.stop_condition(current_state) ) or
+                      Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
+                                                    i-1) ) :
+
+            # from the paper:
+            # (1) Identify which reactions are critical (number of times they
+            # happen before extinction)
+            critical_rxn = 10
+
+
+            # (2)  Find time in which next reactions take place
+            # draw the event and time step
+            reaction_idx, dt = gillespie_draw(Model, current_state)
+
+
+            # (3) If tau less than some time, do regular SSA for some steps
+
+
+            # (4) Estimate time for next critical rxns
+
+
+            #
+            Model.update_results(current_state, dt)
+
+
+            # Update the system
+            # TODO what if system size changes? Going to have to rethink this...
+            simulation[i%Model.max_gen_save,:] = Model.update( current_state,
+                                                               reaction_idx );
+            times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
+            current_state = simulation[i%Model.max_gen_save,:].copy()
+
+            i += 1
 
     Model.save_trajectory(simulation, times, traj)
+
+    return simulation, times
+
+
+def tau_leaping(Model, traj):
+    """
+    Running 1 trajectory, using tau leaping algorithm which finds a way to
+    implement many reactions in each timestep. Supposed to be better at
+    running for longer times (hence allowing rare reactions). Implementation
+    from
+    - "Efficient step size selection for the tau-leaping simulation method",
+        2006, Gillespie et. al.
+
+
+    Input:
+        Model (Class)   : Model object that has functions to get propensities,
+                          updates, etc.
+        traj            : trajectory index we are following
+
+    Returns:
+        simulation : the whole simulated trajectory
+        times      : when each reaction happened along the trajectory
+    """
+
 
     return simulation, times
 
@@ -147,11 +208,14 @@ if __name__ == "__main__":
                         help = "Number of runs/trajectories.")
     parser.add_argument('-n', type = int, default = 0, nargs = '?',
                         help = "Simulation number.")
+    parser.add_argument('-tau', type = bool, default = False, nargs = '?',
+                        help = "Tau leaping algorithm.")
     parser.add_argument('-p', metavar='KEY=VAL', default= {'nada' : 0.0},
                         dest='my_dict', nargs='*', action=StoreDictKeyPair,
                         required=False,
                         help='Additional parameters to be passed on for the \
                         simulation')
+
     # TODO : add multiprocessing. Will make it a lot better. Major changes need to
     #        happen to parallelize all this.
 
@@ -162,6 +226,7 @@ if __name__ == "__main__":
     param_dict['sim_number'] = args.n
     param_dict['nbr_generations'] = args.g
     param_dict['max_time'] = args.T
+    param_dict['tau'] = args.tau
 
     # select which class/model we are using
     Model = gm.MODELS[model](**param_dict)

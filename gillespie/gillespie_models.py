@@ -24,13 +24,17 @@ class Parent(object):
 
     def create_sim_folder( self ):
         # create the directory with simulation results
-        save_dir =  os.getcwd() + os.sep + RESULTS_DIR + os.sep +  self.sim_dir;
+        tau = ''
+        if self.tau: tau='tau'
+        save_dir =  os.getcwd() + os.sep + RESULTS_DIR + os.sep +  self.sim_dir\
+                    + tau;
         save_subdir =  save_dir + os.sep + 'sim';
 
         # simulation number directory
         i = self.sim_number;
         while os.path.exists( save_subdir + str(i) ): i += 1;
-        save_subdir = save_subdir + str(i)
+        save_subdir = save_subdir + tau + str(i)
+
 
         self.sim_dir = save_dir;
         self.sim_number = i
@@ -74,7 +78,7 @@ class Parent(object):
 
 class MultiLV(Parent):
     def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV',
-                  birth_rate=20.0, death_rate=1.0, immi_rate=0.05,
+                  tau=False, birth_rate=20.0, death_rate=1.0, immi_rate=0.05,
                   emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0,
                   comp_overlap=0.5, sim_number=0, nbr_species=30,
                   **kwargs):
