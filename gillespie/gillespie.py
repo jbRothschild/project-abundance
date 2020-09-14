@@ -3,11 +3,28 @@
 """
 @author: Jeremy Rothschild
 
-Other info...
+Runs a gillespie algorithm for the models defined in gillespie_models.
 
 Usage :
+    Any new Model needs at least the following functions in gillespie_model
+        - init()
+        - propensity()
+        - update()
+        - initialize()
+
+    Additionally, can have
+        - update_results()
+        - stop_condition()
+        - save_trajectory()
+
+    If using tau-leaping, then will need to add a function to gillespie_models:
+        - find_time_noncritical_rxns( current_state, critical_rxns )
 
 Example usage :
+    python3 gillespie.py -m [MODEL] -g [NBR_GENERATIONS] -t [NBR_TRAJECTORIES]
+                            -T [TOTAL_TIME] -n [SIMULATION_NBR]
+                            -tau [TAU_LEAPING(bool)] -p [PARAMETER=VALUE]
+    python3 gillespie.py
 
 """
 
@@ -19,9 +36,9 @@ import random, datetime, argparse
 from gillespie_models import MODELS
 #import gillespie_analysis as ga unnecessary
 import os
-import gillespie_models as gm
+import gillespie_models as gm; import tau_leaping as tl
 
-def sample_discrete(probs, r2):
+def gillespie_sample_discrete(probs, r2):
     """
     Randomly sample an reaction from probability given by probs.
     Returns i, the index of the reaction that will occur.
@@ -34,9 +51,11 @@ def sample_discrete(probs, r2):
         i-1 : index of reaction
     """
     i = 0; p_sum = 0.0
+    sorted_prob = sorted(probs, reverse=True) # sort list first, might save time
+    sorted_idx = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
     while p_sum < r2: #find index
-        p_sum += probs[i]; i += 1
-    return i - 1
+        p_sum += sorted_prob[i]; i += 1
+    return sorted_idx[i - 1]
 
 def gillespie_draw(Model, current_state):
     """
@@ -59,19 +78,107 @@ def gillespie_draw(Model, current_state):
     time = - np.log( r1 )/np.sum( propensity )
 
     # draw reaction from this distribution
-    reaction_index = sample_discrete(prob_propensity, r2)
+    reaction_index = gillespie_sample_discrete(prob_propensity, r2)
 
     return reaction_index, time
 
-def gillespie(Model, traj, tau_leap):
+def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
+                    , small_nbr_rxns=10.):
+    while not ( ( Model.stop_condition(current_state) ) or
+        Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],i-1)):
+        updated = False
+        # (1) Identify which reactions are critical (number of times they
+        # happen before extinction) and a time in which one of these happens (4)
+        critical_rxns, tau_pp, propensities = Model.find_critical_rxns(
+                                                current_state
+                                                , nbr_for_criticality)
+
+        # (2) Find time tau_p in which next non-critical reactions take place,
+        # draw the time step
+        tau_p = Model.find_time_noncritical_rxns( current_state, critical_rxns )
+
+        while not updated: # updated checks if there has been a step taken
+            # (3) If tau_p less than some time, do regular SSA for some steps
+            # TODO Replace with gillespie function
+            if tau_p < small_nbr_rxns/np.sum(propensities):
+                j = 1
+                while not (  Model.stop_condition(current_state) or
+                    Model.generation_time_exceed(times[(i-1)%Model.max_gen_save]
+                                , i-1) or j > 100):
+                    # draw the event and time step
+                    reaction_idx, dt = gillespie_draw(Model, current_state)
+                    Model.update_results(current_state, dt)
+
+                    # Update the system
+                    simulation[i%Model.max_gen_save,:] = current_state + \
+                                    Model.update( current_state, reaction_idx );
+                    times[i%Model.max_gen_save] =\
+                                        times[(i-1)%Model.max_gen_save] + dt;
+                    current_state = simulation[i%Model.max_gen_save,:].copy()
+
+                    j += 1; i += 1
+                updated = True
+
+            else:
+                # (4) Estimate time tau_pp for next critical rxns
+                # NOTE : This was done in the previous step (1)
+
+                # (5) Take minimum of tau_p and tau_pp
+                if tau_p < tau_pp:
+                    tau = tau_p
+                    update = Model.no_critical_rxns_update( propensities
+                                , critical_rxns, current_state, tau)
+
+                else:
+                    tau = tau_pp
+                    update = Model.critical_rxns_update( propensities
+                                , critical_rxns, current_state, tau)
+
+                # (6) If negative component, restart at step 3
+                next_state = current_state + update
+                if np.min(next_state) < 0:
+                    tau_p /= 2; updated = False
+                else:
+                    Model.update_results(current_state, tau)
+
+                    # Update the system
+                    # TODO what if system size changes? Going to have to rethink
+                    simulation[i%Model.max_gen_save,:] = next_state;
+                    times[i%Model.max_gen_save] =\
+                                        times[(i-1)%Model.max_gen_save] + tau;
+                    current_state = simulation[i%Model.max_gen_save,:].copy()
+
+                    i += 1; updated = True
+
+        # TODO PRINT TIME AND NUMBER OF REACTIONS!
+        print(tic-toc)
+
+def gillespie(Model, simulation, current_state):
+    i=1
+    while not ( ( Model.stop_condition(current_state) ) or
+        Model.generation_time_exceed(times[(i-1)%Model.max_gen_save], i-1)):
+        # draw the event and time step
+        reaction_idx, dt = gillespie_draw(Model, current_state)
+
+        Model.update_results(current_state, dt)
+
+        # Update the system
+        # TODO what if system size changes? Going to have to rethink this...
+        simulation[i%Model.max_gen_save,:] = current_state + Model.update(
+                                                current_state, reaction_idx );
+        times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
+        current_state = simulation[i%Model.max_gen_save,:].copy()
+
+        i += 1
+
+def SSA(Model, traj):
     """
-    Running 1 trajectory
+    Running 1 trajectory of Stochastic Simulation Algorithm
 
     Input:
         Model (Class)   : Model object that has functions to get propensities,
                           updates, etc.
         traj            : trajectory index we are following
-        tau_leap (bool) : Whether or not tau leaping is used
 
     Returns:
         simulation : the whole simulated trajectory
@@ -84,62 +191,14 @@ def gillespie(Model, traj, tau_leap):
     times = np.zeros( ( Model.max_gen_save ) )
 
     # Initialize and perform simulation
-    i = 1
     simulation[0,:] = init_state.copy()
     current_state = simulation[0,:].copy()
 
-    if not tau_leap: # regular SSM
-        while not ( ( Model.stop_condition(current_state) ) or
-                      Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
-                                                    i-1) ) :
-            # draw the event and time step
-            reaction_idx, dt = gillespie_draw(Model, current_state)
+    if not Model.tau: # regular SSM
+        gillespie(Model, simulation, current_state)
 
-            Model.update_results(current_state, dt)
-
-            # Update the system
-            # TODO what if system size changes? Going to have to rethink this...
-            simulation[i%Model.max_gen_save,:] = Model.update( current_state,
-                                                               reaction_idx );
-            times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
-            current_state = simulation[i%Model.max_gen_save,:].copy()
-
-            i += 1
-
-    else: # tau leaping
-        while not ( ( Model.stop_condition(current_state) ) or
-                      Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],
-                                                    i-1) ) :
-
-            # from the paper:
-            # (1) Identify which reactions are critical (number of times they
-            # happen before extinction)
-            critical_rxn = 10
-
-
-            # (2)  Find time in which next reactions take place
-            # draw the event and time step
-            reaction_idx, dt = gillespie_draw(Model, current_state)
-
-
-            # (3) If tau less than some time, do regular SSA for some steps
-
-
-            # (4) Estimate time for next critical rxns
-
-
-            #
-            Model.update_results(current_state, dt)
-
-
-            # Update the system
-            # TODO what if system size changes? Going to have to rethink this...
-            simulation[i%Model.max_gen_save,:] = Model.update( current_state,
-                                                               reaction_idx );
-            times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
-            current_state = simulation[i%Model.max_gen_save,:].copy()
-
-            i += 1
+    else: # tau leaping, (Cao, Gillespie, and Petzold, 2006)
+        tau_leaping(Model, simulation, current_state)
 
     Model.save_trajectory(simulation, times, traj)
 
@@ -198,26 +257,29 @@ if __name__ == "__main__":
 
     #TODO in this new structure, I think number of species is useless... should
     #     be a done differently.
-    parser.add_argument('-m', type = str, default = 'multiLV', nargs = '?',
-                        help = "Model to use.")
-    parser.add_argument('-g', type = int, default = 10**8, nargs = '?',
-                        help = "Number of generations (rxns) in total.")
-    parser.add_argument('-T', type = int, default = 10**8, nargs = '?',
-                        help = "Total time to not exceed.")
-    parser.add_argument('-t', type = int, default = 1, nargs = '?',
-                        help = "Number of runs/trajectories.")
-    parser.add_argument('-n', type = int, default = 0, nargs = '?',
-                        help = "Simulation number.")
-    parser.add_argument('-tau', type = bool, default = False, nargs = '?',
-                        help = "Tau leaping algorithm.")
-    parser.add_argument('-p', metavar='KEY=VAL', default= {'nada' : 0.0},
-                        dest='my_dict', nargs='*', action=StoreDictKeyPair,
-                        required=False,
-                        help='Additional parameters to be passed on for the \
+    parser.add_argument('-m', '--model',type = str, default = 'multiLV'
+                        , nargs = '?', help = "Model to use.")
+    parser.add_argument('-g', '--nbr_rxns', type = int, default = 10**8
+                        , nargs = '?'
+                        , help = "Number of generations (rxns) in total.")
+    parser.add_argument('-T', '--total_time', type = int
+                        , default = 10**8, nargs = '?'
+                        , help = "Total time to not exceed.")
+    parser.add_argument('-t', '--nbr_trajectories', type = int, default = 1
+                        , nargs = '?', help = "Number of runs/trajectories.")
+    parser.add_argument('-n', '--sim_nbr', type = int, default = 0, nargs = '?'
+                        , help = "Simulation number.")
+    parser.add_argument('-tau', '--tau_leap', action='store_true'
+                        , help = "Use if you want tau-leaping algorithm")
+    parser.add_argument('-p', '--params', metavar='KEY=VAL'
+                        , default= {'nada' : 0.0}, dest='my_dict', nargs='*'
+                        , action=StoreDictKeyPair, required=False
+                        ,help='Additional parameters to be passed on for the \
                         simulation')
 
     # TODO : add multiprocessing. Will make it a lot better. Major changes need to
     #        happen to parallelize all this.
+
 
     args = parser.parse_args()
     model = args.m; num_runs = args.t;
@@ -227,6 +289,7 @@ if __name__ == "__main__":
     param_dict['nbr_generations'] = args.g
     param_dict['max_time'] = args.T
     param_dict['tau'] = args.tau
+
 
     # select which class/model we are using
     Model = gm.MODELS[model](**param_dict)

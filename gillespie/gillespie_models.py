@@ -4,14 +4,37 @@ from theory_equations import Model_MultiLVim
 import random
 import pickle
 
+"""
+@author: Jeremy Rothschild
+
+Runs a gillespie algorithm for the models defined in gillespie_models.
+
+Usage :
+    Any new Model needs at least the following functions in gillespie_model
+        - init()
+        - propensity()
+        - update()
+        - initialize()
+
+    Additionally, can have
+        - update_results()
+        - stop_condition()
+        - save_trajectory()
+
+    If using tau-leaping, then will need to add a function to gillespie_models:
+        - find_time_noncritical_rxns( current_state, critical_rxns )
+
+Example usage :
+    python3 gillespie.py -m [MODEL] -g [NBR_GENERATIONS] -t [NBR_TRAJECTORIES]
+                            -T [TOTAL_TIME] -n [SIMULATION_NBR]
+                            -tau [TAU_LEAPING(bool)] -p [PARAMETER=VALUE]
+    python3 gillespie.py
+
+"""
+
 random.seed(42)
 
 RESULTS_DIR = "sim_results"
-
-"""
-TODO : Need some explanation of how this works. Give details and such. Working
-       examples perheaps, since that might help the reader
-"""
 
 class Parent(object):
     def __init__(self,  nbr_generations, max_time, sim_dir
@@ -20,7 +43,7 @@ class Parent(object):
         self.max_time = max_time; self.nbr_generations = nbr_generations;
 
     #def unpack( self ):
-    #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.dz
+    #    return self.d, self.d_co, self.time, self.dt, self.dx, self.dy, self.
 
     def create_sim_folder( self ):
         # create the directory with simulation results
@@ -48,9 +71,23 @@ class Parent(object):
                             + str(i) + ' generations')
             return True
         elif self.max_time < time:
-            print('END OF SIM >>>> Exceeded amount of generations permitted: '
+            print('END OF SIM >>>> Exceeded amount of time permitted: '
                             + str(time) + ' time passed')
             return True
+
+        return False
+
+    def update_results(self, current_state, dt):
+
+        print("Warning : Using Parent update_results function.")
+        print("          No results tracked and updated")
+
+        return 0
+
+    def stop_condition( self, current_state ):
+
+        print("Warning : Using Parent stop_condition function.")
+        print("          No stop condition other than time and generation.")
 
         return False
 
@@ -74,21 +111,111 @@ class Parent(object):
         return 0
 
 
+    def find_critical_rxns( self, current_state, nbr_for_criticality=10.):
+        """
+        Identify the reactions which are critical, that is to say that if you
+        do them (nbr_for criticality) times, they will give you a negative
+        amount of a product
+
+        Input :
+            current_state       : vector of current products
+            nbr_for_criticality : number of times a reactions can happen before
+                                  it makes it the product negative
+        Output :
+            critical_rxns       : vector of length # of rxns. 1 if reaction is
+                                  critical, 0 if not.
+        """
+        propensities = self.propensity(current_state)
+        critical_rxns = np.zeros(len(propensities))
+
+        for idx in [i for i, x in enumerate(propensities) if x>0]:
+            if (0 > np.min( nbr_for_criticality*self.update( current_state, idx)
+                                + current_state )):
+                critical_rxns[i] = 1
+
+        # Generate a random time in which the next critical reaction happens
+        r1 = np.random.random(1);
+        time = - np.log( r1 )/np.dot( propensities, critical_rxns )
+
+        return critical_rxns, time, propensities
+
+    def no_critical_rxns_update( self, propensities, critical_rxns
+                                    , current_state, tau):
+        """
+        Make an update vector for reactions that are not critical.
+
+        Input :
+            propensities    : list of propensities
+            critical_rxns   : list of critical_rxns
+            current_state   : current state
+            tau             : time it takes for all the reactions to happen
+
+        Output :
+            update          : update to current state
+        """
+        non_critical_rxns = 1 - critical_rxns
+
+        # select only the non-critical reactions
+        for idx in [i for i, x in enumerate(non_critical_rxns) if x==1]:
+            # multiplicity of all each non critical reaction ( drawn from a
+            # poisson distribution )
+            multiplicity_rxn = np.random.poisson( propensities[idx]*tau, 1 )[0]
+            # update the reaction
+            update += multiplicity_rxn * self.update( current_state, idx )
+
+        return update
+
+    def critical_rxns_update( self, propensities, critical_rxns, current_state
+                                , tau):
+        """
+        Make an update vector for one critical reaction and all the other
+        reactions that happen in that time too.
+
+        Input :
+            propensities    : list of propensities
+            critical_rxns   : list of critical_rxns
+            current_state   : current state
+            tau             : time it takes for all the reactions to happen
+
+        Output :
+            update          : update to current state
+        """
+        # probabilities of critical reactions (other reactions set to 0)
+        probs = ( propensities*critical_rxns ) / np.dot( propensities
+                                                        , critical_rxns)
+        i = 0; p_sum = 0.0
+        sorted_prob = sorted(probs, reverse=True) # sort list first, saves time
+        sorted_idx = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
+
+        # pick the critical reaction to happen
+        r1 = np.random.random(1);
+        while p_sum < r1: #find index
+            p_sum += sorted_prob[i]; i += 1
+
+        # make this critical reaction happen, find update rule
+        update = self.update( current_state, sorted_idx[i - 1])
+
+        # update rules of all the non-critical reactions to happen
+        update += self.no_critical_rxns_update(propensities, critical_rxns
+                                                        , current_state, tau)
+
+        return update
+
 ###################### MULTISPECIES LOTKA-VOLTERA MODEL ########################
 
 class MultiLV(Parent):
-    def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV',
-                  tau=False, birth_rate=20.0, death_rate=1.0, immi_rate=0.05,
-                  emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0,
-                  comp_overlap=0.5, sim_number=0, nbr_species=30,
-                  **kwargs):
-        super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir,
-                                      sim_number)
+    def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV'
+                  , tau=False, birth_rate=20.0, death_rate=1.0, immi_rate=0.05
+                  , emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0
+                  , comp_overlap=0.5, sim_number=0, nbr_species=30
+                  , **kwargs):
+        super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir
+                                      ,sim_number)
         self.birth_rate=birth_rate; self.death_rate=death_rate;
         self.immi_rate=immi_rate; self.emmi_rate=emmi_rate;
         self.carry_capacity=K; self.linear=linear; self.quadratic=quadratic;
         self.comp_overlap=comp_overlap; self.max_gen_save=nbr_generations;
-        self.nbr_species=nbr_species
+        self.nbr_species=nbr_species; self.tau=tau
 
         if 'max_gen_save' in kwargs.keys():
             self.max_gen_save = int(kwargs['max_gen_save'])
@@ -149,7 +276,7 @@ class MultiLV(Parent):
             idx_reaction  : index of the reaction to occur
 
         Output:
-            New state of the population
+            Update rule
         """
         update = np.zeros( len(current_state) )
         if idx_reaction % 2 == 0:
@@ -157,15 +284,7 @@ class MultiLV(Parent):
         else:
             update[int(np.floor(idx_reaction/2))] = -1
 
-        next_state = current_state + update
-
-        return next_state
-
-    def stop_condition( self, current_state ):
-        """
-        Function that returns True if Gillespie should stop
-        """
-        return False
+        return update
 
     def initialize( self ):
         """
@@ -224,8 +343,6 @@ class MultiLV(Parent):
 
         # normalize the richness
         self.results['richness'] /= times[-1]
-
-
 
         super(MultiLV, self).save_trajectory(simulation, times, traj)
 
@@ -298,7 +415,7 @@ class SIR(Parent):
             print('invalid reaction')
             raise SystemExit
 
-        return current_state + update
+        return update
 
     def stop_condition( self, current_state ):
         """
