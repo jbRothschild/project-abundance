@@ -37,14 +37,14 @@ logspace () {
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
 # multiLV model, varying parameters
-VAR1=($(logspace -2 -0.01 ${NUM_TASKS} | tr -d '[],'))
+VAR1=($(logspace -3 -0.01 ${NUM_TASKS} | tr -d '[],'))
 VAR1_NAME="comp_overlap"
 
-VAR2=($(logspace -4 0 ${NUM_TASKS} | tr -d '[],'))
+VAR2=($(logspace -3 1 ${NUM_TASKS} | tr -d '[],'))
 VAR2_NAME="immi_rate"
 
 RESULTS_DIR='sim_results'
-SIM_DIR='multiLV2'
+SIM_DIR='multiLV7'
 
 mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 

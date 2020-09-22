@@ -89,7 +89,7 @@ def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
     i=1
     while not ( ( Model.stop_condition(current_state,i) ) or
         Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],i-1)):
-        start = time.time()
+        #start = time.time()
         updated = False
         # (1) Identify which reactions are critical (number of times they
         # happen before extinction) and a time in which one of these happens (4)
@@ -156,13 +156,14 @@ def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
 
                     i += 1; updated = True
 
-        # TODO PRINT TIME AND NUMBER OF REACTIONS!
+        """
         end = time.time()
         hours, rem = divmod(end-start, 3600)
         minutes, seconds = divmod(rem, 60)
         print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format( int(hours)
                                                     , int(minutes), seconds) )
         print("     >> Number of reactions : {}".format(nbr_rxns))
+        """
 
 def gillespie(Model, simulation, times, current_state):
     i=1
@@ -182,13 +183,14 @@ def gillespie(Model, simulation, times, current_state):
         current_state = simulation[i%Model.max_gen_save,:].copy()
 
         i += 1
-        print(current_state)
+        """
         end = time.time()
         hours, rem = divmod(end-start, 3600)
         minutes, seconds = divmod(rem, 60)
         print(end-start)
         print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
                     , int(minutes), seconds))
+        """
 
 
 def SSA(Model, traj):

@@ -79,8 +79,9 @@ class Parent(object):
 
     def update_results(self, current_state, dt):
 
-        print("Warning : Using Parent update_results function.")
-        print("          No results tracked and updated")
+        if idx == 1:
+            print("Warning : Using Parent update_results function.")
+            print("          No results tracked and updated")
 
         return 0
 
@@ -311,7 +312,6 @@ class MultiLV(Parent):
             while sample > ss_cum[j]:
                 j += 1
             initial_state[i] = j
-        print(initial_state)
         #sys.exit()
         return initial_state
 
