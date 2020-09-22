@@ -167,7 +167,7 @@ def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
 
 def gillespie(Model, simulation, times, current_state):
     i=1
-    while not ( ( Model.stop_condition(current_state) ) or
+    while not ( ( Model.stop_condition(current_state,i) ) or
         Model.generation_time_exceed(times[(i-1)%Model.max_gen_save], i-1)):
         start = time.time()
         # draw the event and time step

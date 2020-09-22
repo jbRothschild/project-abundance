@@ -33,8 +33,8 @@ class Model_MultiLVim(object):
     Various solutions from different models of populations with competition in
     the death rate. Will describe where they come from each.
     """
-    def __init__(self, comp_overlap=0.5, birth_rate=20.0, death_rate=1.0,
-                 carry_capacity=100, immi_rate=0.01, nbr_species=30,
+    def __init__(self, comp_overlap=0.9, birth_rate=2.0, death_rate=1.0,
+                 carry_capacity=50, immi_rate=0.01, nbr_species=30,
                  population=np.arange(250), **kwargs ):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
@@ -228,7 +228,8 @@ class Model_MultiLVim(object):
 
     def abund_sid(self):
         """
-        Solving Master equation by assuming <J|n_1>=(S-1)<n>+n_1
+        Mean field approximation :  Solving Master equation by assuming
+                                    <J|n_1>=(S-1)<n>+n_1
         """
         def fcn_prob_n(mean_n):
             prob_n_unnormalized = np.zeros( np.shape(self.population) );
@@ -867,8 +868,42 @@ class CompareModels(object):
 
             return 0
 
+def vary_species_count(species=150):
+    """
+    We want to vary the species count at high mu, low rho to see how the
+    solution differs from the carrying capacity
+    """
+    nbr_species = np.arange( 1, species )
+    peak_diff = np.zeros( species - 1  )
+
+    for i, nbr_spec in enumerate( nbr_species ):
+        params = {'carry_capacity' : 50 , 'immi_rate' : 0.001
+                                        , 'comp_overlap' : 0.9
+                                        , 'nbr_species' : nbr_spec }
+        Model = Model_MultiLVim( **params )
+        dstbn, _ = Model.abund_sid()
+
+        offset = 10 # in case peak is zero
+        print( i, np.argmax(dstbn[offset:]) )
+        peak_diff[i] = params['carry_capacity'] \
+                                - np.argmax(dstbn[offset:]) - offset
+
+    fig = plt.figure(); end = 300 # cut somehere
+    plt.plot( nbr_species, peak_diff )
+    plt.xlabel(r"number of species, $S$")
+    plt.ylabel(r"$K$ - peak mean field")
+    plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
+                                                , params['comp_overlap']))
+    plt.show()
+
+    return 0
+
+
+
 if __name__ == "__main__":
 
-    compare = CompareModels()
+    vary_species_count(200)
+
+    #compare = CompareModels()
     #compare.mlv_compare_abundance_approx()
-    compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
+    #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
