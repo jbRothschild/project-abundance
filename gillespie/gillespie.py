@@ -24,7 +24,8 @@ Example usage :
     python3 gillespie.py -m [MODEL] -g [NBR_GENERATIONS] -t [NBR_TRAJECTORIES]
                             -T [TOTAL_TIME] -n [SIMULATION_NBR]
                             -tau [TAU_LEAPING(bool)] -p [PARAMETER=VALUE]
-    python3 gillespie.py
+    python3 gillespie.py -m multiLV -t 1 -g 70000000 -n 0 -p max_gen_save=10000
+                            sim_dir=multiLV3
 
 """
 
@@ -32,11 +33,11 @@ Example usage :
 #        Even deleted if if must.
 
 import numpy as np
-import random, datetime, argparse
+import random, time, argparse
 from gillespie_models import MODELS
 #import gillespie_analysis as ga unnecessary
 import os
-import gillespie_models as gm; import tau_leaping as tl
+import gillespie_models as gm
 
 def gillespie_sample_discrete(probs, r2):
     """
@@ -52,7 +53,8 @@ def gillespie_sample_discrete(probs, r2):
     """
     i = 0; p_sum = 0.0
     sorted_prob = sorted(probs, reverse=True) # sort list first, might save time
-    sorted_idx = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
+    sorted_idx = sorted(range(len(probs)), key=lambda k: probs[k]
+                            , reverse=True)
     while p_sum < r2: #find index
         p_sum += sorted_prob[i]; i += 1
     return sorted_idx[i - 1]
@@ -82,10 +84,12 @@ def gillespie_draw(Model, current_state):
 
     return reaction_index, time
 
-def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
-                    , small_nbr_rxns=10.):
-    while not ( ( Model.stop_condition(current_state) ) or
+def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
+                    , small_nbr_rxns=10., epsilon=0.03):
+    i=1
+    while not ( ( Model.stop_condition(current_state,i) ) or
         Model.generation_time_exceed( times[(i-1)%Model.max_gen_save],i-1)):
+        start = time.time()
         updated = False
         # (1) Identify which reactions are critical (number of times they
         # happen before extinction) and a time in which one of these happens (4)
@@ -95,14 +99,15 @@ def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
 
         # (2) Find time tau_p in which next non-critical reactions take place,
         # draw the time step
-        tau_p = Model.find_time_noncritical_rxns( current_state, critical_rxns )
+        tau_p = Model.find_time_noncritical_rxns( current_state, critical_rxns
+                                                    , propensities, epsilon )
 
         while not updated: # updated checks if there has been a step taken
             # (3) If tau_p less than some time, do regular SSA for some steps
             # TODO Replace with gillespie function
             if tau_p < small_nbr_rxns/np.sum(propensities):
                 j = 1
-                while not (  Model.stop_condition(current_state) or
+                while not (  Model.stop_condition(current_state,i) or
                     Model.generation_time_exceed(times[(i-1)%Model.max_gen_save]
                                 , i-1) or j > 100):
                     # draw the event and time step
@@ -117,6 +122,7 @@ def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
                     current_state = simulation[i%Model.max_gen_save,:].copy()
 
                     j += 1; i += 1
+                nbr_rxns = 100
                 updated = True
 
             else:
@@ -126,12 +132,12 @@ def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
                 # (5) Take minimum of tau_p and tau_pp
                 if tau_p < tau_pp:
                     tau = tau_p
-                    update = Model.no_critical_rxns_update( propensities
-                                , critical_rxns, current_state, tau)
+                    update, nbr_rxns = Model.no_critical_rxns_update(
+                                propensities, critical_rxns, current_state, tau)
 
                 else:
                     tau = tau_pp
-                    update = Model.critical_rxns_update( propensities
+                    update, nbr_rxns = Model.critical_rxns_update( propensities
                                 , critical_rxns, current_state, tau)
 
                 # (6) If negative component, restart at step 3
@@ -151,12 +157,18 @@ def tau_leaping(Model, simulation, current_state, nbr_for_criticality=10.
                     i += 1; updated = True
 
         # TODO PRINT TIME AND NUMBER OF REACTIONS!
-        print(tic-toc)
+        end = time.time()
+        hours, rem = divmod(end-start, 3600)
+        minutes, seconds = divmod(rem, 60)
+        print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format( int(hours)
+                                                    , int(minutes), seconds) )
+        print("     >> Number of reactions : {}".format(nbr_rxns))
 
-def gillespie(Model, simulation, current_state):
+def gillespie(Model, simulation, times, current_state):
     i=1
     while not ( ( Model.stop_condition(current_state) ) or
         Model.generation_time_exceed(times[(i-1)%Model.max_gen_save], i-1)):
+        start = time.time()
         # draw the event and time step
         reaction_idx, dt = gillespie_draw(Model, current_state)
 
@@ -170,6 +182,14 @@ def gillespie(Model, simulation, current_state):
         current_state = simulation[i%Model.max_gen_save,:].copy()
 
         i += 1
+        print(current_state)
+        end = time.time()
+        hours, rem = divmod(end-start, 3600)
+        minutes, seconds = divmod(rem, 60)
+        print(end-start)
+        print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
+                    , int(minutes), seconds))
+
 
 def SSA(Model, traj):
     """
@@ -195,36 +215,12 @@ def SSA(Model, traj):
     current_state = simulation[0,:].copy()
 
     if not Model.tau: # regular SSM
-        gillespie(Model, simulation, current_state)
+        gillespie(Model, simulation, times, current_state)
 
     else: # tau leaping, (Cao, Gillespie, and Petzold, 2006)
-        tau_leaping(Model, simulation, current_state)
+        tau_leaping(Model, simulation, times, current_state)
 
     Model.save_trajectory(simulation, times, traj)
-
-    return simulation, times
-
-
-def tau_leaping(Model, traj):
-    """
-    Running 1 trajectory, using tau leaping algorithm which finds a way to
-    implement many reactions in each timestep. Supposed to be better at
-    running for longer times (hence allowing rare reactions). Implementation
-    from
-    - "Efficient step size selection for the tau-leaping simulation method",
-        2006, Gillespie et. al.
-
-
-    Input:
-        Model (Class)   : Model object that has functions to get propensities,
-                          updates, etc.
-        traj            : trajectory index we are following
-
-    Returns:
-        simulation : the whole simulated trajectory
-        times      : when each reaction happened along the trajectory
-    """
-
 
     return simulation, times
 
@@ -282,13 +278,12 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    model = args.m; num_runs = args.t;
-    nbr_generations = args.g;
+    model = args.model; num_runs = args.nbr_trajectories;
     param_dict = vars(args)['my_dict']
-    param_dict['sim_number'] = args.n
-    param_dict['nbr_generations'] = args.g
-    param_dict['max_time'] = args.T
-    param_dict['tau'] = args.tau
+    param_dict['sim_number'] = args.sim_nbr
+    param_dict['nbr_generations'] = args.nbr_rxns
+    param_dict['max_time'] = args.total_time
+    param_dict['tau'] = args.tau_leap
 
 
     # select which class/model we are using
@@ -300,4 +295,4 @@ if __name__ == "__main__":
     # run gillespie TODO parallelize. Have a couple savepoints?
     for traj in range( num_runs ):
         Model.__init__(**param_dict)
-        gillespie(Model, traj)
+        SSA(Model, traj)

@@ -1,4 +1,4 @@
-import os; import csv
+import os, csv, sys
 import numpy as np
 from theory_equations import Model_MultiLVim
 import random
@@ -55,7 +55,7 @@ class Parent(object):
 
         # simulation number directory
         i = self.sim_number;
-        while os.path.exists( save_subdir + str(i) ): i += 1;
+        while os.path.exists( save_subdir + tau + str(i) ): i += 1;
         save_subdir = save_subdir + tau + str(i)
 
 
@@ -84,10 +84,11 @@ class Parent(object):
 
         return 0
 
-    def stop_condition( self, current_state ):
+    def stop_condition( self, current_state, idx ):
 
-        print("Warning : Using Parent stop_condition function.")
-        print("          No stop condition other than time and generation.")
+        if idx == 1:
+            print("Warning : Using Parent stop_condition function.")
+            print("          No stop condition other than time and generation.")
 
         return False
 
@@ -131,7 +132,7 @@ class Parent(object):
         for idx in [i for i, x in enumerate(propensities) if x>0]:
             if (0 > np.min( nbr_for_criticality*self.update( current_state, idx)
                                 + current_state )):
-                critical_rxns[i] = 1
+                critical_rxns[idx] = 1
 
         # Generate a random time in which the next critical reaction happens
         r1 = np.random.random(1);
@@ -154,6 +155,7 @@ class Parent(object):
             update          : update to current state
         """
         non_critical_rxns = 1 - critical_rxns
+        nbr_rxns = 0
 
         # select only the non-critical reactions
         for idx in [i for i, x in enumerate(non_critical_rxns) if x==1]:
@@ -162,8 +164,9 @@ class Parent(object):
             multiplicity_rxn = np.random.poisson( propensities[idx]*tau, 1 )[0]
             # update the reaction
             update += multiplicity_rxn * self.update( current_state, idx )
+            nbr_rxns += multiplicity_rxn
 
-        return update
+        return update, nbr_rxns
 
     def critical_rxns_update( self, propensities, critical_rxns, current_state
                                 , tau):
@@ -185,7 +188,8 @@ class Parent(object):
                                                         , critical_rxns)
         i = 0; p_sum = 0.0
         sorted_prob = sorted(probs, reverse=True) # sort list first, saves time
-        sorted_idx = sorted(range(len(a)), key=lambda k: a[k], reverse=True)
+        sorted_idx = sorted(range(len(probs)), key=lambda k: probs[k]
+                                , reverse=True)
 
         # pick the critical reaction to happen
         r1 = np.random.random(1);
@@ -194,20 +198,22 @@ class Parent(object):
 
         # make this critical reaction happen, find update rule
         update = self.update( current_state, sorted_idx[i - 1])
+        nbr_rxns = 1
 
         # update rules of all the non-critical reactions to happen
-        update += self.no_critical_rxns_update(propensities, critical_rxns
-                                                        , current_state, tau)
+        update_temp, nbr_rxns_temp = self.no_critical_rxns_update(propensities
+                                            , critical_rxns, current_state, tau)
+        update += update_temp; nbr_rxns += nbr_rxns_temp
 
-        return update
+        return update, nbr_rxns
 
 ###################### MULTISPECIES LOTKA-VOLTERA MODEL ########################
 
 class MultiLV(Parent):
     def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV'
-                  , tau=False, birth_rate=20.0, death_rate=1.0, immi_rate=0.05
-                  , emmi_rate=0.0, K=100, linear=0.0, quadratic=0.0
-                  , comp_overlap=0.5, sim_number=0, nbr_species=30
+                  , tau=False, birth_rate=2.0, death_rate=1.0, immi_rate=0.015
+                  , emmi_rate=0.0, K=50, linear=0.0, quadratic=0.0
+                  , comp_overlap=0.2, sim_number=0, nbr_species=30
                   , **kwargs):
         super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir
                                       ,sim_number)
@@ -226,7 +232,7 @@ class MultiLV(Parent):
             self.results = kwargs['results']
         else:
             # TODO : Add other results?
-            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*4)
+            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*6)
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
@@ -265,7 +271,7 @@ class MultiLV(Parent):
                           # death + emmigration
         return prop
 
-    def update( self, current_state, idx_reaction):
+    def update( self, current_state, idx_reaction ):
         """
         When the index of the reaction is chosen, rules for update the
         population
@@ -305,10 +311,11 @@ class MultiLV(Parent):
             while sample > ss_cum[j]:
                 j += 1
             initial_state[i] = j
-
+        print(initial_state)
+        #sys.exit()
         return initial_state
 
-    def update_results(self, current_state, dt):
+    def update_results( self, current_state, dt ):
         """
 
         """
@@ -334,9 +341,9 @@ class MultiLV(Parent):
 
         return 0
 
-    def save_trajectory(self, simulation, times, traj):
+    def save_trajectory( self, simulation, times, traj ):
         """
-
+        Explain what is going on
         """
         # normalize the distribution
         self.results['ss_distribution'] /= times[-1]
@@ -350,6 +357,56 @@ class MultiLV(Parent):
         #    b = pickle.load(handle)
 
         return 0
+
+    def find_time_noncritical_rxns( self, current_state, critical_rxns\
+                                    , propensities, epsilon):
+        """
+        Check paper by Gillespie et al. 2006
+        """
+
+        nc_propensities = (1-critical_rxns)*propensities
+        min_death_change = np.min([self.death_rate, self.comp_overlap*(
+                            self.birth_rate - self.death_rate)
+                            /self.carry_capacity,( self.birth_rate
+                            - self.death_rate)/ self.carry_capacity] )
+        tau = 10E10
+        for i, pop_nbr in enumerate( current_state ):
+            positive_rxn = 2*i; negative_rxn = 2*i+1
+            # f_ij for the birth reactions (only terms that will be non zero)
+            f_ij_birth = np.zeros( len(propensities) );
+            f_ij_birth[positive_rxn] = self.birth_rate;
+            f_ij_birth[negative_rxn] = - self.birth_rate;
+
+            # f_ij for the death reactions (only terms that will be non zero)
+            f_ij_death = self.comp_overlap*( self.birth_rate - self.death_rate
+                        )/self.carry_capacity * np.ones( len(propensities) );
+            f_ij_death[positive_rxn] = ( f_ij_death[positive_rxn]
+                                        /self.comp_overlap + self.death_rate);
+            f_ij_death[negative_rxn] = - ( f_ij_death[positive_rxn]
+                                        /self.comp_overlap + self.death_rate);
+
+            # calculate auxilary quantity mu from step (2)
+            mu_j_birth = np.abs( np.dot( f_ij_birth, nc_propensities ) )
+            mu_j_death = np.abs( np.dot( f_ij_death, nc_propensities ) )
+
+            # calculate auxilary quantity sigma from step (2)
+            sigma_birth = np.abs( np.dot( np.square(f_ij_birth)
+                                                , nc_propensities) );
+            sigma_death = np.abs( np.dot(np.square(f_ij_death)
+                                                , nc_propensities) );
+
+            # maximum between epsilon*reaction and the minimum increment of the
+            # reaction
+            max_birth = np.max( [ epsilon*propensities[positive_rxn]
+                                    , self.birth_rate ] )
+            max_death = np.max( [ epsilon*propensities[negative_rxn]
+                                , min_death_change ] )
+
+            # Minimum time in which significant change happens
+            tau = np.min([tau, max_birth/mu_j_birth, max_birth**2/sigma_birth
+                            , max_death/mu_j_death, max_death**2/sigma_death])
+
+        return tau
 
 
 ############################## SIR MODEL #############################
