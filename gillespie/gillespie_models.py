@@ -32,8 +32,6 @@ Example usage :
 
 """
 
-random.seed(42)
-
 RESULTS_DIR = "sim_results"
 
 class Parent(object):
@@ -61,6 +59,7 @@ class Parent(object):
 
         self.sim_dir = save_dir;
         self.sim_number = i
+        random.seed(i)
         self.sim_subdir = save_subdir; os.makedirs( save_subdir )
 
         return 0
@@ -313,6 +312,7 @@ class MultiLV(Parent):
                 j += 1
             initial_state[i] = j
         #sys.exit()
+        print(np.sum(initial_state))
         return initial_state
 
     def update_results( self, current_state, dt ):

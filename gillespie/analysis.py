@@ -300,6 +300,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
     P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
     H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
     nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
+    rich_dist_vary = []
     det_mean_present = np.zeros(nbr_sims)
 
     # if 2 parameters vary in the simulation
@@ -307,11 +308,13 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
 
     # TODO change to dictionary
     for i in np.arange(nbr_sims):
-        param_dict, ss_dist_sim, _, _, mean_pop[i], mean_rich[i], mean_time_present[i]\
-                  , P0[i], nbr_local_max[i], H[i], GS[i], nbr_species[i], det_mean_present[i]\
+        param_dict, ss_dist_sim, richness_dist,  _, mean_pop[i], mean_rich[i]\
+                    , mean_time_present[i], P0[i], nbr_local_max[i], H[i]\
+                    , GS[i], nbr_species[i], det_mean_present[i]\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
         # sims might not have same distribution length
-        ss_dist_vary.append(np.array(ss_dist_sim))
+        rich_dist_vary.append( np.array( richness_dist ) )
+        ss_dist_vary.append( np.array( ss_dist_sim ) )
 
         # Value of parameters
         param1[i] = param_dict[parameter1]
@@ -319,9 +322,12 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
 
     # making all sims have same distribution length
     length_longest_dstbn = len(max(ss_dist_vary,key=len))
+    length_longest_rich  = len(max(rich_dist_vary,key=len))
     ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
+    rich_dist = np.zeros((nbr_sims,length_longest_rich))
     for i in np.arange(nbr_sims):
-        ss_dist[i,:len(ss_dist_vary)] = ss_dist_vary[i]
+        ss_dist[i,:len(ss_dist_vary[i])] = ss_dist_vary[i]
+        rich_dist[i,:len(rich_dist_vary[i])] = rich_dist_vary[i]
 
     # Single parameter changing
     if parameter2 == None:
@@ -345,6 +351,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                         , 'nbr_species'   : nbr_species
                                         , 'ss_dist'       : ss_dist
                                         , 'det_mean_present' : det_mean_present
+                                        , 'rich_dist'       : rich_dist
                                         }
 
     # For heatmap stuff
@@ -370,6 +377,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
         GS2D                = np.zeros((dim_1,dim_2))
         nbr_species2D       = np.zeros((dim_1,dim_2))
         ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
+        rich_dist2D         = np.zeros((dim_1,dim_2,length_longest_rich))
         det_mean_present2D  = np.zeros((dim_1,dim_2))
 
         # put into a 2d array all the previous results
@@ -385,6 +393,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
             GS2D[i,j]                = GS[sim]
             nbr_species2D[i,j]       = nbr_species[sim]
             ss_dist2D[i,j]           = ss_dist[sim]
+            rich_dist2D[i,j]         = rich_dist[sim]
             det_mean_present2D[i,j]  = det_mean_present[sim]
 
         # arrange into a dictionary to save
@@ -399,6 +408,7 @@ def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
                                            , 'nbr_species'   : nbr_species2D
                                            , 'ss_dist'       : ss_dist2D
                                            , 'det_mean_present' : det_mean_present2D
+                                           , 'rich_dist'       : rich_dist2D
                                            }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
@@ -481,8 +491,9 @@ def mlv_sim2theory_results(dir, parameter1):
 
     return 0
 
-def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=18, pbty=9
+def heatmap(xrange, yrange, arr, xlabel, ylabel, title, pbtx=19, pbty=9
             , save=False):
+    # TODO : CHANGE AXES
 
     plt.style.use('custom_heatmap.mplstyle')
 
@@ -544,8 +555,9 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
         mean_rich2D = f['mean_rich'] ; mean_time_present2D = f['mean_time_present']
         P02D        = f['P0']        ; nbr_local_max2D     = f['nbr_local_max']
         H2D         = f['entropy']   ; GS2D                = f['gs_idx']
-        nbr_spec2D  = f['nbr_species']; param2_2D   = f[parameter2]
-        det_mean_present2D = f['det_mean_present']
+        nbr_spec2D  = f['nbr_species']; param2_2D          = f[parameter2]
+        det_mean_present2D = f['det_mean_present'];
+        rich_dist2D = f['rich_dist']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
@@ -563,8 +575,8 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, mean_rich2D.T, labelx, labely
             , r'$\langle S \rangle$', save=save)
 
-    heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D), mean_rich2D).T
-            , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
+    #heatmap(param1_2D, param2_2D, np.divide(nbr_spec2D*(1.0-P02D),mean_rich2D).T
+    #        , labelx, labely, r'$S(1-P(0))/\langle S \rangle$', save=save)
 
     ## mean_n
     heatmap(param1_2D, param2_2D, mean_pop2D.T, labelx, labely
@@ -574,9 +586,61 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
             , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
 
-    ## Mean time present
+    ## diversity distribution
+    binom_approx    = np.zeros( rich_dist2D.shape )
+    JS_rich         = np.zeros( P02D.shape )
+    mean_rich_sim   = np.zeros( P02D.shape )
+    mean_rich_binom = np.zeros( P02D.shape )
+    var_rich_sim   = np.zeros( P02D.shape )
+    var_rich_binom = np.zeros( P02D.shape )
+
+    for i in np.arange(len(param1_2D)):
+        for j in np.arange(len(param2_2D)):
+            binom_approx[i,j,:] =\
+                            theqs.Model_MultiLVim().binomial_diversity_dstbn(
+                                    P02D[i,j] , nbr_spec2D[i,j])
+            JS_rich[i,j] = theqs.Model_MultiLVim().JS_divergence(
+                                                            binom_approx[i,j,:]
+                                                            , rich_dist2D[i,j,:]
+                                                            )
+
+    mean_rich_sim = np.tensordot(np.arange(0,31), rich_dist2D, axes=([0],[2]))
+    mean_rich_binom = np.tensordot(np.arange(0,31), binom_approx,axes=([0],[2]))
+
+    var_rich_sim = (np.tensordot(np.arange(0,31)**2, rich_dist2D,axes=([0],[2]))
+                                    - mean_rich_sim**2)
+    var_rich_binom = np.tensordot(np.arange(0,31)**2, binom_approx
+                                    , axes=([0],[2])) - mean_rich_binom**2
 
 
+
+    heatmap(param2_2D, param1_2D, mean_rich_sim, labely, labelx, r'mean richness (sim.)'
+                    , save=save) # mean diveristy
+    heatmap(param2_2D, param1_2D, mean_rich_binom, labely, labelx, r'mean richness (binom.)'
+                    , save=save) # mean diveristy binomial
+    heatmap(param2_2D, param1_2D, (mean_rich_sim/mean_rich_binom)
+                    , labely, labelx, r'mean richness (sim./binom.)', save=save)
+                # mean/mean diveristy
+
+    heatmap(param2_2D, param1_2D, JS_rich, labely, labelx
+                , r'Jensen-Shannon divergence (sim./binom.)', save=save)
+                # JS divergence
+
+
+    heatmap(param2_2D, param1_2D, var_rich_sim, labely, labelx
+                , r'variance richness (sim.)', save=save) # variance
+    heatmap(param2_2D, param1_2D, var_rich_binom, labely, labelx
+                , r'variance richness (binom.)', save=save) # variance
+
+
+    heatmap(param2_2D, param1_2D, var_rich_sim/var_rich_binom, labely, labelx
+                , r'var richness (sim./binom.)', save=save)
+                # variance/variance
+
+
+    #plot() # many distributions
+    f = plt.figure();
+    
 
     return 0
 
@@ -584,6 +648,8 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     """
     Plot results from file consolidated results. If it doesn't exist,
     creates it here.
+    THIS IS AN AWEFUL FUNCTION THAT NEED METRICS AND CONSOLIDATED TO BE THE SAME
+    LENGTH I HATE IT
     """
     theory_fname = theqs.THRY_FIG_DIR + os.sep + 'metrics2.npz'
     simulation_fname = dir + os.sep + 'consolidated_results.npz'
@@ -649,8 +715,6 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, det_mean)).T
             , labelx, labely, r'Local maxima', save=save)
 
-    heatmap(param1_2D, param2_2D, ().T
-            , labelx, labely, r'Mean time fall from dominance', save=save)
 
     return 0
 
@@ -750,11 +814,15 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV2'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV7'
 
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
-    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=True)
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate', save=False)
+
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+                                        , save=True)
+    #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
+    #                                    , save=True)
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+            #                            , save=False)
 
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 820)
     #mlv_plot_single_sim_results(sim_dir, sim_nbr = 1220)

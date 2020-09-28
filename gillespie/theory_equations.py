@@ -10,7 +10,7 @@ import itertools
 from itertools import combinations
 
 from scipy.special import gamma, poch, factorial, hyp1f1 # certain functions
-import scipy
+import scipy, scipy.stats
 import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
@@ -312,6 +312,31 @@ class Model_MultiLVim(object):
 
             return abundance
 
+    def abund_jer( self ):
+        """
+        Approximation of abundance distribution of stochastic Lotka-Volterra
+        with immigration. Instead of <n_i|n_j> use <n_i> where <n_i> approx. the
+        deterministic solution.
+        """
+
+        probability = np.zeros( np.shape(self.population) )
+
+        probability[0] = 1.0
+        for i in np.arange(1,len(probability)):
+            mean_n_given_i = self.deterministic_mean()
+            mean_n_given_i = np.max([ self.carry_capacity-i, 0] ) / ( self.nbr_species-1 )
+            probability[i] = probability[i-1] * ( ( self.immi_rate
+                + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
+                + (self.birth_rate-self.death_rate) * ( i +
+                ( ( self.nbr_species -1 ) * mean_n_given_i ) * self.comp_overlap
+                )  / self.carry_capacity ) ) )
+
+
+        probability = probability/np.sum(probability)
+
+        return probability
+
+
     def abund_1spec_MSLV(self, dstbn_approx = 'Nava'):
         """
         Abundance distribution of stochastic Lotka-Volterra with immigration.
@@ -393,7 +418,6 @@ class Model_MultiLVim(object):
 
         return mte
 
-
     def deterministic_mean(self):
         """
         Calculates the mean of the LV equations, for com_overlap between 0
@@ -440,9 +464,22 @@ class Model_MultiLVim(object):
             print('Dimension of 2 distributions not equal!')
             P = P[:np.min([dimQ,dimP])]; Q = Q[:np.min([dimQ,dimP])];
 
-        print((self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0)
+        #print((self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0)
 
         return (self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0
+
+    def binomial_diversity_dstbn( self, P0 , nbr_species=None):
+        """
+        Using a binomial distribution, find the diversity distribution of
+        species present R, simply
+        from
+                        P(R;S,1-P0) = P0^(S-R)*(1-P0)^R
+        """
+        if nbr_species == None:
+            species = np.arange( self.nbr_species + 1)
+        else:
+            species = np.arange( nbr_species + 1 )
+        return scipy.stats.binom.pmf(species, self.nbr_species, 1 - P0)
 
 
 
@@ -870,9 +907,10 @@ class CompareModels(object):
 
 def vary_species_count(species=150):
     """
-    We want to vary the species count at high mu, low rho to see how the
-    solution differs from the carrying capacity
+    We want to vary the total number of species at high mu, low rho to see how
+    the solution's peak differs from the carrying capacity
     """
+
     nbr_species = np.arange( 1, species )
     peak_diff = np.zeros( species - 1  )
 
@@ -902,7 +940,27 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
 
-    vary_species_count(200)
+    #vary_species_count(200)
+
+    problematic_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
+                                            , 'immi_rate'       : 0.001
+                                            , 'carry_capacity'  : 100
+                                            , 'comp_overlap'    : 0.8689
+                                            , 'nbr_species'     : 30
+                                            }
+    model = Model_MultiLVim(**problematic_params)
+
+    distribution = model.abund_jer()
+    print((model.nbr_species-1)*model.deterministic_mean())
+
+    fig = plt.figure(); end = int(1.5*model.carry_capacity) # cut somehere
+    plt.plot( np.arange(end), distribution[:end])
+    plt.xlabel(r"population, $n_i$")
+    plt.ylabel(r"probability $P(n_i)$")
+    plt.yscale('log')
+    #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
+    #                                            , params['comp_overlap']))
+    plt.show()
 
     #compare = CompareModels()
     #compare.mlv_compare_abundance_approx()
