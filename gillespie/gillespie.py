@@ -156,14 +156,14 @@ def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
 
                     i += 1; updated = True
 
-        """
+
         end = time.time()
         hours, rem = divmod(end-start, 3600)
         minutes, seconds = divmod(rem, 60)
-        print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format( int(hours)
-                                                    , int(minutes), seconds) )
-        print("     >> Number of reactions : {}".format(nbr_rxns))
-        """
+        #print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format( int(hours)
+        #                                            , int(minutes), seconds) )
+        #print("     >> Number of reactions : {}".format(nbr_rxns))
+        return 0
 
 def gillespie(Model, simulation, times, current_state):
     i=1
@@ -183,14 +183,14 @@ def gillespie(Model, simulation, times, current_state):
         current_state = simulation[i%Model.max_gen_save,:].copy()
 
         i += 1
-        """
+
         end = time.time()
         hours, rem = divmod(end-start, 3600)
         minutes, seconds = divmod(rem, 60)
-        print(end-start)
-        print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
-                    , int(minutes), seconds))
-        """
+        #print(end-start)
+        #print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
+        #            , int(minutes), seconds))
+
 
 
 def SSA(Model, traj):
@@ -206,6 +206,7 @@ def SSA(Model, traj):
         simulation : the whole simulated trajectory
         times      : when each reaction happened along the trajectory
     """
+    start = time.time()
     init_state = Model.initialize( )
 
     # create output arrays output
@@ -221,8 +222,20 @@ def SSA(Model, traj):
 
     else: # tau leaping, (Cao, Gillespie, and Petzold, 2006)
         tau_leaping(Model, simulation, times, current_state)
+    end = time.time()
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    print(">> Time elapsed sim: {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
+                , int(minutes), seconds))
 
+    start = time.time()
     Model.save_trajectory(simulation, times, traj)
+    end = time.time()
+    hours, rem = divmod(end-start, 3600)
+    minutes, seconds = divmod(rem, 60)
+    print(">> Time elapsed save: {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
+                , int(minutes), seconds))
+
 
     return simulation, times
 

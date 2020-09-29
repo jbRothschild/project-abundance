@@ -232,12 +232,19 @@ class MultiLV(Parent):
             self.results = kwargs['results']
         else:
             # TODO : Add other results?
-            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*6)
+            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*3)
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
-                            # 'J' : [],
-                            # '' : ,
+                            , 'joint_temp' : np.zeros( (self.carry_capacity*3
+                                            ,self.carry_capacity*3) )
+                            , 'conditional' : np.zeros( (self.carry_capacity*3
+                                            ,self.carry_capacity*3) )
+                            , 'av_ni_nj_temp' : np.zeros( ( self.nbr_species,
+                                                        self.nbr_species))
+                            , 'av_ni_temp' : np.zeros(self.nbr_species)
+                            , 'av_ni_sq_temp' : np.zeros(self.nbr_species)
+                            , 'corr_ni_nj' : 0.0
                             }
 
     def propensity( self, current_state ):
@@ -312,7 +319,7 @@ class MultiLV(Parent):
                 j += 1
             initial_state[i] = j
         #sys.exit()
-        print(np.sum(initial_state))
+
         return initial_state
 
     def update_results( self, current_state, dt ):
@@ -339,6 +346,16 @@ class MultiLV(Parent):
         # add time they are still present in the system
         self.results['temp_time'] += (current_state != 0)*dt
 
+        # Tally the joint distribution P(n_i,n_j) and temporary variables for
+        # correlation calculation
+        for i, value_i in enumerate(current_state):
+            self.results['av_ni_temp'][i] += dt*value_i
+            self.results['av_ni_sq_temp'][i] += dt*value_i**2
+
+            for j, value_j in enumerate(current_state[i+1:]):
+                self.results['joint_temp'][int(value_i)][int(value_j)] += dt
+                self.results['av_ni_nj_temp'][i][j] += dt*value_i*value_j
+
         return 0
 
     def save_trajectory( self, simulation, times, traj ):
@@ -350,6 +367,41 @@ class MultiLV(Parent):
 
         # normalize the richness
         self.results['richness'] /= times[-1]
+
+
+        # Calculate conditional probability
+        self.results['joint_temp'] /= np.sum( self.results['joint_temp'] )
+        for i in np.arange(0, np.shape(self.results['joint_temp'])[0]):
+            if self.results['ss_distribution'][i] != 0:
+                for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
+                    self.results['conditional'][j][i] = \
+                        ( ( self.results['joint_temp'][i][j]\
+                                + self.results['joint_temp'][j][i] )
+                                / self.results['ss_distribution'][i] )
+
+        # Calculate correlation
+        self.results['av_ni_temp'] /= times[-1]
+        self.results['av_ni_sq_temp'] /= times[-1]
+        self.results['av_ni_nj_temp'] /= times[-1]
+        for i in np.arange(0, self.nbr_species):
+            for j in np.arange(i+1, self.nbr_species):
+                variance = ( np.sqrt( self.results['av_ni_sq_temp'][i]
+                - self.results['av_ni_temp'][i]**2 ) ) * (
+                np.sqrt( self.results['av_ni_sq_temp'][j]
+                - self.results['av_ni_temp'][j]**2 ) )
+                if variance != 0.0:
+                    self.results['corr_ni_nj'] += (
+                            self.results['av_ni_nj_temp'][i][j]
+                            - self.results['av_ni_temp'][i] *
+                            self.results['av_ni_temp'][j] ) / variance
+
+        self.results['corr_ni_nj'] /= (self.nbr_species*( self.nbr_species - 1 )
+                                            / 2 )
+
+        del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
+            , self.results['av_ni_nj_temp'], self.results['joint_temp']
+
+        print(self.results['corr_ni_nj'])
 
         super(MultiLV, self).save_trajectory(simulation, times, traj)
 
