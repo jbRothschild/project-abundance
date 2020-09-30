@@ -354,7 +354,7 @@ class MultiLV(Parent):
 
             for j, value_j in enumerate(current_state[i+1:]):
                 self.results['joint_temp'][int(value_i)][int(value_j)] += dt
-                self.results['av_ni_nj_temp'][i][j] += dt*value_i*value_j
+                self.results['av_ni_nj_temp'][i][i+j+1] += dt*value_i*value_j
 
         return 0
 
@@ -363,10 +363,10 @@ class MultiLV(Parent):
         Explain what is going on
         """
         # normalize the distribution
-        self.results['ss_distribution'] /= times[-1]
+        self.results['ss_distribution'] /= np.max(times)
 
         # normalize the richness
-        self.results['richness'] /= times[-1]
+        self.results['richness'] /= np.max(times)
 
 
         # Calculate conditional probability
@@ -380,33 +380,33 @@ class MultiLV(Parent):
                                 / self.results['ss_distribution'][i] )
 
         # Calculate correlation
-        self.results['av_ni_temp'] /= times[-1]
-        self.results['av_ni_sq_temp'] /= times[-1]
-        self.results['av_ni_nj_temp'] /= times[-1]
+        self.results['av_ni_temp'] /= np.max(times)
+        self.results['av_ni_sq_temp'] /= np.max(times)
+        self.results['av_ni_nj_temp'] /= np.max(times)
+        nbr_correlations = 0
         for i in np.arange(0, self.nbr_species):
             for j in np.arange(i+1, self.nbr_species):
-                variance = ( np.sqrt( self.results['av_ni_sq_temp'][i]
+                variance = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
                 - self.results['av_ni_temp'][i]**2 ) ) * (
                 np.sqrt( self.results['av_ni_sq_temp'][j]
-                - self.results['av_ni_temp'][j]**2 ) )
+                - self.results['av_ni_temp'][j]**2 ) ) )
                 if variance != 0.0:
                     self.results['corr_ni_nj'] += (
                             self.results['av_ni_nj_temp'][i][j]
                             - self.results['av_ni_temp'][i] *
                             self.results['av_ni_temp'][j] ) / variance
+                    nbr_correlations += 1
 
-        self.results['corr_ni_nj'] /= (self.nbr_species*( self.nbr_species - 1 )
-                                            / 2 )
+        self.results['corr_ni_nj'] /= nbr_correlations
 
         del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
             , self.results['av_ni_nj_temp'], self.results['joint_temp']
-
-        print(self.results['corr_ni_nj'])
 
         super(MultiLV, self).save_trajectory(simulation, times, traj)
 
         # with open('filename.pickle', 'rb') as handle:
         #    b = pickle.load(handle)
+        print(self.results['corr_ni_nj'])
 
         return 0
 
