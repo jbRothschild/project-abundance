@@ -232,14 +232,14 @@ class MultiLV(Parent):
             self.results = kwargs['results']
         else:
             # TODO : Add other results?
-            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*3)
+            self.results = {'ss_distribution' : np.zeros(self.carry_capacity*5)
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
-                            , 'joint_temp' : np.zeros( (self.carry_capacity*3
-                                            ,self.carry_capacity*3) )
-                            , 'conditional' : np.zeros( (self.carry_capacity*3
-                                            ,self.carry_capacity*3) )
+                            , 'joint_temp' : np.zeros( (self.carry_capacity*5
+                                            ,self.carry_capacity*5) )
+                            , 'conditional' : np.zeros( (self.carry_capacity*5
+                                            ,self.carry_capacity*5) )
                             , 'av_ni_nj_temp' : np.zeros( ( self.nbr_species,
                                                         self.nbr_species))
                             , 'av_ni_temp' : np.zeros(self.nbr_species)

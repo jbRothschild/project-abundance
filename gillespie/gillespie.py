@@ -183,7 +183,6 @@ def gillespie(Model, simulation, times, current_state):
         current_state = simulation[i%Model.max_gen_save,:].copy()
 
         i += 1
-
         end = time.time()
         hours, rem = divmod(end-start, 3600)
         minutes, seconds = divmod(rem, 60)

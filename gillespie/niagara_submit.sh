@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --nodes=40
 #SBATCH --ntasks-per-node=40
-#SBATCH --time=24:00:00
+#SBATCH --time=00:30:00
 #SBATCH --job-name gnu-parallel-gillespie-mlv
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
@@ -14,9 +14,6 @@ module load NiaEnv/2019b python/3.6.8 gnu-parallel
 
 # Turn off implicit threading in Python, R
 export OMP_NUM_THREADS=1
-
-NUM_TASKS=40 # Generally 40, maybe more?
-NUM_TASKS_ZERO=$((NUM_TASKS-1))
 
 logspace () {
     start=$1
@@ -36,6 +33,9 @@ logspace () {
 # SIR model
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
+NUM_TASKS=40 # Generally 40, maybe more?
+NUM_TASKS_ZERO=$((NUM_TASKS-1))
+
 # multiLV model, varying parameters
 VAR1=($(logspace -3 -0.01 ${NUM_TASKS} | tr -d '[],'))
 VAR1_NAME="comp_overlap"
@@ -52,7 +52,7 @@ mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m multiLV -t 1 -g 70000000 -n {#} -p ${VAR1_NAME}={} max_gen_save=10000 immi_rate=0.001 sim_dir=multiLV1" ::: ${VAR1[@]}
 
 # 2 variable vary
-parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 50000000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
+parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 500000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
 
 # 1 parameter choice only
 #parallel --joblog slurm-$SLURM_JOBID.log --wd $PWD "python gillespie.py -m multiLV -t 1 -g 70000000 -n {#} -p birth_rate=20.0 death_rate=1.0 immi_rate=0.001 comp_overlap=0.8689 carry_capacity=100 max_gen_save=10000 sim_dir=${SIM_DIR}" ::: {001:400}
