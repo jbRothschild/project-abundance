@@ -212,16 +212,16 @@ class Parent(object):
 class MultiLV(Parent):
     def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV'
                   , tau=False, birth_rate=2.0, death_rate=1.0, immi_rate=0.015
-                  , emmi_rate=0.0, K=50, linear=0.0, quadratic=0.0
+                  , emmi_rate=0.0, carry_capacity=50, linear=0.0, quadratic=0.0
                   , comp_overlap=0.2, sim_number=0, nbr_species=30
                   , **kwargs):
         super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir
                                       ,sim_number)
-        self.birth_rate=birth_rate; self.death_rate=death_rate;
+        self.birth_rate=birth_rate; self.death_rate=death_rate; self.tau=tau
         self.immi_rate=immi_rate; self.emmi_rate=emmi_rate;
-        self.carry_capacity=K; self.linear=linear; self.quadratic=quadratic;
-        self.comp_overlap=comp_overlap; self.max_gen_save=nbr_generations;
-        self.nbr_species=nbr_species; self.tau=tau
+        self.carry_capacity=carry_capacity; self.linear=linear;
+        self.quadratic=quadratic; self.comp_overlap=comp_overlap;
+        self.max_gen_save=nbr_generations; self.nbr_species=nbr_species;
 
         if 'max_gen_save' in kwargs.keys():
             self.max_gen_save = int(kwargs['max_gen_save'])

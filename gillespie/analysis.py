@@ -189,12 +189,202 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
             mean_time_present = np.nan
     else: time_btwn_ext, mean_time_present = None, None
 
-    # Change to dictionary
+    if 'corr_ni_nj' in model.results:
+        correlation = model.results['corr_ni_nj']
+    else:
+        correlation = None
+
+    # TODO : change to dictionary
     return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
                      , mean_rich, mean_time_present, P0, nbr_local_max, H, GS\
-                     , param_dict['nbr_species'], det_mean_present
+                     , param_dict['nbr_species'], det_mean_present, correlation
 
 
+def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
+    """
+    Analyze how the results from different simulations differ for varying
+    (parameter)
+
+    Input :
+        dir       : directory that we're plotting from
+        parameter1 : the parameter that changes between different simulations
+                    (string)
+        parameter2 : second parameter that changes between different simulations
+                    (string)
+    """
+    filename =  dir + os.sep + 'consolidated_results.npz'
+
+    # count number of subdirectories
+    nbr_sims = len( next( os.walk(dir) )[1] )
+
+    # initialize the
+    mean_pop    = np.zeros(nbr_sims); param1 = np.zeros(nbr_sims);
+    mean_rich   = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
+    P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
+    H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
+    nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
+    rich_dist_vary = []             ; det_mean_present  = np.zeros(nbr_sims)
+    correlation = np.zeros(nbr_sims)
+
+    # if 2 parameters vary in the simulation
+    if parameter2 != None: param2 = np.zeros(nbr_sims)
+
+    # TODO change to dictionary
+    for i in np.arange(nbr_sims):
+        param_dict, ss_dist_sim, richness_dist,  _, mean_pop[i], mean_rich[i]\
+                    , mean_time_present[i], P0[i], nbr_local_max[i], H[i]\
+                    , GS[i], nbr_species[i], det_mean_present[i], correlation[i]\
+                  = mlv_extract_results_sim(dir, sim_nbr = i+1)
+        # sims might not have same distribution length
+        rich_dist_vary.append( np.array( richness_dist ) )
+        ss_dist_vary.append( np.array( ss_dist_sim ) )
+
+        # Value of parameters
+        param1[i] = param_dict[parameter1]
+        if parameter2 != None: param2[i] = param_dict[parameter2]
+
+    # making all sims have same distribution length
+    length_longest_dstbn = len(max(ss_dist_vary,key=len))
+    length_longest_rich  = len(max(rich_dist_vary,key=len))
+    ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
+    rich_dist = np.zeros((nbr_sims,length_longest_rich))
+    for i in np.arange(nbr_sims):
+        ss_dist[i,:len(ss_dist_vary[i])] = ss_dist_vary[i]
+        rich_dist[i,:len(rich_dist_vary[i])] = rich_dist_vary[i]
+
+    # Single parameter changing
+    if parameter2 == None:
+        if len(np.unique(param1)) == 1:
+            print('Warning : ' + parameter1 + ' parameter does not vary!')
+            #raise SystemExit
+        elif len(np.unique(param1)) != len(param1):
+            print('Warning : ' + parameter1 +
+                    ' is repeated here, hence there might be another param!')
+
+
+
+        # save arrays in a npz file, dict here
+        dict_arrays = {  parameter1 : param1, 'mean_pop'  : mean_pop
+                                        , 'mean_rich'     : mean_rich
+                                        , 'mean_time_present' : mean_time_present
+                                        , 'P0'            : P0
+                                        , 'nbr_local_max' : nbr_local_max
+                                        , 'entropy'       : H
+                                        , 'gs_idx'        : GS
+                                        , 'nbr_species'   : nbr_species
+                                        , 'ss_dist'       : ss_dist
+                                        , 'det_mean_present' : det_mean_present
+                                        , 'rich_dist'       : rich_dist
+                                        , 'correlation'     : correlation
+                                        }
+
+    # For heatmap stuff
+    else:
+        param1_2D = np.unique(param1); param2_2D = np.unique(param2)
+        dim_1     = len(param1_2D)   ; dim_2      = len(param2_2D)
+
+        if dim_1 == 1:
+            print('Warning : Parameter ' + parameter1 + ' does not vary!')
+            print('       > This will make for a very boring heatmap...')
+
+        elif dim_2 == 1:
+            print('Warning : Parameter ' + parameter2 + ' does not vary!')
+            print('       > This will make for a very boring heatmap...')
+
+        # initialize
+        mean_pop2D          = np.zeros((dim_1,dim_2))
+        mean_rich2D         = np.zeros((dim_1,dim_2))
+        mean_time_present2D = np.zeros((dim_1,dim_2))
+        P02D                = np.zeros((dim_1,dim_2))
+        nbr_local_max2D     = np.zeros((dim_1,dim_2))
+        H2D                 = np.zeros((dim_1,dim_2))
+        GS2D                = np.zeros((dim_1,dim_2))
+        nbr_species2D       = np.zeros((dim_1,dim_2))
+        ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
+        rich_dist2D         = np.zeros((dim_1,dim_2,length_longest_rich))
+        det_mean_present2D  = np.zeros((dim_1,dim_2))
+        correlation2D         = np.zeros((dim_1,dim_2))
+
+        # put into a 2d array all the previous results
+        for sim in np.arange(nbr_sims):
+            i = np.where(param1_2D==param1[sim])[0][0]
+            j = np.where(param2_2D==param2[sim])[0][0]
+            mean_pop2D[i,j]          = mean_pop[sim]
+            mean_rich2D[i,j]         = mean_rich[sim]
+            mean_time_present2D[i,j] = mean_time_present[sim]
+            P02D[i,j]                = P0[sim]
+            nbr_local_max2D[i,j]     = nbr_local_max[sim]
+            H2D[i,j]                 = H[sim]
+            GS2D[i,j]                = GS[sim]
+            nbr_species2D[i,j]       = nbr_species[sim]
+            ss_dist2D[i,j]           = ss_dist[sim]
+            rich_dist2D[i,j]         = rich_dist[sim]
+            det_mean_present2D[i,j]  = det_mean_present[sim]
+            correlation2D[i,j]        = correlation[sim]
+
+        # arrange into a dictionary to save
+        dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
+                                           , 'mean_pop'      : mean_pop2D
+                                           , 'mean_rich'     : mean_rich2D
+                                           , 'mean_time_present' : mean_time_present2D
+                                           , 'P0'            : P02D
+                                           , 'nbr_local_max' : nbr_local_max2D
+                                           , 'entropy'       : H2D
+                                           , 'gs_idx'        : GS2D
+                                           , 'nbr_species'   : nbr_species2D
+                                           , 'ss_dist'       : ss_dist2D
+                                           , 'det_mean_present' : det_mean_present2D
+                                           , 'rich_dist'       : rich_dist2D
+                                           , 'correlation'      : correlation2D
+                                           }
+    # save results in a npz file
+    np.savez(filename, **dict_arrays)
+
+    return filename
+
+def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
+    """
+    Plot the average of a many results_(sim_nbr).pickle
+
+    Input :
+        dir     : directory that we're plotting from
+        sim_nbr : simulation number (subdir sim%i %(sim_nbr))
+
+    Output :
+        Plots of a single simul
+    """
+    filename = mlv_consolidate_sim_results(dir,parameter)
+    with np.load(filename) as f:
+        dist_sim    = f['ss_dist'];
+
+    param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop, mean_rich\
+        , mean_time_present, P0, nbr_local_max, H, GS, nbr_species\
+        , det_mean_present, correlation\
+        = mlv_extract_results_sim(dir, 1)
+
+    ss_dist_sim = np.mean(dist_sim,axis=0)
+    fig  = plt.figure()
+    axes = plt.gca()
+
+    r = np.random.randint(np.shape(dist_sim)[0], size=3)
+
+    plt.plot(np.arange(len(ss_dist_sim)),ss_dist_sim,label='mean simulation')
+    plt.scatter(np.arange(len(dist_sim[r[0]])),dist_sim[r[0]],label='simulation i')
+    plt.scatter(np.arange(len(dist_sim[r[1]])),dist_sim[r[1]],label='simulation j')
+    plt.scatter(np.arange(len(dist_sim[r[2]])),dist_sim[r[2]],label='simulation k')
+    plt.ylabel(r"probability distribution function")
+    plt.xlabel(r'n')
+    plt.yscale('log')
+    axes.set_ylim([np.min(ss_dist_sim[ss_dist_sim!=0.0]),2*np.max(ss_dist_sim)])
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
+    plt.title(title)
+    axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
+    plt.legend
+    #plt.xscale('log')
+    plt.show()
+
+    return 0
 
 def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
@@ -207,12 +397,10 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     Output :
         Plots of a single simulation
     """
-    # replace with a dict
+    # TODO : replace with a dict
     param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
-              , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _ \
-              = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
-
-    print(param_dict)
+                  , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _, _, _\
+                  = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
 
     # theory equations
     theory_models   = theqs.Model_MultiLVim(**param_dict)
@@ -276,144 +464,6 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
 
     return 0
 
-def mlv_consolidate_sim_results(dir, parameter1, parameter2=None):
-    """
-    Analyze how the results from different simulations differ for varying
-    (parameter)
-
-    Input :
-        dir       : directory that we're plotting from
-        parameter1 : the parameter that changes between different simulations
-                    (string)
-        parameter2 : second parameter that changes between different simulations
-                    (string)
-    """
-
-    filename =  dir + os.sep + 'consolidated_results.npz'
-
-    # count number of subdirectories
-    nbr_sims = len( next( os.walk(dir) )[1] )
-
-    # initialize the
-    param1      = np.zeros(nbr_sims); mean_pop          = np.zeros(nbr_sims)
-    mean_rich   = np.zeros(nbr_sims); mean_time_present = np.zeros(nbr_sims)
-    P0          = np.zeros(nbr_sims); nbr_local_max     = np.zeros(nbr_sims)
-    H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
-    nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
-    rich_dist_vary = []
-    det_mean_present = np.zeros(nbr_sims)
-
-    # if 2 parameters vary in the simulation
-    if parameter2 != None: param2 = np.zeros(nbr_sims)
-
-    # TODO change to dictionary
-    for i in np.arange(nbr_sims):
-        param_dict, ss_dist_sim, richness_dist,  _, mean_pop[i], mean_rich[i]\
-                    , mean_time_present[i], P0[i], nbr_local_max[i], H[i]\
-                    , GS[i], nbr_species[i], det_mean_present[i]\
-                  = mlv_extract_results_sim(dir, sim_nbr = i+1)
-        # sims might not have same distribution length
-        rich_dist_vary.append( np.array( richness_dist ) )
-        ss_dist_vary.append( np.array( ss_dist_sim ) )
-
-        # Value of parameters
-        param1[i] = param_dict[parameter1]
-        if parameter2 != None: param2[i] = param_dict[parameter2]
-
-    # making all sims have same distribution length
-    length_longest_dstbn = len(max(ss_dist_vary,key=len))
-    length_longest_rich  = len(max(rich_dist_vary,key=len))
-    ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
-    rich_dist = np.zeros((nbr_sims,length_longest_rich))
-    for i in np.arange(nbr_sims):
-        ss_dist[i,:len(ss_dist_vary[i])] = ss_dist_vary[i]
-        rich_dist[i,:len(rich_dist_vary[i])] = rich_dist_vary[i]
-
-    # Single parameter changing
-    if parameter2 == None:
-        if len(np.unique(param1)) == 1:
-            print('Warning : ' + parameter1 + ' parameter does not vary!')
-            raise SystemExit
-        elif len(np.unique(param1)) != len(param1):
-            print('Warning : ' + parameter1 +
-                    ' is repeated here, hence there might be another param!')
-
-
-
-        # save arrays in a npz file, dict here
-        dict_arrays = {  parameter1 : param1, 'mean_pop'  : mean_pop
-                                        , 'mean_rich'     : mean_rich
-                                        , 'mean_time_present' : mean_time_present
-                                        , 'P0'            : P0
-                                        , 'nbr_local_max' : nbr_local_max
-                                        , 'entropy'       : H
-                                        , 'gs_idx'        : GS
-                                        , 'nbr_species'   : nbr_species
-                                        , 'ss_dist'       : ss_dist
-                                        , 'det_mean_present' : det_mean_present
-                                        , 'rich_dist'       : rich_dist
-                                        }
-
-    # For heatmap stuff
-    else:
-        param1_2D = np.unique(param1); param2_2D = np.unique(param2)
-        dim_1     = len(param1_2D)   ; dim_2      = len(param2_2D)
-
-        if dim_1 == 1:
-            print('Warning : Parameter ' + parameter1 + ' does not vary!')
-            print('       > This will make for a very boring heatmap...')
-
-        elif dim_2 == 1:
-            print('Warning : Parameter ' + parameter2 + ' does not vary!')
-            print('       > This will make for a very boring heatmap...')
-
-        # initialize
-        mean_pop2D          = np.zeros((dim_1,dim_2))
-        mean_rich2D         = np.zeros((dim_1,dim_2))
-        mean_time_present2D = np.zeros((dim_1,dim_2))
-        P02D                = np.zeros((dim_1,dim_2))
-        nbr_local_max2D     = np.zeros((dim_1,dim_2))
-        H2D                 = np.zeros((dim_1,dim_2))
-        GS2D                = np.zeros((dim_1,dim_2))
-        nbr_species2D       = np.zeros((dim_1,dim_2))
-        ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
-        rich_dist2D         = np.zeros((dim_1,dim_2,length_longest_rich))
-        det_mean_present2D  = np.zeros((dim_1,dim_2))
-
-        # put into a 2d array all the previous results
-        for sim in np.arange(nbr_sims):
-            i = np.where(param1_2D==param1[sim])[0][0]
-            j = np.where(param2_2D==param2[sim])[0][0]
-            mean_pop2D[i,j]          = mean_pop[sim]
-            mean_rich2D[i,j]         = mean_rich[sim]
-            mean_time_present2D[i,j] = mean_time_present[sim]
-            P02D[i,j]                = P0[sim]
-            nbr_local_max2D[i,j]     = nbr_local_max[sim]
-            H2D[i,j]                 = H[sim]
-            GS2D[i,j]                = GS[sim]
-            nbr_species2D[i,j]       = nbr_species[sim]
-            ss_dist2D[i,j]           = ss_dist[sim]
-            rich_dist2D[i,j]         = rich_dist[sim]
-            det_mean_present2D[i,j]  = det_mean_present[sim]
-
-        # arrange into a dictionary to save
-        dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
-                                           , 'mean_pop'      : mean_pop2D
-                                           , 'mean_rich'     : mean_rich2D
-                                           , 'mean_time_present' : mean_time_present2D
-                                           , 'P0'            : P02D
-                                           , 'nbr_local_max' : nbr_local_max2D
-                                           , 'entropy'       : H2D
-                                           , 'gs_idx'        : GS2D
-                                           , 'nbr_species'   : nbr_species2D
-                                           , 'ss_dist'       : ss_dist2D
-                                           , 'det_mean_present' : det_mean_present2D
-                                           , 'rich_dist'       : rich_dist2D
-                                           }
-    # save results in a npz file
-    np.savez(filename, **dict_arrays)
-
-    return 0
 
 def mlv_plot_sim_results(dir, parameter1):
     """
@@ -558,6 +608,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
         nbr_spec2D  = f['nbr_species']; param2_2D          = f[parameter2]
         det_mean_present2D = f['det_mean_present'];
         rich_dist2D = f['rich_dist']
+        correlation2D = f['correlation']
 
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
@@ -585,6 +636,9 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
     ## det_mean_n_present
     heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
             , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
+
+    heatmap(param2_2D, param1_2D, correlation2D, labely, labelx
+            , r'$\rho_{Pears}(n_i,n_j)$', save=save)
 
     ## diversity distribution
     binom_approx    = np.zeros( rich_dist2D.shape )
@@ -640,7 +694,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
 
     #plot() # many distributions
     f = plt.figure();
-    
+
 
     return 0
 
@@ -814,11 +868,11 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV7'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV8'
 
-
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
-                                        , save=True)
+    mlv_plot_average_sim_results(sim_dir,'comp_overlap')
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+    #                                , save=True)
     #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
     #                                    , save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
