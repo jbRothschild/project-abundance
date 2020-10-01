@@ -397,7 +397,8 @@ class MultiLV(Parent):
                             self.results['av_ni_temp'][j] ) / variance
                     nbr_correlations += 1
 
-        self.results['corr_ni_nj'] /= nbr_correlations
+        #self.results['corr_ni_nj'] /= nbr_correlations
+        self.results['corr_ni_nj'] /= ( self.nbr_species*(self.nbr_species-1)/2)
 
         del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
             , self.results['av_ni_nj_temp'], self.results['joint_temp']
