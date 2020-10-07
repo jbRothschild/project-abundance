@@ -219,9 +219,9 @@ class MultiLV(Parent):
                                       ,sim_number)
         self.birth_rate=birth_rate; self.death_rate=death_rate; self.tau=tau
         self.immi_rate=immi_rate; self.emmi_rate=emmi_rate;
-        self.carry_capacity=carry_capacity; self.linear=linear;
+        self.carry_capacity=int(carry_capacity); self.linear=linear;
         self.quadratic=quadratic; self.comp_overlap=comp_overlap;
-        self.max_gen_save=nbr_generations; self.nbr_species=nbr_species;
+        self.max_gen_save=nbr_generations; self.nbr_species=int(nbr_species);
 
         if 'max_gen_save' in kwargs.keys():
             self.max_gen_save = int(kwargs['max_gen_save'])
