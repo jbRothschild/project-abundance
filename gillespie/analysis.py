@@ -3,6 +3,7 @@ import os, glob, csv
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+import copy
 
 from scipy.signal import argrelextrema
 
@@ -194,10 +195,16 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     else:
         correlation = None
 
+    if 'conditional' in model.results:
+        conditional = model.results['conditional']
+    else:
+        conditional = None
+
     # TODO : change to dictionary
     return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
                      , mean_rich, mean_time_present, P0, nbr_local_max, H, GS\
-                     , param_dict['nbr_species'], det_mean_present, correlation
+                     , param_dict['nbr_species'], det_mean_present, correlation\
+                     , conditional
 
 
 def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
@@ -224,7 +231,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
     H           = np.zeros(nbr_sims); GS                = np.zeros(nbr_sims)
     nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
     rich_dist_vary = []             ; det_mean_present  = np.zeros(nbr_sims)
-    correlation = np.zeros(nbr_sims)
+    correlation = np.zeros(nbr_sims); cond_vary      = []
 
     # if 2 parameters vary in the simulation
     if parameter2 != None: param2 = np.zeros(nbr_sims)
@@ -233,11 +240,13 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
     for i in np.arange(nbr_sims):
         param_dict, ss_dist_sim, richness_dist,  _, mean_pop[i], mean_rich[i]\
                     , mean_time_present[i], P0[i], nbr_local_max[i], H[i]\
-                    , GS[i], nbr_species[i], det_mean_present[i], correlation[i]\
+                    , GS[i], nbr_species[i], det_mean_present[i],correlation[i]\
+                    , conditional\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
         # sims might not have same distribution length
         rich_dist_vary.append( np.array( richness_dist ) )
         ss_dist_vary.append( np.array( ss_dist_sim ) )
+        cond_vary.append( np.array(conditional) )
 
         # Value of parameters
         param1[i] = param_dict[parameter1]
@@ -246,11 +255,15 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
     # making all sims have same distribution length
     length_longest_dstbn = len(max(ss_dist_vary,key=len))
     length_longest_rich  = len(max(rich_dist_vary,key=len))
+    length_longest_cond  = len(max(cond_vary,key=np.shape))
     ss_dist = np.zeros((nbr_sims,length_longest_dstbn))
     rich_dist = np.zeros((nbr_sims,length_longest_rich))
+    cond_dist = np.zeros((nbr_sims,length_longest_cond,length_longest_cond))
     for i in np.arange(nbr_sims):
         ss_dist[i,:len(ss_dist_vary[i])] = ss_dist_vary[i]
         rich_dist[i,:len(rich_dist_vary[i])] = rich_dist_vary[i]
+        cond_dist[i,:np.shape(cond_vary[i])[0],:np.shape(cond_vary[i])[1]] =\
+                                    cond_vary[i]
 
     # Single parameter changing
     if parameter2 == None:
@@ -276,6 +289,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
                                         , 'det_mean_present' : det_mean_present
                                         , 'rich_dist'       : rich_dist
                                         , 'correlation'     : correlation
+                                        , 'conditional'     : cond_dist
                                         }
 
     # For heatmap stuff
@@ -303,7 +317,9 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
         ss_dist2D           = np.zeros((dim_1,dim_2,length_longest_dstbn))
         rich_dist2D         = np.zeros((dim_1,dim_2,length_longest_rich))
         det_mean_present2D  = np.zeros((dim_1,dim_2))
-        correlation2D         = np.zeros((dim_1,dim_2))
+        correlation2D       = np.zeros((dim_1,dim_2))
+        cond_2D             = np.zeros((dim_1,dim_2,length_longest_cond
+                                                    ,length_longest_cond))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -320,7 +336,8 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
             ss_dist2D[i,j]           = ss_dist[sim]
             rich_dist2D[i,j]         = rich_dist[sim]
             det_mean_present2D[i,j]  = det_mean_present[sim]
-            correlation2D[i,j]        = correlation[sim]
+            correlation2D[i,j]       = correlation[sim]
+            cond_2D[i,j]             = cond_dist[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
@@ -334,8 +351,9 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
                                            , 'nbr_species'   : nbr_species2D
                                            , 'ss_dist'       : ss_dist2D
                                            , 'det_mean_present' : det_mean_present2D
-                                           , 'rich_dist'       : rich_dist2D
+                                           , 'rich_dist'        : rich_dist2D
                                            , 'correlation'      : correlation2D
+                                           , 'conditional'      : cond_2D
                                            }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
@@ -356,18 +374,19 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     filename = mlv_consolidate_sim_results(dir,parameter)
     with np.load(filename) as f:
         dist_sim    = f['ss_dist'];
+        cond_dist   = f['conditional'];
 
     param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop, mean_rich\
         , mean_time_present, P0, nbr_local_max, H, GS, nbr_species\
-        , det_mean_present, correlation\
+        , det_mean_present, correlation, conditional\
         = mlv_extract_results_sim(dir, 1)
 
-    ss_dist_sim = np.mean(dist_sim,axis=0)
+    ss_dist_sim = np.mean(dist_sim, axis=0)
+    mean_cond   = np.mean(cond_dist,axis=0)
+
     fig  = plt.figure()
     axes = plt.gca()
-
     r = np.random.randint(np.shape(dist_sim)[0], size=3)
-
     plt.plot(np.arange(len(ss_dist_sim)),ss_dist_sim,label='mean simulation')
     plt.scatter(np.arange(len(dist_sim[r[0]])),dist_sim[r[0]],label='simulation i')
     plt.scatter(np.arange(len(dist_sim[r[1]])),dist_sim[r[1]],label='simulation j')
@@ -380,7 +399,26 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
             + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
     plt.title(title)
     axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
-    plt.legend
+    plt.legend()
+    #plt.xscale('log')
+    plt.show()
+
+    fig  = plt.figure()
+    axes = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('PuBu'))
+    my_cmap.set_bad((0,0,0))
+    print(np.sum( mean_cond[:200,:200].T + mean_cond[:200,:200] ,axis=1))
+    plt.imshow( mean_cond[:200,:200].T + mean_cond[:200,:200]
+                , norm=mpl.colors.LogNorm(), cmap=my_cmap
+                , interpolation='nearest')
+    plt.gca().invert_yaxis()
+    plt.ylabel(r"i")
+    plt.xlabel(r'j')
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
+    plt.title(title)
+    cbar = plt.colorbar()
+    cbar.set_label(r'$P(i|j)$')
     #plt.xscale('log')
     plt.show()
 
@@ -399,22 +437,30 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     """
     # TODO : replace with a dict
     param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
-                  , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _, _, _\
+                  , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _, _\
+                  , conditional\
                   = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
 
     # theory equations
     theory_models   = theqs.Model_MultiLVim(**param_dict)
-    ss_dist_thry, _ = theory_models.abund_1spec_MSLV()
-    #theory_dist, theory_abund = theory_models.abund_sid()
+    conv_dist, _ = theory_models.abund_1spec_MSLV()
+    mf_dist, mf_abund = theory_models.abund_sid()
+    appcond_r_dist = theory_models.abund_jer( 'prob_Jgiveni_rates' )
+    appcond_d_dist = theory_models.abund_jer( 'prob_Jgiveni_deterministic' )
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
 
     fig = plt.figure()
     plt.scatter(np.arange(len(richness_sim)), richness_sim, color='b')
     plt.ylabel(r"probability of richness")
     plt.xlabel(r'richness')
     plt.axvline( mean_rich_sim, color='k' , linestyle='dashed', linewidth=1)
+    plt.title(title)
+    fname = 'richness' + 'sim' + str(sim_nbr)
+    plt.savefig(dir + os.sep + fname + '.pdf');
     #plt.yscale('log')
     #plt.xscale('log')
-    plt.show()
+    #plt.show()
 
     ## dstbn present
     if time_present_sim != []:
@@ -434,15 +480,21 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
         plt.xlabel(r'time present between extinction')
         plt.yscale('log')
         axes.set_ylim([np.min(counts[counts!=0.0]),2*np.max(counts)])
+        plt.title(title)
+        fname = 'time_present' + 'sim' + str(sim_nbr)
+        plt.savefig(dir + os.sep + fname + '.pdf');
         #plt.xscale('log')
-        plt.show()
+        #plt.show()
 
     ## ss_dstbn (compare with deterministic mean)
     fig  = plt.figure()
     axes = plt.gca()
 
     plt.scatter(np.arange(len(ss_dist_sim)),ss_dist_sim,label='simulation')
-    plt.plot(np.arange(len(ss_dist_thry)),ss_dist_thry,label='theory')
+    plt.plot(np.arange(len(conv_dist)),conv_dist,label='convolution approx.')
+    plt.plot(np.arange(len(mf_dist)),mf_dist,label='mean field approx.')
+    plt.plot(np.arange(len(appcond_r_dist)),appcond_r_dist,label=r'approx. $\langle J|n\rangle$ from rates')
+    plt.plot(np.arange(len(appcond_d_dist)),appcond_d_dist,label=r'approx. $\langle J|n\rangle$ from det.')
     plt.ylabel(r"probability distribution function")
     plt.xlabel(r'n')
     plt.axvline( mean_pop_sim, color='r' , linestyle='dashed'
@@ -459,8 +511,33 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     plt.title(title)
     axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
     plt.legend(loc='best')
+    fname = 'distribution' + 'sim' + str(sim_nbr)
+    plt.savefig(dir + os.sep + fname + '.pdf');
     #plt.xscale('log')
-    plt.show()
+    #plt.show()
+
+
+    fig  = plt.figure()
+    axes = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('PuBu'))
+    my_cmap.set_bad((0,0,0))
+    plt.imshow( conditional[:2*param_dict['carry_capacity']
+                ,:2*param_dict['carry_capacity']].T
+                + conditional[:2*param_dict['carry_capacity'],:2*param_dict['carry_capacity']]
+                , norm=mpl.colors.LogNorm(), cmap=my_cmap
+                , interpolation='nearest')
+    plt.gca().invert_yaxis()
+    plt.ylabel(r"i")
+    plt.xlabel(r'j')
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
+    plt.title(title)
+    cbar = plt.colorbar()
+    cbar.set_label(r'$P(i|j)$')
+    fname = 'conditional' + 'sim' + str(sim_nbr)
+    plt.savefig(dir + os.sep + fname + '.pdf');
+    #plt.xscale('log')
+    #plt.show()
 
     return 0
 
@@ -678,7 +755,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
 
     heatmap(param2_2D, param1_2D, JS_rich, labely, labelx
                 , r'Jensen-Shannon divergence (sim./binom.)', save=save)
-                # JS divergence
+                # JS divergenced
 
 
     heatmap(param2_2D, param1_2D, var_rich_sim, labely, labelx
@@ -868,9 +945,9 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV8'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV20'
 
-    mlv_plot_average_sim_results(sim_dir,'comp_overlap')
+    #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
     #                                , save=True)
     #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
@@ -878,9 +955,11 @@ if __name__ == "__main__":
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
             #                            , save=False)
 
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 820)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 1220)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = 1580)
+
+    r = np.random.randint(1600, size=3)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'

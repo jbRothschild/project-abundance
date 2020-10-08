@@ -50,6 +50,16 @@ class Model_MultiLVim(object):
         if name == "carry_capacity":
             self.population = np.arange(10*self.carry_capacity);
 
+    def deterministic_mean(self):
+        """
+        Calculates the mean of the LV equations, for com_overlap between 0
+        and 1.
+        """
+        return self.carry_capacity*( ( 1. + np.sqrt( 1.+ 4.*self.immi_rate*
+               ( 1. + self.comp_overlap*( self.nbr_species - 1. ) ) /
+               (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
+               / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
+
     def dstbn_n_given_J(self, J):
         """
         Marginal Distribution of n given J.
@@ -240,7 +250,8 @@ class Model_MultiLVim(object):
                     ( self.immi_rate + self.birth_rate*previous_n)
                     / ( n* (self.death_rate + (1-self.comp_overlap)*n*(
                     self.birth_rate-self.death_rate)/self.carry_capacity
-                    + ( (self.nbr_species-1)*mean_n + n )*self.comp_overlap
+                    + ( self.birth_rate-self.death_rate)*(
+                    (self.nbr_species-1)*mean_n + n )*self.comp_overlap
                     / self.carry_capacity ) ) )
 
             prob_n = prob_n_unnormalized / ( np.sum( prob_n_unnormalized ) )
@@ -312,25 +323,112 @@ class Model_MultiLVim(object):
 
             return abundance
 
-    def abund_jer( self ):
+    def prob_Jgivenn_det(self, n):
+        # Approximation which uses P(Jtilde|n)~e^(-abs(dJtilde/dt) * 1/mu )
+        dJtildedt   = np.zeros( np.shape(self.population) );
+        dndt        = np.zeros( np.shape(self.population) );
+        mean_n = self.deterministic_mean();
+        for j, J in enumerate(self.population):
+
+            #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
+            dJtildedt[j] = ( self.birth_rate - self.death_rate ) * J * ( 1.0  -
+                            ( self.comp_overlap * ( J + n ) + ( 1.0
+                            - self.comp_overlap) * mean_n)
+                            / self.carry_capacity )\
+                            + (self.nbr_species - 1.0) * self.immi_rate
+
+            """
+            #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
+            dJtildedt[j] = ( self.birth_rate - self.death_rate ) * ( J * ( 1.0  -
+                            self.comp_overlap * ( J + n ) / self.carry_capacity ) - ( 1.0
+                            - self.comp_overlap) * mean_n**2 * (self.nbr_species - 1.0 )
+                            / self.carry_capacity ) \
+                            + (self.nbr_species - 1.0) * self.immi_rate
+            """
+
+            dndt[j] = ( self.birth_rate - self.death_rate ) * n * ( 1.0
+                        - ( n + self.comp_overlap * J ) / self.carry_capacity )\
+                        + self.immi_rate
+
+        #prob_J_given_n = np.exp( - np.sqrt( np.square(dJtildedt)
+        #                     + np.square(dndt) ) / (self.carry_capacity) )
+        prob_J_given_n = 1./np.sqrt(np.square(dJtildedt) + np.square(dndt))
+
+        if np.sum(prob_J_given_n) == 0.0:
+            print("NO!")
+            return prob_J_given_n
+        else:
+            return prob_J_given_n/np.sum(prob_J_given_n)
+
+    def prob_Jgivenn_rates(self, n):
+        # Approximation which uses P(Jtilde|n)~ 1 / (sum of rates))
+        ratesJ   = np.zeros( np.shape(self.population) );
+        ratesn   = np.zeros( np.shape(self.population) );
+        mean_n = self.deterministic_mean();
+        for j, J in enumerate(self.population):
+            """
+            #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
+            ratesJ[j] = J * ( ( self.birth_rate + self.death_rate )  +  (
+                            self.birth_rate - self.death_rate ) * (
+                            ( self.comp_overlap * ( J + n ) + ( 1.0
+                            - self.comp_overlap) * mean_n )
+                            / self.carry_capacity ) )\
+                            + (self.nbr_species - 1.0) * self.immi_rate
+
+            """
+            #here we have use the approximation that sum<n_i^2> ~ (S-1)<n_i>^2
+            ratesJ[j] = J * ( ( self.birth_rate + self.death_rate )
+                            + ( self.birth_rate - self.death_rate ) * (
+                            self.comp_overlap * ( J + n ) / self.carry_capacity
+                             ) ) + ( 1.0 - self.comp_overlap) * mean_n**2 * (
+                             self.nbr_species - 1.0 ) / self.carry_capacity \
+                            + (self.nbr_species - 1.0) * self.immi_rate
+
+
+            ratesn[j] = n * ( ( self.birth_rate + self.death_rate ) +
+                        ( self.birth_rate + self.death_rate ) * (
+                        n + self.comp_overlap * J ) / self.carry_capacity )\
+                        + self.immi_rate
+
+        #prob_J_given_n = np.exp( - np.sqrt( np.square(dJtildedt)
+        #                     + np.square(dndt) ) / (self.carry_capacity) )
+        prob_J_given_n = 1./( ratesJ + ratesn)
+
+        if np.sum(prob_J_given_n) == 0.0:
+            print("Something may be wrong")
+            return prob_J_given_n
+        else:
+            return prob_J_given_n/np.sum(prob_J_given_n)
+
+
+    def mean_Jtilde_given_n( self, n, approx):
+
+        if approx ==  'prob_Jgiveni_deterministic':
+            prob_J_given_n = self.prob_Jgivenn_det(n)
+            return np.dot( prob_J_given_n, self.population )
+
+        elif approx == 'prob_Jgiveni_rates':
+            prob_J_given_n = self.prob_Jgivenn_rates(n)
+            return np.dot( prob_J_given_n, self.population )
+        else:
+            print("Warning :  We don't have any other approximation for <J|n>")
+            raise SystemExit
+
+    def abund_jer( self, approx='prob_Jgiveni_deterministic' ):
         """
         Approximation of abundance distribution of stochastic Lotka-Volterra
-        with immigration. Instead of <n_i|n_j> use <n_i> where <n_i> approx. the
-        deterministic solution.
+        with immigration. Instead of exact <J|n> use some approximation
         """
 
         probability = np.zeros( np.shape(self.population) )
 
         probability[0] = 1.0
         for i in np.arange(1,len(probability)):
-            mean_n_given_i = self.deterministic_mean()
-            mean_n_given_i = np.max([ self.carry_capacity-i, 0] ) / ( self.nbr_species-1 )
             probability[i] = probability[i-1] * ( ( self.immi_rate
                 + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
-                + (self.birth_rate-self.death_rate) * ( i +
-                ( ( self.nbr_species -1 ) * mean_n_given_i ) * self.comp_overlap
+                + (self.birth_rate - self.death_rate) * ( i +
+                 self.mean_Jtilde_given_n(i, approx) * self.comp_overlap
                 )  / self.carry_capacity ) ) )
-
 
         probability = probability/np.sum(probability)
 
@@ -417,17 +515,6 @@ class Model_MultiLVim(object):
             mte += np.sum(probability[i+1:])/(birth_rate_eqn(i)*probability[i])
 
         return mte
-
-    def deterministic_mean(self):
-        """
-        Calculates the mean of the LV equations, for com_overlap between 0
-        and 1.
-        """
-        return self.carry_capacity*( ( 1. + np.sqrt( 1.+ 4.*self.immi_rate*
-               ( 1. + self.comp_overlap*( self.nbr_species - 1. ) ) /
-               (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
-               / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
-
 
     #NONE OF THESE NEED TO BE IN THE MODEL CLASS
     def entropy(self, probability):
@@ -950,8 +1037,7 @@ if __name__ == "__main__":
                                             }
     model = Model_MultiLVim(**problematic_params)
 
-    distribution = model.abund_jer()
-    print((model.nbr_species-1)*model.deterministic_mean())
+    distribution = model.abund_jer('prob_Jgiveni_rates')
 
     fig = plt.figure(); end = int(1.5*model.carry_capacity) # cut somehere
     plt.plot( np.arange(end), distribution[:end])
