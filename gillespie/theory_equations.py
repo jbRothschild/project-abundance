@@ -42,6 +42,9 @@ class Model_MultiLVim(object):
         self.population = np.arange(10*self.carry_capacity);
         self.total_population = np.size(self.population)*nbr_species;
 
+        if 'conditional' in kwargs:
+            self.conditional = kwargs['conditional']
+
     def __setattr__(self, name, value):
         """
         Updates population size to
@@ -196,7 +199,7 @@ class Model_MultiLVim(object):
             # numerically solve for <n^2>
             av_n_squared_approx = sp_solver(equations, initial_guess)
 
-            print('var',av_n_squared_approx)
+            #print('var',av_n_squared_approx)
 
             # Probability distribution of J
             prob_J = fcn_prob_J(av_n_squared_approx)
@@ -411,8 +414,18 @@ class Model_MultiLVim(object):
             prob_J_given_n = self.prob_Jgivenn_rates(n)
             return np.dot( prob_J_given_n, self.population )
         elif approx == 'simulation':
-            prob_nj_given_ni = 0.0
-            return (self.nbr_species - 1) *np.dot( prob_J_given_n, self.population )
+            if n >= np.shape(self.conditional)[0]:
+                return 0.0
+
+            else:
+                if (np.sum(self.conditional[n][:]) != 1.0 and
+                    np.sum(self.conditional[n][:]) != 0):
+                    #print('Normalizing issues with P(n_i|n_j) : '
+                    #                + str(np.sum(self.conditional[i][:])) )
+                    self.conditional[n][:] /= np.sum(self.conditional[n][:])
+                av_ni_given_n = np.dot(np.arange(np.shape(self.conditional)[1])
+                        , np.array(self.conditional[n][:]) )
+                return (self.nbr_species - 1) * av_ni_given_n
         else:
             print("Warning :  We don't have any other approximation for <J|n>")
             raise SystemExit
@@ -459,27 +472,6 @@ class Model_MultiLVim(object):
                                    / self.carry_capacity )  )
 
             probability = probability/np.sum(probability)
-
-        # rho = 1
-        """
-        elif self.comp_overlap == 1.0:
-            """
-            probability = np.zeros( np.shape(self.population) )
-            #probability[0] = (1.0/hyp1f1(a,b,c))
-            probability[0] = 1.0
-
-            for i in np.arange(1,len(probability)):
-                probability[i] = probability[i-1]*(self.birth_rate*(i-1)
-                                   + self.immi_rate ) / (i*( self.death_rate +
-                                   (self.birth_rate-self.death_rate)*( i )
-                                   / self.carry_capacity )  )
-
-            probability = probability/np.sum(probability)
-            """
-            abundance = self.population
-
-        # 0 < rho < 1. TODO : rho > 1 ???
-        """
         else:
             """
             This is an approximation! Mean field... sort of?
@@ -1014,7 +1006,7 @@ def vary_species_count(species=150):
         dstbn, _ = Model.abund_sid()
 
         offset = 10 # in case peak is zero
-        print( i, np.argmax(dstbn[offset:]) )
+        #print( i, np.argmax(dstbn[offset:]) )
         peak_diff[i] = params['carry_capacity'] \
                                 - np.argmax(dstbn[offset:]) - offset
 

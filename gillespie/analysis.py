@@ -152,7 +152,6 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     while not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle'):
         sim_nbr += 1
-    print(sim_nbr)
 
     with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle', 'rb') as handle:
@@ -224,7 +223,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
 
     # count number of subdirectories
     nbr_sims = len( next( os.walk(dir) )[1] )
-    print(nbr_sims)
+    #print(nbr_sims)
 
     # initialize the
     mean_pop    = np.zeros(nbr_sims); param1 = np.zeros(nbr_sims);
@@ -373,7 +372,11 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     Output :
         Plots of a single simul
     """
-    filename = mlv_consolidate_sim_results(dir,parameter)
+    filename =  dir + os.sep + 'consolidated_results.npz'
+
+    if not os.path.exists(filename):
+        mlv_consolidate_sim_results(dir, parameter)
+
     with np.load(filename) as f:
         dist_sim    = f['ss_dist'];
         cond_dist   = f['conditional'];
@@ -402,15 +405,18 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     plt.title(title)
     axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
     plt.legend()
+    fname = 'av_distribution'
+    plt.savefig(dir + os.sep + fname + '.pdf');
     #plt.xscale('log')
-    plt.show()
+    #plt.show()
 
     fig  = plt.figure()
     axes = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('PuBu'))
     my_cmap.set_bad((0,0,0))
-    print(np.sum( mean_cond[:200,:200].T + mean_cond[:200,:200] ,axis=1))
-    plt.imshow( mean_cond[:200,:200].T + mean_cond[:200,:200]
+    #print(np.sum( mean_cond[:200,:200].T + mean_cond[:200,:200] ,axis=1))
+    axis_show = int(param_dict['carry_capacity'] * 1.5)
+    plt.imshow( mean_cond[:axis_show,:axis_show].T
                 , norm=mpl.colors.LogNorm(), cmap=my_cmap
                 , interpolation='nearest')
     plt.gca().invert_yaxis()
@@ -422,7 +428,33 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     cbar = plt.colorbar()
     cbar.set_label(r'$P(i|j)$')
     #plt.xscale('log')
-    plt.show()
+    fname = 'conditional'
+    plt.savefig(dir + os.sep + fname + '.pdf');
+
+    param_dict['conditional'] = mean_cond
+    model = theqs.Model_MultiLVim(**param_dict)
+    probability = model.abund_jer( approx='simulation' )
+
+    fig  = plt.figure()
+    axes = plt.gca()
+    r = np.random.randint(np.shape(dist_sim)[0], size=3)
+    plt.plot(np.arange(len(ss_dist_sim)),ss_dist_sim,label='mean trajectories')
+    plt.plot(np.arange(len(probability)),probability,label=r'from $P(n_i|n_j)$')
+    plt.ylabel(r"probability distribution function")
+    plt.xlabel(r'n')
+    plt.yscale('log')
+    axes.set_ylim([np.min(ss_dist_sim[ss_dist_sim!=0.0]),2*np.max(ss_dist_sim)])
+    title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
+            + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
+    plt.title(title)
+    axes.set_xlim([0.0,np.max(np.nonzero(ss_dist_sim))])
+    plt.legend()
+    #plt.xscale('log')
+    fname = 'check_steady_state'
+    plt.savefig(dir + os.sep + fname + '.pdf');
+    #plt.show()
+
+
 
     return 0
 
@@ -947,21 +979,21 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV30'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV28'
 
-    #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
-                                    , save=True)
+    mlv_plot_average_sim_results(sim_dir,'comp_overlap')
+    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+    #                                , save=True)
     #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
     #                                    , save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
             #                            , save=False)
 
 
-    r = np.random.randint(1600, size=3)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
+    #r = np.random.randint(1600, size=3)
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
+    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'

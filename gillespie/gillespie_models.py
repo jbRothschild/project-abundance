@@ -372,15 +372,18 @@ class MultiLV(Parent):
         # Calculate conditional probability
         self.results['joint_temp'] /= np.sum( self.results['joint_temp'] )
         for i in np.arange(0, np.shape(self.results['joint_temp'])[0]):
+            self.results['conditional'][i][i] = \
+                                        self.results['joint_temp'][i][i]
+            for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
+                self.results['conditional'][j][i] = \
+                                ( self.results['joint_temp'][i][j]\
+                                        + self.results['joint_temp'][j][i] )
+
+        for i in np.arange(0, np.shape(self.results['conditional'])[0]):
             if self.results['ss_distribution'][i] != 0:
-                self.results['conditional'][i][i] = \
-                    ( self.results['joint_temp'][i][i]\
-                            / self.results['ss_distribution'][i] )
-                for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
-                    self.results['conditional'][j][i] = \
-                        ( ( self.results['joint_temp'][i][j]\
-                                + self.results['joint_temp'][j][i] )
-                                / self.results['ss_distribution'][i] )
+                self.results['conditional'][:][i] /=\
+                                        self.results['ss_distribution'][i]
+
 
         # Calculate correlation
         self.results['av_ni_temp'] /= np.max(times)
@@ -410,7 +413,7 @@ class MultiLV(Parent):
 
         # with open('filename.pickle', 'rb') as handle:
         #    b = pickle.load(handle)
-        print(self.results['corr_ni_nj'])
+        #print(self.results['corr_ni_nj'])
 
         return 0
 
