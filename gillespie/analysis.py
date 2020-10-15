@@ -152,6 +152,7 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     while not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle'):
         sim_nbr += 1
+    print(sim_nbr)
 
     with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                'results_0.pickle', 'rb') as handle:
@@ -223,6 +224,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
 
     # count number of subdirectories
     nbr_sims = len( next( os.walk(dir) )[1] )
+    print(nbr_sims)
 
     # initialize the
     mean_pop    = np.zeros(nbr_sims); param1 = np.zeros(nbr_sims);
@@ -945,11 +947,11 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV20'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV30'
 
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
-    #                                , save=True)
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+                                    , save=True)
     #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
     #                                    , save=True)
     #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'

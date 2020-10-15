@@ -410,6 +410,9 @@ class Model_MultiLVim(object):
         elif approx == 'prob_Jgiveni_rates':
             prob_J_given_n = self.prob_Jgivenn_rates(n)
             return np.dot( prob_J_given_n, self.population )
+        elif approx == 'simulation':
+            prob_nj_given_ni = 0.0
+            return (self.nbr_species - 1) *np.dot( prob_J_given_n, self.population )
         else:
             print("Warning :  We don't have any other approximation for <J|n>")
             raise SystemExit
@@ -458,6 +461,7 @@ class Model_MultiLVim(object):
             probability = probability/np.sum(probability)
 
         # rho = 1
+        """
         elif self.comp_overlap == 1.0:
             """
             probability = np.zeros( np.shape(self.population) )
@@ -475,6 +479,7 @@ class Model_MultiLVim(object):
             abundance = self.population
 
         # 0 < rho < 1. TODO : rho > 1 ???
+        """
         else:
             """
             This is an approximation! Mean field... sort of?
