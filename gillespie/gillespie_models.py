@@ -305,7 +305,7 @@ class MultiLV(Parent):
         """
         # importing equation for steady state
         theory_model = Model_MultiLVim( **(self.__dict__) )
-        ss_probability, _ = theory_model.abund_1spec_MSLV()
+        ss_probability, _ = theory_model.abund_sid()
         ss_cum = np.cumsum(ss_probability)
 
         # initialize species state
