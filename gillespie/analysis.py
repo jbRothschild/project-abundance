@@ -431,7 +431,7 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     fname = 'conditional'
     plt.savefig(dir + os.sep + fname + '.pdf');
 
-    param_dict['conditional'] = mean_cond
+    param_dict['conditional'] = mean_cond + mean_cond.T
     model = theqs.Model_MultiLVim(**param_dict)
     probability = model.abund_jer( approx='simulation' )
 

@@ -374,10 +374,16 @@ class MultiLV(Parent):
         for i in np.arange(0, np.shape(self.results['joint_temp'])[0]):
             self.results['conditional'][i][i] = \
                                         self.results['joint_temp'][i][i]
+                                        # I don't think should be double
             for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
                 self.results['conditional'][j][i] = \
                                 ( self.results['joint_temp'][i][j]\
                                         + self.results['joint_temp'][j][i] )
+                self.results['conditional'][i][j] = \
+                                ( self.results['joint_temp'][i][j]\
+                                        + self.results['joint_temp'][j][i] )
+
+        self.results['conditional'] /= np.sum(self.results['conditional'])
 
         for i in np.arange(0, np.shape(self.results['conditional'])[0]):
             if self.results['ss_distribution'][i] != 0:
