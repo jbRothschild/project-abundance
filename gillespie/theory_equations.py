@@ -39,7 +39,7 @@ class Model_MultiLVim(object):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
-        self.population = np.arange(10*self.carry_capacity);
+        self.population = np.arange(nbr_species*self.carry_capacity);
         self.total_population = np.size(self.population)*nbr_species;
 
         if 'conditional' in kwargs:
@@ -53,15 +53,17 @@ class Model_MultiLVim(object):
         if name == "carry_capacity":
             self.population = np.arange(10*self.carry_capacity);
 
-    def deterministic_mean(self):
+    def deterministic_mean(self,nbr_species_present=0):
         """
         Calculates the mean of the LV equations, for com_overlap between 0
         and 1.
         """
+        if nbr_species_present==0:
+            nbr_species_present = self.nbr_species
         return self.carry_capacity*( ( 1. + np.sqrt( 1.+ 4.*self.immi_rate*
-               ( 1. + self.comp_overlap*( self.nbr_species - 1. ) ) /
+               ( 1. + self.comp_overlap*( nbr_species_present - 1. ) ) /
                (self.carry_capacity*(self.birth_rate-self.death_rate) ) ) )
-               / ( 2.*( 1.+self.comp_overlap*( self.nbr_species-1.) ) ) )
+               / ( 2.*( 1.+self.comp_overlap*( nbr_species_present-1.) ) ) )
 
     def dstbn_n_given_J(self, J):
         """
@@ -69,6 +71,7 @@ class Model_MultiLVim(object):
 
         Return
             Marginal probability distribution P(n|J)
+        """
         """
         a       = self.immi_rate / self.birth_rate;
         b       = 1.0 + self.death_rate * self.carry_capacity / (self.birth_rate
@@ -84,7 +87,7 @@ class Model_MultiLVim(object):
         #return ( ( poch(a,self.population) * np.power(c_tilde,self.population))
         #       /( factorial(self.population) * poch(b_tilde+1,self.population)
         #       * hyp1f1(a, b_tilde, c_tilde) ) )
-
+        """
         prob_n_given_J = np.zeros( np.shape(self.population))
         #prob_n_given_J[0] = 1/hyp1f1(a, b_tilde, c_tilde)
         prob_n_given_J[0] = 1.0 #TODO which to use
@@ -112,6 +115,9 @@ class Model_MultiLVim(object):
         prob_J = []
 
         if technique == 'Nava':
+            """
+            Convolutions of distributions
+            """
             prob_J = np.zeros( np.shape(self.population) );
 
             for J in self.population:
@@ -216,8 +222,10 @@ class Model_MultiLVim(object):
         immigration. Doing this, we can obtain some
 
         Input
-            const_J (binary) : Approximating J to be fixed or not
-            dstbn_tot (string) : Which approximation of distribution of J to use
+            const_J (binary)    : Approximating J to be fixed or not
+            dstbn_tot (string)  : Which approximation of distribution of J to
+                                    use, Jeremy, HL or Nava
+
         """
 
         mean_J, dstbn_J = self.abund_J(dstbn_approx)
@@ -327,7 +335,15 @@ class Model_MultiLVim(object):
             return abundance
 
     def prob_Jgivenn_det(self, n):
-        # Approximation which uses P(Jtilde|n)~e^(-abs(dJtilde/dt) * 1/mu )
+        """
+        Approximate P(J-n|n): P(Jtilde|n)~e^(-abs(dJtilde/dt)*1/mu)
+        It's an aweful approximation.
+
+        Input
+            n : the species in P(J|n)
+        output
+            P(J-n|n) : array
+        """
         dJtildedt   = np.zeros( np.shape(self.population) );
         dndt        = np.zeros( np.shape(self.population) );
         mean_n = self.deterministic_mean();
@@ -342,9 +358,10 @@ class Model_MultiLVim(object):
 
             """
             #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
-            dJtildedt[j] = ( self.birth_rate - self.death_rate ) * ( J * ( 1.0  -
-                            self.comp_overlap * ( J + n ) / self.carry_capacity ) - ( 1.0
-                            - self.comp_overlap) * mean_n**2 * (self.nbr_species - 1.0 )
+            dJtildedt[j] = ( self.birth_rate - self.death_rate ) * ( J * ( 1.0
+                            - self.comp_overlap * ( J + n ) /
+                            self.carry_capacity ) - ( 1.0 - self.comp_overlap)
+                            * mean_n**2 * (self.nbr_species - 1.0 )
                             / self.carry_capacity ) \
                             + (self.nbr_species - 1.0) * self.immi_rate
             """
@@ -358,13 +375,21 @@ class Model_MultiLVim(object):
         prob_J_given_n = 1./np.sqrt(np.square(dJtildedt) + np.square(dndt))
 
         if np.sum(prob_J_given_n) == 0.0:
-            print("NO!")
+            print("Problem, P(J|n) = 0.0 for all J!")
             return prob_J_given_n
         else:
             return prob_J_given_n/np.sum(prob_J_given_n)
 
     def prob_Jgivenn_rates(self, n):
-        # Approximation which uses P(Jtilde|n)~ 1 / (sum of rates))
+        """
+        Approximate P(J-n|n): P(Jtilde|n) ~ 1 / (sum of rates))
+        It's an aweful approximation.
+
+        Input
+            n : the species in P(J|n)
+        output
+            P(J-n|n) : array
+        """
         ratesJ   = np.zeros( np.shape(self.population) );
         ratesn   = np.zeros( np.shape(self.population) );
         mean_n = self.deterministic_mean();
@@ -404,7 +429,13 @@ class Model_MultiLVim(object):
             return prob_J_given_n/np.sum(prob_J_given_n)
 
 
-    def mean_Jtilde_given_n( self, n, approx):
+    def mean_Jtilde_given_n( self, n, dstbn_J, approx):
+        """
+        <J-n|n>, according to different approximations
+
+        Input :
+
+        """
 
         if approx ==  'prob_Jgiveni_deterministic':
             prob_J_given_n = self.prob_Jgivenn_det(n)
@@ -434,16 +465,42 @@ class Model_MultiLVim(object):
         """
         Approximation of abundance distribution of stochastic Lotka-Volterra
         with immigration. Instead of exact <J|n> use some approximation
+
+        Input
+            approx      : Which approximation to use,
+                            'prob_Jgiveni_deterministic', 'simulation'
+                            , 'prob_Jgiveni_rates', 'Haeg_Lor'
+        Output
+            probability : array P(n)
         """
 
         probability = np.zeros( np.shape(self.population) )
+        dstbn_J     = self.abund_J(technique='Nava')
+
+        full_dstbn_n_given_J = np.zeros( (np.shape(self.population)[0]
+                                            , np.shape(self.population)[0] ) )
+
+        for J in self.population:
+            full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J)
+
+        for J, prob_J in enumerate( dstbn_J ):
+            prob_approx += full_dstbn_n_given_J[J,:] * dstbn_J
+        prob_approx /= np.sum(prob_approx)
 
         probability[0] = 1.0
+        """
         for i in np.arange(1,len(probability)):
             probability[i] = probability[i-1] * ( ( self.immi_rate
                 + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
                 + (self.birth_rate - self.death_rate) * ( i +
-                 self.mean_Jtilde_given_n(i, approx) * self.comp_overlap
+                 self.mean_Jtilde_given_n(i, probJ, approx) * self.comp_overlap
+                )  / self.carry_capacity ) ) )
+        """
+        for i in np.arange(1,self.carry_capacity*3):
+            probability[i] = probability[i-1] * ( ( self.immi_rate
+                + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
+                + (self.birth_rate - self.death_rate) * ( (1.0 - self.comp_overlap ) * i +
+                 np.dot(self.population,full_dstbn_n_given_J[:,i]*dstbn_J)/prob_approx[i] * self.comp_overlap
                 )  / self.carry_capacity ) ) )
 
         probability = probability/np.sum(probability)
@@ -456,6 +513,10 @@ class Model_MultiLVim(object):
         Abundance distribution of stochastic Lotka-Volterra with immigration.
         Exact solution for comp_overlap = 0 or 1. Approximations involving the
         distribution of the total number of individuals for other comp_overlap
+
+        Input
+            dstbn_approx : which approximation to use for P(J)
+                                'Nava', 'HL', 'Jeremy'
         """
 
         # different models, rho = 0
@@ -565,18 +626,33 @@ class Model_MultiLVim(object):
             species = np.arange( nbr_species + 1 )
         return scipy.stats.binom.pmf(species, self.nbr_species, 1 - P0)
 
+    def mfpt_a2b(self, distribution, a, b):
+        mfpt = 0
+        for i in np.arange(a,b):
+            mfpt += ( 1.0-np.sum(distribution[a:i+1] ) ) / ( ( self.birth_rate*i
+                                + self.immi_rate )*distribution[i] )
+        return mfpt
+
+    def mfpt_b2a(self, distribution, a, b):
+        mfpt = 0
+        for i in np.arange(a,b):
+            mfpt += np.sum(distribution[a:i+1]) / ( ( self.birth_rate*i
+                               + self.immi_rate ) * distribution[i] )
+        return mfpt
+
+
 
 
 class CompareModels(object):
     """
     Trying to compare models in certain ways.
     """
-    def __init__(self, comp_overlap=np.logspace(-2,-0.01,40),
+    def __init__(self, comp_overlap=np.logspace(-4,0,41),
                  birth_rate=np.logspace(-2,2,40),
                  death_rate=np.logspace(-2,2,40),
-                 carry_capacity=(np.logspace(1,3,40)).astype(int),
-                 immi_rate=np.logspace(-4,0,40),
-                 nbr_species=(np.logspace(0,3,40)).astype(int),
+                 carry_capacity=(np.logspace(1,3,41)).astype(int),
+                 immi_rate=np.logspace(-3,1,41),
+                 nbr_species=(np.logspace(0,1,41)).astype(int),
                  model=Model_MultiLVim):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
@@ -617,6 +693,28 @@ class CompareModels(object):
             richness[i]    = self.model.richness(probability_nava)
             JS[i]          = self.model.JS_divergence(probability_nava
                                                         , probability_sid)
+        """
+        Compares along 3 metrics: entropy, richness and gini-simpson index
+
+        Input
+            key1 : The variable to vary
+
+        Output
+            H : shannon entropy as a function of var (var_array)
+            richness : 1 - P(0), probability of being present
+            species_richness : average number of species in the system
+            GS : Gini-Simpson index
+        """
+
+        if load == True:
+            H, richness, GS = np.load()
+
+        H = np.zeros( np.shape(getattr(self,key1)) )
+        richness = np.zeros( np.shape(getattr(self,key1)) )
+        GS = np.zeros( np.shape(getattr(self,key1)) )
+        JS = np.zeros( np.shape(getattr(self,key1)) )
+
+        for i, value in enumerate(getattr(self,key1)):
 
             print('>'+str(i))
 
@@ -661,8 +759,255 @@ class CompareModels(object):
 
         return H, GS, richness
 
-    def mlv_metric_compare_heatmap(self, key1, key2, file='metrics3.npz', plot=False
+    def mlv_mfpt_dom_sub_ratio(self, key1, key2, file='mfptratio.npz', plot=False
                                     , load_npz=False):
+        """
+        Compares along 3 metrics: entropy, richness and gini-simpson index
+
+        Input
+            key1        : The variable to vary
+            key2        : 2nd variable
+            files       : Name of file we want to save
+            plot        : Whether or not to plot
+            load_npz    : Whether or not to load from an npz file
+
+        Output
+
+        """
+        filename = THRY_FIG_DIR + os.sep + file
+
+        if load_npz: # load
+            if not os.path.exists(filename): # check it exists
+                print('No file to load!')
+                raise SystemExit
+            with np.load(filename) as f:
+                mfpt_2sub = f['mfpt_2sub']; mfpt_2dom = f['mfpt_2dom'];
+                mfpt_low2sub = f['mfpt_low2sub']; prob_dom = f['prob_dom'];
+                mfpt_low2dom = f['mfpt_low2dom']; prob_sub = f['prob_sub'];
+                prob_lowdom = f['prob_lowdom'];
+                xrange = f['xrange']; yrange = f['yrange'];
+
+
+        else:
+            mfpt_2sub = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            mfpt_2dom = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            mfpt_low2sub = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            mfpt_low2dom = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            prob_dom = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            prob_sub = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            prob_lowdom = np.zeros( ( np.shape(getattr(self,key1))[0],
+                                np.shape(getattr(self,key2))[0] ) )
+            xrange   = getattr(self,key1); yrange   = getattr(self,key2)
+
+
+            # create heatmap array for metrics
+            for i, valuei in enumerate(getattr(self,key1)):
+                for j, valuej in enumerate(getattr(self,key2)):
+                    setattr(self.model,key1,valuei)
+                    setattr(self.model,key2,valuej)
+                    #t = time.time()
+                    probability, _  = self.model.abund_sid()
+                    #print(time.time() - t)
+
+                    #t = time.time()
+                    #probability, _ = self.model.abund_1spec_MSLV()
+                    #print(time.time() - t)
+
+                    mean_n      = int(self.model.deterministic_mean())
+                    mean_n_low  = int(self.model.deterministic_mean(2)) # low richness, 2
+
+                    mfpt_2dom[i,j] = self.model.mfpt_a2b(probability, 0, mean_n)
+                    mfpt_2sub[i,j] = self.model.mfpt_b2a(probability, 0, mean_n)
+                    mfpt_low2dom[i,j] = self.model.mfpt_a2b(probability, 0, mean_n_low)
+                    mfpt_low2sub[i,j] = self.model.mfpt_b2a(probability, 0, mean_n_low)
+                    prob_dom[i,j] = probability[mean_n]
+                    prob_sub[i,j] = probability[0]
+                    prob_lowdom[i,j] = probability[mean_n_low]
+
+            metric_dict = {'mfpt_low2dom'   : mfpt_low2dom
+                            , 'mfpt_low2sub' : mfpt_low2sub
+                            , 'mfpt_2dom'   : mfpt_2dom
+                            , 'mfpt_2sub'   : mfpt_2sub
+                            , 'prob_sub'    : prob_sub
+                            , 'prob_dom'    : prob_dom
+                            , 'prob_lowdom' : prob_lowdom
+                            , 'xrange'      : xrange
+                            , 'yrange'      : yrange
+                            }
+            np.savez(filename, **metric_dict)
+
+        if plot:
+            # setting of xticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
+            plt.style.use('custom_heatmap.mplstyle')
+
+            ## mfpt ratio
+            ratio = mfpt_2dom/mfpt_2sub;
+            vmin = np.min(ratio); vmax = np.max(ratio);
+            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
+                         ,'vmin': vmin, 'vmax': vmax
+                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
+                    }
+
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = plt.imshow(ratio.T, interpolation='none'
+                            ,**imshow_kw)
+            plt.contour(ratio.T, [1.0])
+            # labels and ticks
+
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+            plt.colorbar(im,ax=ax);
+            plt.title(r'ratio $T_{n^{ss}}(0)/T_{0}(n^{ss})$')
+            plt.show()
+
+            ## mfpt ratio
+            ratio = /mfpt_2sub;
+            vmin = np.min(ratio); vmax = np.max(ratio);
+            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
+                         ,'vmin': vmin, 'vmax': vmax
+                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
+                    }
+
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = plt.imshow(ratio.T, interpolation='none'
+                            ,**imshow_kw)
+            plt.contour(ratio.T, [1.0])
+            # labels and ticks
+
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+            plt.colorbar(im,ax=ax);
+            plt.title(r'ratio $\mu/T_{0}(n^{ss})$')
+            plt.show()
+
+            ## mfpt ratio
+            ratio = mfpt_low2dom/mfpt_low2sub;
+            vmin = np.min(ratio); vmax = np.max(ratio);
+            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
+                         ,'vmin': vmin , 'vmax': vmax
+                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
+                    }
+
+
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = ax.imshow(ratio.T, interpolation='none'
+                                                , **imshow_kw)
+            plt.contour(ratio.T, [1.0])
+
+            # labels and ticks
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+            #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax);
+            plt.title(r'ratio $T_{n^{*}(S^*=2)}(0)/T_{0}(n^{*}(S^*=2))$')
+            plt.show()
+
+            ## flow ratio high species
+            ratio = mfpt_2sub*prob_dom/(mfpt_2dom*prob_sub);
+            vmin = np.min(ratio); vmax = np.max(ratio);
+            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
+                         ,'vmin': vmin , 'vmax': vmax
+                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
+                    }
+
+
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = ax.imshow(ratio.T, interpolation='none'
+                                                , **imshow_kw)
+            plt.contour(ratio.T, [1.0])
+
+            # labels and ticks
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+            #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax);
+            plt.title(r'ratio $J(0\rightarrow n^{*}(S))/J(n^{*}(S)\rightarrow 0)$')
+            plt.show()
+
+            ## flow ratio low species
+            ratio = mfpt_low2sub*prob_lowdom/(mfpt_low2dom*prob_sub);
+            vmin = np.min(ratio); vmax = np.max(ratio);
+            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
+                         ,'vmin': vmin , 'vmax': vmax
+                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
+                    }
+
+
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            im = ax.imshow(ratio.T, interpolation='none'
+                                                , **imshow_kw)
+            plt.contour(ratio.T, [1.0])
+
+            # labels and ticks
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+            #plt.xscale('log'); plt.yscale('log')
+            plt.colorbar(im,ax=ax);
+            plt.title(r'ratio $J(0\rightarrow n^{*}(S^*=2))/J(n^{*}(S^*=2)\rightarrow 0)$')
+            plt.show()
+
+
+    def mlv_metric_compare_heatmap(self, key1, key2, file='metric3.npz'
+                                        , plot=False, load_npz=False):
         """
         Compares along 3 metrics: entropy, richness and gini-simpson index
 
@@ -748,7 +1093,8 @@ class CompareModels(object):
                     #                                       , probability)
 
                     mean_time_dominance[i,j] = self.model.mean_time_extinction(
-                                    int(self.model.nbr_species*(1.-probability[0])), 0, probability)
+                                    int(self.model.nbr_species*(1
+                                    - probability[0])), 0, probability)
                     det_mean[i,j] = self.model.deterministic_mean()
 
                     print('>'+str(j))
@@ -789,7 +1135,7 @@ class CompareModels(object):
             ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
                                 for i, yval in enumerate(yrange)
                                 if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(key1); plt.ylabel(key2)
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
             ax.invert_yaxis()
             #plt.xscale('log'); plt.yscale('log')
             plt.colorbar(im,ax=ax)
@@ -811,7 +1157,7 @@ class CompareModels(object):
             ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
                                 for i, yval in enumerate(yrange)
                                 if (i % POINTS_BETWEEN_Y_TICKS==0)])
-            plt.xlabel(key1); plt.ylabel(key2)
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
             ax.invert_yaxis()
             plt.title(r'Gini-Simpson index')
             #plt.xscale('log'); plt.yscale('log')
@@ -835,7 +1181,7 @@ class CompareModels(object):
             ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
                                 for i, yval in enumerate(yrange)
                                 if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(key1); plt.ylabel(key2)
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
             ax.invert_yaxis()
             #plt.xscale('log'); plt.yscale('log')
             plt.colorbar(im,ax=ax)
@@ -858,7 +1204,7 @@ class CompareModels(object):
             ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
                                 for i, yval in enumerate(yrange)
                                 if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(key1); plt.ylabel(key2)
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
             ax.invert_yaxis()
             #plt.xscale('log'); plt.yscale('log')
             plt.colorbar(im,ax=ax)
@@ -924,7 +1270,7 @@ class CompareModels(object):
                                     for i, yval in enumerate(yrange)
                                     if i % POINTS_BETWEEN_Y_TICKS==0]
                                     , fontsize=FS)
-                plt.xlabel(key1); plt.ylabel(key2)
+                plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2])
                 ax.invert_yaxis()
                 plt.title(r'species richness')
                 #plt.xscale('log'); plt.yscale('log')
@@ -1023,19 +1369,17 @@ def vary_species_count(species=150):
 
 
 if __name__ == "__main__":
-
-    #vary_species_count(200)
-
+    # multimodal phase
+    """
     problematic_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
                                             , 'comp_overlap'    : 0.8689
                                             , 'nbr_species'     : 30
                                             }
+
     model = Model_MultiLVim(**problematic_params)
-
     distribution = model.abund_jer('prob_Jgiveni_rates')
-
     fig = plt.figure(); end = int(1.5*model.carry_capacity) # cut somehere
     plt.plot( np.arange(end), distribution[:end])
     plt.xlabel(r"population, $n_i$")
@@ -1044,7 +1388,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
+    """
 
-    #compare = CompareModels()
-    #compare.mlv_compare_abundance_approx()
+    compare = CompareModels()
+    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)

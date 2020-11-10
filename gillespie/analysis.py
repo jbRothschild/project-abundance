@@ -431,7 +431,7 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     fname = 'conditional'
     plt.savefig(dir + os.sep + fname + '.pdf');
 
-    param_dict['conditional'] = mean_cond + mean_cond.T
+    param_dict['conditional'] = mean_cond
     model = theqs.Model_MultiLVim(**param_dict)
     probability = model.abund_jer( approx='simulation' )
 
@@ -555,9 +555,9 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     axes = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('PuBu'))
     my_cmap.set_bad((0,0,0))
+    print(np.sum(conditional,axis=0),np.sum(conditional,axis=1))
     plt.imshow( conditional[:2*param_dict['carry_capacity']
                 ,:2*param_dict['carry_capacity']].T
-                + conditional[:2*param_dict['carry_capacity'],:2*param_dict['carry_capacity']]
                 , norm=mpl.colors.LogNorm(), cmap=my_cmap
                 , interpolation='nearest')
     plt.gca().invert_yaxis()
@@ -979,21 +979,42 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV28'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV12'
+    #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
-    mlv_plot_average_sim_results(sim_dir,'comp_overlap')
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
-    #                                , save=True)
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV23'
+
+    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+                                    , save=True)
     #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
     #                                    , save=True)
-    #mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
-            #                            , save=False)
 
 
-    #r = np.random.randint(1600, size=3)
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
-    #mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
+    r = np.random.randint(1600, size=4)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[3])
+
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 40)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1600)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
+
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV21'
+
+    r = np.random.randint(1600, size=4)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[3])
+
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 40)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1600)
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
+
+
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'

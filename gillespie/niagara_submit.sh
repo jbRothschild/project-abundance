@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --nodes=40
+#SBATCH --nodes=43
 #SBATCH --ntasks-per-node=40
 #SBATCH --time=24:00:00
-#SBATCH --job-name =mlvi-2param-hours
+#SBATCH --job-name =mlvi-2param-days
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
 
@@ -33,7 +33,7 @@ logspace () {
 # SIR model
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
-NUM_TASKS=40 # Generally 40, maybe more?
+NUM_TASKS=41 # Generally 40, maybe more?
 NUM_TASKS_ZERO=$((NUM_TASKS-1))
 
 # multiLV model, varying parameters
@@ -44,7 +44,7 @@ VAR2=($(logspace -3 1 ${NUM_TASKS} | tr -d '[],'))
 VAR2_NAME="immi_rate"
 
 RESULTS_DIR='sim_results'
-SIM_DIR='multiLV21'
+SIM_DIR='multiLV52'
 
 mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
