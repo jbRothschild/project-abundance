@@ -676,8 +676,8 @@ class Model_MultiLVim(object):
         for i in np.arange( self.nbr_species ):
             S = i + 1
             mean_n = int(self.deterministic_mean(S))
-            mfpt_2dom[S] = self.mfpt_a2b( 0, mean_n )
-            mfpt_2sub[S] = self.mfpt_b2a( 0, mean_n )
+            mfpt_2dom[i] = self.mfpt_a2b( 0, mean_n )
+            mfpt_2sub[i] = self.mfpt_b2a( 0, mean_n )
 
         return mfpt_2dom, mfpt_2sub
 
@@ -1302,7 +1302,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    #"""
+    """
     multimodal_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1320,8 +1320,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    #"""
+    """
 
-    #compare = CompareModels()
-    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
+    compare = CompareModels()
+    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
