@@ -897,85 +897,6 @@ class CompareModels(object):
 
             # save
 
-
-            ## Mean richness 1-P0 vs from MFPT
-            nbr_present = self.model.nbr_species*(1.0-prob_0)
-
-            # plotting
-            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            MF= ax.contour( nbr_present.T, np.arange(5,self.model.nbr_species,4)
-                                        , linestyle='-', cmap='YlGnBu' )
-
-
-            # labels and ticks
-            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
-            ax.set_xticks([i for i, cval in enumerate(xrange)
-                                if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
-                                for i, xval in enumerate(xrange)
-                                if (i % POINTS_BETWEEN_X_TICKS==0)])
-            ax.set_yticks([i for i, kval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
-                                for i, yval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS==0])
-
-            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
-
-            # colorbar
-            fig.colorbar(MF=,shrink=1.0, extend='both')
-
-            # legend
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
-                        , label=r'$S(1-P(0))$')
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
-                        , label=r'$\langle R \rangle$')
-            ax.legend()
-            plt.title(r'Mean species present$')
-            plt.show()
-
-            ## Mean richness 1-P0 vs from MFPT
-            # style
-            plt.style.use('custom_heatmap.mplstyle')
-
-            nbr_present = self.model.nbr_species*(1.0-prob_0)
-
-            # plotting
-            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            MF= ax.contour( nbr_present.T, np.arange(5,self.model.nbr_species,4)
-                                        , linestyle='-', cmap='YlGnBu' )
-
-
-            # labels and ticks
-            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
-            ax.set_xticks([i for i, cval in enumerate(xrange)
-                                if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
-                                for i, xval in enumerate(xrange)
-                                if (i % POINTS_BETWEEN_X_TICKS==0)])
-            ax.set_yticks([i for i, kval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
-                                for i, yval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS==0])
-
-            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
-
-            # colorbar
-            fig.colorbar(MF=,shrink=1.0, extend='both')
-
-            # legend
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
-                        , label=r'$S(1-P(0))$')
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
-                        , label=r'$\langle R \rangle$')
-            ax.legend()
-
-            plt.title(r'Mean species present$')
-            plt.show()
-
         return 0
 
     def richness_from_mfpt():
@@ -1346,16 +1267,16 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    """
-    problematic_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
+    #"""
+    multimodal_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
                                             , 'comp_overlap'    : 0.8689
                                             , 'nbr_species'     : 30
                                             }
 
-    model = Model_MultiLVim(**problematic_params)
-    distribution = model.abund_jer('prob_Jgiveni_rates')
+    model = Model_MultiLVim(**multimodal_params)
+    distribution = model.abund_jer()
     fig = plt.figure(); end = int(1.5*model.carry_capacity) # cut somehere
     plt.plot( np.arange(end), distribution[:end])
     plt.xlabel(r"population, $n_i$")
@@ -1364,8 +1285,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    """
+    #"""
 
-    compare = CompareModels()
-    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
+    #compare = CompareModels()
+    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
