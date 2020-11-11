@@ -888,7 +888,7 @@ class CompareModels(object):
             ax.invert_yaxis()
 
             # colorbar + legend
-            fig.colorbar(MF=,shrink=1.0, extend='both')
+            fig.colorbar(MF, shrink=1.0, extend='both')
             ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
                         , label=r'$S(1-P(0))$')
             ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
