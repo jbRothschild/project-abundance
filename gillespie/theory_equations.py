@@ -6,12 +6,10 @@ import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
 from matplotlib.colors import LogNorm
 
-import itertools
-from itertools import combinations
+import itertools; from itertools import combinations
 
 from scipy.special import gamma, poch, factorial, hyp1f1 # certain functions
-import scipy, scipy.stats
-import scipy.io as spo
+import scipy, scipy.stats; import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
 #import seaborn as sns
@@ -475,14 +473,15 @@ class Model_MultiLVim(object):
         """
 
         probability = np.zeros( np.shape(self.population) )
-        dstbn_J     = self.abund_J(technique='Nava')
+        dstbn_J     = self.abund_J(technique='Nava') # Q(J)
 
         full_dstbn_n_given_J = np.zeros( (np.shape(self.population)[0]
                                             , np.shape(self.population)[0] ) )
 
         for J in self.population:
-            full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J)
+            full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J) # Q(n|J)
 
+        prob_approx = 0.0 # Q(n)
         for J, prob_J in enumerate( dstbn_J ):
             prob_approx += full_dstbn_n_given_J[J,:] * dstbn_J
         prob_approx /= np.sum(prob_approx)
@@ -627,6 +626,9 @@ class Model_MultiLVim(object):
         return scipy.stats.binom.pmf(species, self.nbr_species, 1 - P0)
 
     def mfpt_a2b(self, distribution, a, b):
+        """
+        From distribution, get the mfpt <T_{b}(a)>, a<b
+        """
         mfpt = 0
         for i in np.arange(a,b):
             mfpt += ( 1.0-np.sum(distribution[a:i+1] ) ) / ( ( self.birth_rate*i
@@ -634,11 +636,27 @@ class Model_MultiLVim(object):
         return mfpt
 
     def mfpt_b2a(self, distribution, a, b):
+        """
+        From distribution, get the mfpt <T_{a}(b)>
+        """
         mfpt = 0
         for i in np.arange(a,b):
             mfpt += np.sum(distribution[a:i+1]) / ( ( self.birth_rate*i
                                + self.immi_rate ) * distribution[i] )
         return mfpt
+
+    def mean_richness_mfpt(self, mfpt_2sub, mfpt_2dom):
+        """
+        From arrays mfpt_2sub ( <T_{0}(n(R))> ) and mfpt_2dom ( <T_{n(R)}(0)> )
+        get the richness distribution and average richness from detailed balance
+        """
+        nbr_species = mfpt
+        rich_dstbn = np.arange(np.shape(mfpt_2sub)[0] + 1 )
+
+
+
+
+        return rich_dstbn, np.dot(np.arange(np.shape(mfpt_2sub)[0]+1))
 
 
 
@@ -647,9 +665,9 @@ class CompareModels(object):
     """
     Trying to compare models in certain ways.
     """
-    def __init__(self, comp_overlap=np.logspace(-4,0,41),
-                 birth_rate=np.logspace(-2,2,40),
-                 death_rate=np.logspace(-2,2,40),
+    def __init__(self, comp_overlap=np.logspace(-3,0,41),
+                 birth_rate=np.logspace(-2,2,41),
+                 death_rate=np.logspace(-2,2,41),
                  carry_capacity=(np.logspace(1,3,41)).astype(int),
                  immi_rate=np.logspace(-3,1,41),
                  nbr_species=(np.logspace(0,1,41)).astype(int),
@@ -759,8 +777,8 @@ class CompareModels(object):
 
         return H, GS, richness
 
-    def mlv_mfpt_dom_sub_ratio(self, key1, key2, file='mfptratio.npz', plot=False
-                                    , load_npz=False):
+    def mlv_mfpt_dom_sub_ratio(self, key1, key2, file='mfptratio.npz'
+                                    , plot=False, load_npz=False):
         """
         Compares along 3 metrics: entropy, richness and gini-simpson index
 
@@ -782,21 +800,30 @@ class CompareModels(object):
                 raise SystemExit
             with np.load(filename) as f:
                 mfpt_2sub = f['mfpt_2sub']; mfpt_2dom = f['mfpt_2dom'];
-                mfpt_low2sub = f['mfpt_low2sub']; prob_dom = f['prob_dom'];
-                mfpt_low2dom = f['mfpt_low2dom']; prob_sub = f['prob_sub'];
-                prob_lowdom = f['prob_lowdom'];
+                prob_0 = f['prob_0']; av_rich_mfpt = f['av_rich_mfpt'];
+                rich_dstbn_mfpt = f['rich_dstbn_mfpt'];
                 xrange = f['xrange']; yrange = f['yrange'];
-
+            print(">> Done loading " + str(filename))
 
         else:
-            mfpt_2sub = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] )
-                                , self.model.nbr_species )
-            mfpt_2dom = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] )
-                                , self.model.nbr_species )
-            xrange   = getattr(self,key1); yrange   = getattr(self,key2)
-
+            # <T_0(n(S))>
+            mfpt_2sub = np.zeros( ( np.shape(getattr(self,key1))[0]
+                                    , np.shape(getattr(self,key2))[0]
+                                    , self.model.nbr_species ) )
+            # <T_{n(S)}(0)>
+            mfpt_2dom = np.zeros( ( np.shape(getattr(self,key1))[0]
+                                    , np.shape(getattr(self,key2))[0]
+                                    , self.model.nbr_species ) )
+            # P(0)
+            prob_0 = np.zeros( ( np.shape(getattr(self,key1))[0]
+                                , np.shape(getattr(self,key2))[0] ) )
+            # Use 1/<T> to get rates, use them to get richness distribution
+            av_rich_mfpt = np.zeros( ( np.shape(getattr(self,key1))[0]
+                                        , np.shape(getattr(self,key2))[0] ) )
+            rich_dstbn_mfpt = np.zeros( ( np.shape(getattr(self,key1))[0]
+                                        , np.shape(getattr(self,key2))[0]
+                                        , self.model.nbr_species + 1 ) )
+            xrange = getattr(self,key1); yrange = getattr(self,key2)
 
             # create heatmap array for metrics
             for i, valuei in enumerate(getattr(self,key1)):
@@ -805,6 +832,7 @@ class CompareModels(object):
                     setattr(self.model,key2,valuej)
                     #t = time.time()
                     probability, _  = self.model.abund_sid()
+                    prob_0[i,j] = probability[0]
                     #print(time.time() - t)
 
                     #t = time.time()
@@ -812,38 +840,75 @@ class CompareModels(object):
                     #print(time.time() - t)
                     for S in np.arange(0,self.model.nbr_species):
                         mean_n      = int(self.model.deterministic_mean(S))
-
                         mfpt_2dom[i,j,S] = self.model.mfpt_a2b( probability, 0
                                                                 , mean_n )
                         mfpt_2sub[i,j,S] = self.model.mfpt_b2a( probability, 0
                                                                 , mean_n )
+                    rich_dstbn[i,j,:], av_rich_mfpt[i,j] =\
+                            mean_richness_mfpt(mfpt_2sub[i,j], mfpt_2dom[i,j])
 
-                metric_dict = {  'mfpt_2dom'   : mfpt_2dom
-                                , 'mfpt_2sub'   : mfpt_2sub
-                                , 'xrange'      : xrange
-                                , 'yrange'      : yrange
-                                }
-                np.savez(filename, **metric_dict)
+            metric_dict = {  'mfpt_2dom'   : mfpt_2dom
+                            , 'mfpt_2sub'   : mfpt_2sub
+                            , 'prob_0'      : prob_0
+                            , 'xrange'      : xrange
+                            , 'yrange'      : yrange
+                            }
+            np.savez(filename, **metric_dict)
+            print(">> Done calculating MFPTs.")
 
         if plot:
-            # setting of xticks
-            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
+            # style
+            print(" >> Starting plotting...")
             plt.style.use('custom_heatmap.mplstyle')
 
-            ## mfpt ratio
-            ratio = mfpt_2dom/mfpt_2sub;
-            vmin = np.min(ratio); vmax = np.max(ratio);
-            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
-                         ,'vmin': vmin, 'vmax': vmax
-                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
-                    }
+            ## Mean richness 1-P0 vs from MFPT
+            # calculate
+            nbr_present  = self.model.nbr_species*( 1.0 - prob_0 )
+            _, av_rich_mfpt = self.model.mean_richness_mfpt(mfpt_2sub, mfpt_2dom)
+            lines = np.arange(5,self.model.nbr_species,4)
 
+            # plotting
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = plt.imshow(ratio.T, interpolation='none'
-                            ,**imshow_kw)
-            plt.contour(ratio.T, [1.0])
-            # labels and ticks
+            MF = ax.contour( nbr_present.T, lines, linestyle='.')#, cmap='YlGnBu' )
+            MFPT = ax.contour( av_rich_mfpt.T, lines, linestyle='-')#, cmap='YlGnBu' )
 
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            ax.invert_yaxis()
+
+            # colorbar + legend
+            fig.colorbar(MF=,shrink=1.0, extend='both')
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
+                        , label=r'$S(1-P(0))$')
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
+                        , label=r'$\langle R \rangle$')
+            ax.legend(); plt.title(r'Mean species present$'); plt.show()
+
+            # save
+
+
+            ## Mean richness 1-P0 vs from MFPT
+            nbr_present = self.model.nbr_species*(1.0-prob_0)
+
+            # plotting
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            MF= ax.contour( nbr_present.T, np.arange(5,self.model.nbr_species,4)
+                                        , linestyle='-', cmap='YlGnBu' )
+
+
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
             ax.set_xticks([i for i, cval in enumerate(xrange)
                                 if i % POINTS_BETWEEN_X_TICKS == 0])
             ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
@@ -857,24 +922,33 @@ class CompareModels(object):
 
             plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
             ax.invert_yaxis()
-            plt.colorbar(im,ax=ax);
-            plt.title(r'ratio $T_{n^{ss}}(0)/T_{0}(n^{ss})$')
+
+            # colorbar
+            fig.colorbar(MF=,shrink=1.0, extend='both')
+
+            # legend
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
+                        , label=r'$S(1-P(0))$')
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
+                        , label=r'$\langle R \rangle$')
+            ax.legend()
+            plt.title(r'Mean species present$')
             plt.show()
 
-            ## mfpt ratio
-            ratio = np.divide(xrange,mfpt_2sub);
-            vmin = np.min(ratio); vmax = np.max(ratio);
-            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
-                         ,'vmin': vmin, 'vmax': vmax
-                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
-                    }
+            ## Mean richness 1-P0 vs from MFPT
+            # style
+            plt.style.use('custom_heatmap.mplstyle')
 
+            nbr_present = self.model.nbr_species*(1.0-prob_0)
+
+            # plotting
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = plt.imshow(ratio.T, interpolation='none'
-                            ,**imshow_kw)
-            plt.contour(ratio.T, [1.0])
-            # labels and ticks
+            MF= ax.contour( nbr_present.T, np.arange(5,self.model.nbr_species,4)
+                                        , linestyle='-', cmap='YlGnBu' )
 
+
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
             ax.set_xticks([i for i, cval in enumerate(xrange)
                                 if i % POINTS_BETWEEN_X_TICKS == 0])
             ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
@@ -888,104 +962,18 @@ class CompareModels(object):
 
             plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
             ax.invert_yaxis()
-            plt.colorbar(im,ax=ax);
-            plt.title(r'ratio $\mu/T_{0}(n^{ss})$')
-            plt.show()
 
-            ## mfpt ratio
-            ratio = mfpt_low2dom/mfpt_low2sub;
-            vmin = np.min(ratio); vmax = np.max(ratio);
-            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
-                         ,'vmin': vmin , 'vmax': vmax
-                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
-                    }
+            # colorbar
+            fig.colorbar(MF=,shrink=1.0, extend='both')
 
+            # legend
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
+                        , label=r'$S(1-P(0))$')
+            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
+                        , label=r'$\langle R \rangle$')
+            ax.legend()
 
-            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(ratio.T, interpolation='none'
-                                                , **imshow_kw)
-            plt.contour(ratio.T, [1.0])
-
-            # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange)
-                                if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
-                                for i, xval in enumerate(xrange)
-                                if (i % POINTS_BETWEEN_X_TICKS==0)])
-            ax.set_yticks([i for i, kval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
-                                for i, yval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
-            #plt.xscale('log'); plt.yscale('log')
-            plt.colorbar(im,ax=ax);
-            plt.title(r'ratio $T_{n^{*}(S^*=2)}(0)/T_{0}(n^{*}(S^*=2))$')
-            plt.show()
-
-            ## flow ratio high species
-            ratio = mfpt_2sub*prob_dom/(mfpt_2dom*prob_sub);
-            vmin = np.min(ratio); vmax = np.max(ratio);
-            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
-                         ,'vmin': vmin , 'vmax': vmax
-                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
-                    }
-
-
-            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(ratio.T, interpolation='none'
-                                                , **imshow_kw)
-            plt.contour(ratio.T, [1.0])
-
-            # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange)
-                                if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
-                                for i, xval in enumerate(xrange)
-                                if (i % POINTS_BETWEEN_X_TICKS==0)])
-            ax.set_yticks([i for i, kval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
-                                for i, yval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
-            #plt.xscale('log'); plt.yscale('log')
-            plt.colorbar(im,ax=ax);
-            plt.title(r'ratio $J(0\rightarrow n^{*}(S))/J(n^{*}(S)\rightarrow 0)$')
-            plt.show()
-
-            ## flow ratio low species
-            ratio = mfpt_low2sub*prob_lowdom/(mfpt_low2dom*prob_sub);
-            vmin = np.min(ratio); vmax = np.max(ratio);
-            imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
-                         ,'vmin': vmin , 'vmax': vmax
-                         ,'norm': mpl.colors.LogNorm(vmin,vmax)
-                    }
-
-
-            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(ratio.T, interpolation='none'
-                                                , **imshow_kw)
-            plt.contour(ratio.T, [1.0])
-
-            # labels and ticks
-            ax.set_xticks([i for i, cval in enumerate(xrange)
-                                if i % POINTS_BETWEEN_X_TICKS == 0])
-            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
-                                for i, xval in enumerate(xrange)
-                                if (i % POINTS_BETWEEN_X_TICKS==0)])
-            ax.set_yticks([i for i, kval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS == 0])
-            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
-                                for i, yval in enumerate(yrange)
-                                if i % POINTS_BETWEEN_Y_TICKS==0])
-            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
-            #plt.xscale('log'); plt.yscale('log')
-            plt.colorbar(im,ax=ax);
-            plt.title(r'ratio $J(0\rightarrow n^{*}(S^*=2))/J(n^{*}(S^*=2)\rightarrow 0)$')
+            plt.title(r'Mean species present$')
             plt.show()
 
         return 0
@@ -1358,7 +1346,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    #"""
+    """
     problematic_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1376,8 +1364,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    #"""
+    """
 
-    #compare = CompareModels()
-    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
+    compare = CompareModels()
+    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
