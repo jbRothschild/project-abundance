@@ -44,7 +44,7 @@ VAR2=($(logspace -3 1 ${NUM_TASKS} | tr -d '[],'))
 VAR2_NAME="immi_rate"
 
 RESULTS_DIR='sim_results'
-SIM_DIR='multiLV52'
+SIM_DIR='multiLV31'
 
 mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
