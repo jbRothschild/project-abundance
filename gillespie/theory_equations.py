@@ -5,6 +5,7 @@ import matplotlib.patches as patches # histgram animation
 import matplotlib.path as path # histogram animation
 from matplotlib import animation # animation
 from matplotlib.colors import LogNorm
+from matplotlib.lines import Line2D
 
 import itertools; from itertools import combinations
 
@@ -482,19 +483,19 @@ class Model_MultiLVim(object):
 
         probability = np.zeros( np.shape(self.population) )
         dstbn_J     = self.abund_J(technique='Nava') # Q(J)
-
+        prob_approx = np.zeros( np.shape(self.population) ) # Q(n)
         full_dstbn_n_given_J = np.zeros( (np.shape(self.population)[0]
                                             , np.shape(self.population)[0] ) )
 
-        for J in self.population:
-            full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J) # Q(n|J)
 
-        prob_approx = 0.0 # Q(n)
         for J, prob_J in enumerate( dstbn_J ):
-            prob_approx += full_dstbn_n_given_J[J,:] * dstbn_J
-        prob_approx /= np.sum(prob_approx)
+            full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J) # Q(n|J)
+            prob_approx += full_dstbn_n_given_J[J,:] * prob_J # sum Q(n|J)*Q(J)
+
+        prob_approx /= np.sum(prob_approx) # Q(N), should be normalized
 
         probability[0] = 1.0
+        # TODO DELETE IF BELOW WORKS
         """
         for i in np.arange(1,len(probability)):
             probability[i] = probability[i-1] * ( ( self.immi_rate
@@ -504,11 +505,13 @@ class Model_MultiLVim(object):
                 )  / self.carry_capacity ) ) )
         """
         for i in np.arange(1,self.carry_capacity*3):
+            # prob_J_given_i array
+            prob_J_given_i = full_dstbn_n_given_J[:,i]*dstbn_J/prob_approx[i]
             probability[i] = probability[i-1] * ( ( self.immi_rate
                 + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
-                + (self.birth_rate - self.death_rate) * ( (1.0 - self.comp_overlap ) * i +
-                 np.dot(self.population,full_dstbn_n_given_J[:,i]*dstbn_J)/prob_approx[i] * self.comp_overlap
-                )  / self.carry_capacity ) ) )
+                + (self.birth_rate - self.death_rate) * ( i * (1.0
+                - self.comp_overlap ) + np.dot(self.population, prob_J_given_i)
+                 * self.comp_overlap )  / self.carry_capacity ) ) )
 
         probability = probability/np.sum(probability)
 
@@ -892,8 +895,10 @@ class CompareModels(object):
 
             # plotting
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            MF = ax.contour( nbr_present.T, lines, linestyle='.')#, cmap='YlGnBu' )
-            MFPT = ax.contour( av_rich_mfpt.T, lines, linestyle='-')#, cmap='YlGnBu' )
+            MF = ax.contour( nbr_present.T, lines, linestyle='.'
+                                , linewidth = 2)#, cmap='YlGnBu' )
+            MFPT = ax.contour( av_rich_mfpt.T, lines, linestyle='-'
+                                , linewidth = 1)#, cmap='YlGnBu' )
 
             # labels and ticks
             POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
@@ -912,11 +917,13 @@ class CompareModels(object):
 
             # colorbar + legend
             fig.colorbar(MF, shrink=1.0, extend='both')
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='-'
-                        , label=r'$S(1-P(0))$')
-            ax.Line2D([0], [0], color='k', lw=2, linestyle='.'
-                        , label=r'$\langle R \rangle$')
-            ax.legend(); plt.title(r'Mean species present$'); plt.show()
+            fake_legend = [ Line2D([0], [0], color='k', lw=2, linestyle='-'
+                            , label=r'$S(1-P(0))$')
+                            , Line2D([0], [0], color='k', lw=2, linestyle='.'
+                            , label=r'$\langle R \rangle$')
+                            ]
+            ax.legend(handles=fake_legend); plt.title(r'Mean species present$');
+            plt.show()
 
             # save
 
@@ -1290,7 +1297,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    """
+    #"""
     multimodal_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1308,7 +1315,7 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    """
+    #"""
 
     compare = CompareModels()
     compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
