@@ -790,19 +790,11 @@ class CompareModels(object):
 
         else:
             mfpt_2sub = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
+                                np.shape(getattr(self,key2))[0] )
+                                , self.model.nbr_species )
             mfpt_2dom = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
-            mfpt_low2sub = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
-            mfpt_low2dom = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
-            prob_dom = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
-            prob_sub = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
-            prob_lowdom = np.zeros( ( np.shape(getattr(self,key1))[0],
-                                np.shape(getattr(self,key2))[0] ) )
+                                np.shape(getattr(self,key2))[0] )
+                                , self.model.nbr_species )
             xrange   = getattr(self,key1); yrange   = getattr(self,key2)
 
 
@@ -818,29 +810,20 @@ class CompareModels(object):
                     #t = time.time()
                     #probability, _ = self.model.abund_1spec_MSLV()
                     #print(time.time() - t)
+                    for S in np.arange(0,self.model.nbr_species):
+                        mean_n      = int(self.model.deterministic_mean(S))
 
-                    mean_n      = int(self.model.deterministic_mean())
-                    mean_n_low  = int(self.model.deterministic_mean(2)) # low richness, 2
+                        mfpt_2dom[i,j,S] = self.model.mfpt_a2b( probability, 0
+                                                                , mean_n )
+                        mfpt_2sub[i,j,S] = self.model.mfpt_b2a( probability, 0
+                                                                , mean_n )
 
-                    mfpt_2dom[i,j] = self.model.mfpt_a2b(probability, 0, mean_n)
-                    mfpt_2sub[i,j] = self.model.mfpt_b2a(probability, 0, mean_n)
-                    mfpt_low2dom[i,j] = self.model.mfpt_a2b(probability, 0, mean_n_low)
-                    mfpt_low2sub[i,j] = self.model.mfpt_b2a(probability, 0, mean_n_low)
-                    prob_dom[i,j] = probability[mean_n]
-                    prob_sub[i,j] = probability[0]
-                    prob_lowdom[i,j] = probability[mean_n_low]
-
-            metric_dict = {'mfpt_low2dom'   : mfpt_low2dom
-                            , 'mfpt_low2sub' : mfpt_low2sub
-                            , 'mfpt_2dom'   : mfpt_2dom
-                            , 'mfpt_2sub'   : mfpt_2sub
-                            , 'prob_sub'    : prob_sub
-                            , 'prob_dom'    : prob_dom
-                            , 'prob_lowdom' : prob_lowdom
-                            , 'xrange'      : xrange
-                            , 'yrange'      : yrange
-                            }
-            np.savez(filename, **metric_dict)
+                metric_dict = {  'mfpt_2dom'   : mfpt_2dom
+                                , 'mfpt_2sub'   : mfpt_2sub
+                                , 'xrange'      : xrange
+                                , 'yrange'      : yrange
+                                }
+                np.savez(filename, **metric_dict)
 
         if plot:
             # setting of xticks
@@ -1005,6 +988,11 @@ class CompareModels(object):
             plt.title(r'ratio $J(0\rightarrow n^{*}(S^*=2))/J(n^{*}(S^*=2)\rightarrow 0)$')
             plt.show()
 
+        return 0
+
+    def richness_from_mfpt():
+
+        return 0
 
     def mlv_metric_compare_heatmap(self, key1, key2, file='metric3.npz'
                                         , plot=False, load_npz=False):
