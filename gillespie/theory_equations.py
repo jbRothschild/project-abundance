@@ -39,6 +39,7 @@ class Model_MultiLVim(object):
         self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
         self.population = np.arange(nbr_species*self.carry_capacity);
         self.total_population = np.size(self.population)*nbr_species;
+        self.dstbn_J = None; self.dstbn_n = None
 
         if 'conditional' in kwargs:
             self.conditional = kwargs['conditional']
@@ -51,7 +52,7 @@ class Model_MultiLVim(object):
         if name == "carry_capacity":
             self.population = np.arange(10*self.carry_capacity);
 
-    def deterministic_mean(self,nbr_species_present=0):
+    def deterministic_mean(self, nbr_species_present=0):
         """
         Calculates the mean of the LV equations, for com_overlap between 0
         and 1.
@@ -211,8 +212,9 @@ class Model_MultiLVim(object):
         # mean of J
         mean_tot_pop = np.dot(self.population, prob_J)
 
-        return mean_tot_pop, prob_J
+        self.dstbn_J = prob_J
 
+        return mean_tot_pop, prob_J
 
     def abund_moranton(self, const_J = True, dstbn_approx = 'Jeremy'):
         """
@@ -289,9 +291,12 @@ class Model_MultiLVim(object):
         # Abundance of n
         abundance = dstbn_n * self.nbr_species
 
+        self.dstbn_n = dstbn_n
+
         return dstbn_n, abundance
 
     def abund_kolmog(self, const_J = True, dstbn_approx = 'Jeremy'):
+        # TODO REMOVE
         """
         Solving the difference equation for the abundance distribution means
         that at some point, we need to approximate the tot_pop. There are many
@@ -333,6 +338,7 @@ class Model_MultiLVim(object):
             return abundance
 
     def prob_Jgivenn_det(self, n):
+        # TODO REMOVE
         """
         Approximate P(J-n|n): P(Jtilde|n)~e^(-abs(dJtilde/dt)*1/mu)
         It's an aweful approximation.
@@ -379,6 +385,7 @@ class Model_MultiLVim(object):
             return prob_J_given_n/np.sum(prob_J_given_n)
 
     def prob_Jgivenn_rates(self, n):
+        # TODO REMOVE
         """
         Approximate P(J-n|n): P(Jtilde|n) ~ 1 / (sum of rates))
         It's an aweful approximation.
@@ -428,6 +435,7 @@ class Model_MultiLVim(object):
 
 
     def mean_Jtilde_given_n( self, n, dstbn_J, approx):
+        # TODO REMOVE
         """
         <J-n|n>, according to different approximations
 
@@ -504,6 +512,8 @@ class Model_MultiLVim(object):
 
         probability = probability/np.sum(probability)
 
+        self.dstbn_n = probability
+
         return probability
 
 
@@ -548,16 +558,18 @@ class Model_MultiLVim(object):
 
         abundance = self.nbr_species * probability
 
+        self.dstbn_n = probability
+
         return probability, abundance
 
     def mean_time_extinction(self, n_start, n_end, dstbn=[]):
         """
-        Using theory of mean first passage times of 1 specie, here is the equation for the
-        mean time it takes to go from n_start to n_end
+        Using theory of mean first passage times of 1 specie, here is the
+        equation for the mean time it takes to go from n_start to n_end
         """
         if n_end > n_start:
             print('Warning : ' + str(n_end) + " larger than "
-                            + str(n_start)  + ", for now can only check opposite!")
+                        + str(n_start)  + ", for now can only check opposite!")
             raise SystemExit
         mte = 0.0
         def birth_rate_eqn(n):
@@ -612,7 +624,7 @@ class Model_MultiLVim(object):
 
         return (self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0
 
-    def binomial_diversity_dstbn( self, P0 , nbr_species=None):
+    def binomial_diversity_dstbn( self, nbr_species=None):
         """
         Using a binomial distribution, find the diversity distribution of
         species present R, simply
@@ -623,42 +635,64 @@ class Model_MultiLVim(object):
             species = np.arange( self.nbr_species + 1)
         else:
             species = np.arange( nbr_species + 1 )
-        return scipy.stats.binom.pmf(species, self.nbr_species, 1 - P0)
 
-    def mfpt_a2b(self, distribution, a, b):
+        return scipy.stats.binom.pmf(species, self.nbr_species\
+                                            , 1 - self.dstbn_n[0] )
+
+    def mfpt_a2b(self, a, b):
         """
         From distribution, get the mfpt <T_{b}(a)>, a<b
         """
         mfpt = 0
         for i in np.arange(a,b):
-            mfpt += ( 1.0-np.sum(distribution[a:i+1] ) ) / ( ( self.birth_rate*i
-                                + self.immi_rate )*distribution[i] )
+            mfpt += ( 1.0-np.sum(self.dstbn_n[a:i+1] ) ) / ( ( self.birth_rate*i
+                                + self.immi_rate )*self.dstbn_n[i] )
         return mfpt
 
-    def mfpt_b2a(self, distribution, a, b):
+    def mfpt_b2a(self, a, b):
         """
         From distribution, get the mfpt <T_{a}(b)>
         """
         mfpt = 0
         for i in np.arange(a,b):
-            mfpt += np.sum(distribution[a:i+1]) / ( ( self.birth_rate*i
-                               + self.immi_rate ) * distribution[i] )
+            mfpt += np.sum(self.dstbn_n[a:i+1]) / ( ( self.birth_rate*i
+                               + self.immi_rate ) * self.dstbn_n[i] )
         return mfpt
 
-    def mean_richness_mfpt(self, mfpt_2sub, mfpt_2dom):
+    def mfpt_sub_dom(self):
+        """
+        Calculate arrays of the mfpt from dominance phase to exclusion phase for
+        different deterministic fixed points.
+        """
+        mfpt_2sub   = np.zeros( self.nbr_species )
+        mfpt_2dom   = np.zeros( self.nbr_species )
+
+        for S in np.arange( self.nbr_species ):
+            mean_n = int(self.deterministic_mean(S))
+            mfpt_2dom[S] = self.mfpt_a2b( 0, mean_n )
+            mfpt_2sub[S] = self.mfpt_b2a( 0, mean_n )
+
+        return mfpt_2dom, mfpt_2sub
+
+    def mean_richness_mfpt(self):
         """
         From arrays mfpt_2sub ( <T_{0}(n(R))> ) and mfpt_2dom ( <T_{n(R)}(0)> )
         get the richness distribution and average richness from detailed balance
         """
-        nbr_species = mfpt
-        rich_dstbn = np.arange(np.shape(mfpt_2sub)[0] + 1 )
 
+        rich_dstbn  = np.ones( self.nbr_species + 1 )
+        richness    = np.arange( self.nbr_species + 1 )
 
+        mfpt_2dom, mfpt_2sub = self.mfpt_sub_dom()
 
+        for i in np.arange( self.nbr_species ):
+            R = i + 1
+            rich_dstbn[R] = rich_dstbn[R-1] * ( ( self.nbr_species - R ) *
+                            mfpt_2sub[R-1] ) / ( R * mfpt_2dom[R-1] )
 
-        return rich_dstbn, np.dot(np.arange(np.shape(mfpt_2sub)[0]+1))
+        rich_dstbn /= np.sum( rich_dstbn )
 
-
+        return rich_dstbn, np.dot(rich_dstbn,richness), mfpt_2sub, mfpt_2dom
 
 
 class CompareModels(object):
@@ -806,6 +840,7 @@ class CompareModels(object):
             print(">> Done loading " + str(filename))
 
         else:
+            xrange = getattr(self,key1); yrange = getattr(self,key2)
             # <T_0(n(S))>
             mfpt_2sub = np.zeros( ( np.shape(getattr(self,key1))[0]
                                     , np.shape(getattr(self,key2))[0]
@@ -823,7 +858,6 @@ class CompareModels(object):
             rich_dstbn_mfpt = np.zeros( ( np.shape(getattr(self,key1))[0]
                                         , np.shape(getattr(self,key2))[0]
                                         , self.model.nbr_species + 1 ) )
-            xrange = getattr(self,key1); yrange = getattr(self,key2)
 
             # create heatmap array for metrics
             for i, valuei in enumerate(getattr(self,key1)):
@@ -832,26 +866,16 @@ class CompareModels(object):
                     setattr(self.model,key2,valuej)
                     #t = time.time()
                     probability, _  = self.model.abund_sid()
-                    prob_0[i,j] = probability[0]
+                    prob_0[i,j] = self.model.dstbn_n[0]
                     #print(time.time() - t)
 
-                    #t = time.time()
-                    #probability, _ = self.model.abund_1spec_MSLV()
-                    #print(time.time() - t)
-                    for S in np.arange(0,self.model.nbr_species):
-                        mean_n      = int(self.model.deterministic_mean(S))
-                        mfpt_2dom[i,j,S] = self.model.mfpt_a2b( probability, 0
-                                                                , mean_n )
-                        mfpt_2sub[i,j,S] = self.model.mfpt_b2a( probability, 0
-                                                                , mean_n )
-                    rich_dstbn[i,j,:], av_rich_mfpt[i,j] =\
-                            mean_richness_mfpt(mfpt_2sub[i,j], mfpt_2dom[i,j])
+                    rich_dstbn_mfpt[i,j], av_rich_mfpt[i,j], mfpt_2sub[i,j]\
+                        , mfpt_2dom = self.model.mean_richness_mfpt()
 
-            metric_dict = {  'mfpt_2dom'   : mfpt_2dom
-                            , 'mfpt_2sub'   : mfpt_2sub
-                            , 'prob_0'      : prob_0
-                            , 'xrange'      : xrange
-                            , 'yrange'      : yrange
+            metric_dict = {  'mfpt_2dom' : mfpt_2dom, 'mfpt_2sub' : mfpt_2sub
+                            , 'prob_0'  : prob_0 , 'av_rich_mfpt' : av_rich_mfpt
+                            , 'xrange'  : xrange , 'yrange'  : yrange
+                            , 'rich_dstbn_mfpt' : rich_dstbn_mfpt
                             }
             np.savez(filename, **metric_dict)
             print(">> Done calculating MFPTs.")
@@ -864,7 +888,6 @@ class CompareModels(object):
             ## Mean richness 1-P0 vs from MFPT
             # calculate
             nbr_present  = self.model.nbr_species*( 1.0 - prob_0 )
-            _, av_rich_mfpt = self.model.mean_richness_mfpt(mfpt_2sub, mfpt_2dom)
             lines = np.arange(5,self.model.nbr_species,4)
 
             # plotting
@@ -1267,7 +1290,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    #"""
+    """
     multimodal_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1285,8 +1308,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    #"""
+    """
 
-    #compare = CompareModels()
-    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
+    compare = CompareModels()
+    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
