@@ -879,7 +879,7 @@ class CompareModels(object):
             plt.show()
 
             ## mfpt ratio
-            ratio = /mfpt_2sub;
+            ratio = np.divide(xrange,mfpt_2sub);
             vmin = np.min(ratio); vmax = np.max(ratio);
             imshow_kw = {'cmap': 'YlGnBu', 'aspect': None
                          ,'vmin': vmin, 'vmax': vmax
@@ -1370,7 +1370,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    """
+    #"""
     problematic_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1388,8 +1388,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    """
+    #"""
 
-    compare = CompareModels()
-    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
+    #compare = CompareModels()
+    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
