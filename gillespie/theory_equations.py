@@ -649,9 +649,9 @@ class Model_MultiLVim(object):
         """
         From distribution, get the mfpt <T_{b}(a)>, a<b
         """
-        mfpt = 0
+        mfpt = 0.0
         for i in np.arange(a,b):
-            mfpt += ( 1.0-np.sum(self.dstbn_n[a:i+1] ) ) / ( ( self.birth_rate*i
+            mfpt += ( np.sum(self.dstbn_n[:i+1] ) ) / ( ( self.birth_rate*i
                                 + self.immi_rate )*self.dstbn_n[i] )
         return mfpt
 
@@ -661,7 +661,7 @@ class Model_MultiLVim(object):
         """
         mfpt = 0
         for i in np.arange(a,b):
-            mfpt += np.sum(self.dstbn_n[a:i+1]) / ( ( self.birth_rate*i
+            mfpt += ( np.sum(self.dstbn_n[i+1:]) ) / ( ( self.birth_rate*i
                                + self.immi_rate ) * self.dstbn_n[i] )
         return mfpt
 
