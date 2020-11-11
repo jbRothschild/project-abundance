@@ -481,9 +481,9 @@ class Model_MultiLVim(object):
             probability : array P(n)
         """
 
-        probability = np.zeros( np.shape(self.population) )
+        probability = np.zeros( np.shape(self.population)[0] )
         dstbn_J     = self.abund_J(technique='Nava') # Q(J)
-        prob_approx = np.zeros( np.shape(self.population) ) # Q(n)
+        prob_approx = np.zeros( np.shape(self.population)[0] ) # Q(n)
         full_dstbn_n_given_J = np.zeros( (np.shape(self.population)[0]
                                             , np.shape(self.population)[0] ) )
 
@@ -491,8 +491,11 @@ class Model_MultiLVim(object):
         for J, prob_J in enumerate( dstbn_J ):
             full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J) # Q(n|J)
             prob_approx += full_dstbn_n_given_J[J,:] * prob_J # sum Q(n|J)*Q(J)
+            print("HI")
 
         prob_approx /= np.sum(prob_approx) # Q(N), should be normalized
+
+        print(np.shape(prob_approx), full_dstbn_n_given_J[:,5], dstbn_J)
 
         probability[0] = 1.0
         # TODO DELETE IF BELOW WORKS
@@ -511,7 +514,7 @@ class Model_MultiLVim(object):
                 + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
                 + (self.birth_rate - self.death_rate) * ( i * (1.0
                 - self.comp_overlap ) + np.dot(self.population, prob_J_given_i)
-                 * self.comp_overlap )  / self.carry_capacity ) ) )
+                * self.comp_overlap )  / self.carry_capacity ) ) )
 
         probability = probability/np.sum(probability)
 
@@ -670,7 +673,8 @@ class Model_MultiLVim(object):
         mfpt_2sub   = np.zeros( self.nbr_species )
         mfpt_2dom   = np.zeros( self.nbr_species )
 
-        for S in np.arange( self.nbr_species ):
+        for i in np.arange( self.nbr_species ):
+            S = i + 1
             mean_n = int(self.deterministic_mean(S))
             mfpt_2dom[S] = self.mfpt_a2b( 0, mean_n )
             mfpt_2sub[S] = self.mfpt_b2a( 0, mean_n )
@@ -690,7 +694,7 @@ class Model_MultiLVim(object):
 
         for i in np.arange( self.nbr_species ):
             R = i + 1
-            rich_dstbn[R] = rich_dstbn[R-1] * ( ( self.nbr_species - R ) *
+            rich_dstbn[R] = rich_dstbn[R-1] * ( ( self.nbr_species - R + 1 ) *
                             mfpt_2sub[R-1] ) / ( R * mfpt_2dom[R-1] )
 
         rich_dstbn /= np.sum( rich_dstbn )
@@ -895,13 +899,13 @@ class CompareModels(object):
 
             # plotting
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            MF = ax.contour( nbr_present.T, lines, linestyle='.'
-                                , linewidth = 2)#, cmap='YlGnBu' )
-            MFPT = ax.contour( av_rich_mfpt.T, lines, linestyle='-'
-                                , linewidth = 1)#, cmap='YlGnBu' )
+            MF = ax.contour( nbr_present.T, lines, linestyles='dotted'
+                                , linewidths = 4)#, cmap='YlGnBu' )
+            MFPT = ax.contour( av_rich_mfpt.T, lines, linestyles='solid'
+                                , linewidths = 2)#, cmap='YlGnBu' )
 
             # labels and ticks
-            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 10
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 20
             ax.set_xticks([i for i, cval in enumerate(xrange)
                                 if i % POINTS_BETWEEN_X_TICKS == 0])
             ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
@@ -913,16 +917,17 @@ class CompareModels(object):
                                 for i, yval in enumerate(yrange)
                                 if i % POINTS_BETWEEN_Y_TICKS==0])
             plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
-            ax.invert_yaxis()
+            #ax.invert_yaxis()
 
             # colorbar + legend
-            fig.colorbar(MF, shrink=1.0, extend='both')
-            fake_legend = [ Line2D([0], [0], color='k', lw=2, linestyle='-'
+            CB = fig.colorbar(MF, shrink=1.0, extend='both')
+            #CB.ax.get_children()[5].set_linewidths(5.0)
+            fake_legend = [ Line2D([0], [0], color='k', lw=2, linestyle='solid'
                             , label=r'$S(1-P(0))$')
-                            , Line2D([0], [0], color='k', lw=2, linestyle='.'
+                            , Line2D([0], [0], color='k', lw=2, linestyle='dotted'
                             , label=r'$\langle R \rangle$')
                             ]
-            ax.legend(handles=fake_legend); plt.title(r'Mean species present$');
+            ax.legend(handles=fake_legend); plt.title(r'Mean species present');
             plt.show()
 
             # save
@@ -1317,6 +1322,6 @@ if __name__ == "__main__":
     plt.show()
     #"""
 
-    compare = CompareModels()
-    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
+    #compare = CompareModels()
+    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
     #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
