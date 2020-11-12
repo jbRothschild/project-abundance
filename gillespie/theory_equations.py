@@ -37,9 +37,12 @@ class Model_MultiLVim(object):
                  population=np.arange(250), **kwargs ):
         self.comp_overlap = comp_overlap; self.birth_rate = birth_rate;
         self.death_rate = death_rate; self.immi_rate = immi_rate;
-        self.carry_capacity = carry_capacity; self.nbr_species = nbr_species;
-        self.population = np.arange(nbr_species*self.carry_capacity);
-        self.total_population = np.size(self.population)*nbr_species;
+        self.nbr_species = nbr_species; self.carry_capacity = carry_capacity;
+        self.population = np.arange( int( 1.5 * self.carry_capacity ) );
+        self.total_population = np.arange( int( np.size(self.population) +
+                                    ( self.nbr_species - 1 )
+                                    * np.size(self.population)
+                                    * ( 1. - self.comp_overlap) ) );
         self.dstbn_J = None; self.dstbn_n = None
 
         if 'conditional' in kwargs:
@@ -51,7 +54,11 @@ class Model_MultiLVim(object):
         """
         self.__dict__[name] = value;
         if name == "carry_capacity":
-            self.population = np.arange(10*self.carry_capacity);
+            self.population = np.arange( int( 1.5 * self.carry_capacity ) );
+            self.total_population = np.arange( int( np.size(self.population) +
+                                        ( self.nbr_species - 1 )
+                                        * np.size(self.population)
+                                        * ( 1. - self.comp_overlap) ) );
 
     def deterministic_mean(self, nbr_species_present=0):
         """
@@ -118,9 +125,9 @@ class Model_MultiLVim(object):
             """
             Convolutions of distributions
             """
-            prob_J = np.zeros( np.shape(self.population) );
+            prob_J = np.zeros( np.shape(self.total_population) );
 
-            for J in self.population:
+            for J in self.total_population:
                 prob_n_J = self.dstbn_n_given_J(J);
                 convolution = np.copy(prob_n_J)
                 for i in np.arange(1,self.nbr_species):
@@ -134,7 +141,7 @@ class Model_MultiLVim(object):
                 """
                 Approximate P(J)
                 """
-                prob_J = np.zeros( np.shape(self.population) );
+                prob_J = np.zeros( np.shape(self.total_population) );
 
                 for J in np.arange( 1, len(prob_J)):
                     prob_J_unnormalized[J] = prob_J_unnormalized[previous_J] * (
@@ -154,7 +161,7 @@ class Model_MultiLVim(object):
                 If I had av_n_squared, this is how you could calculate prob_J,
                 under the assumption Sum n_i^2 \approx nbr_species * <n^2>
                 """
-                prob_J_unnormalized = np.zeros( 10*len(self.population) );
+                prob_J_unnormalized = np.zeros( len(self.total_population) );
                 prob_J_unnormalized[0] = 1.0;
 
                 for J in np.arange( 1, len(prob_J_unnormalized)):
@@ -170,7 +177,7 @@ class Model_MultiLVim(object):
 
                 prob_J = prob_J_unnormalized / ( np.sum( prob_J_unnormalized ) )
 
-                return prob_J[:len(self.population)]
+                return prob_J[:len(self.total_population)]
 
             def equations(vars):
                 av_n_squared = vars
@@ -211,7 +218,7 @@ class Model_MultiLVim(object):
             prob_J = fcn_prob_J(av_n_squared_approx)
 
         # mean of J
-        mean_tot_pop = np.dot(self.population, prob_J)
+        mean_tot_pop = np.dot(self.total_population, prob_J)
 
         self.dstbn_J = prob_J
 
@@ -322,19 +329,19 @@ class Model_MultiLVim(object):
         if const_J:
             # TODO : Should the sum range from 0 to J+1?
             Norm = mean_J/(np.sum( [ i*c_k_partial(i, mean_J) for i in
-                                    self.population]))
+                                    self.total_population]))
 
             return np.array( [ c_k_partial(i, mean_J)*Norm
-                                                 for i in self.population] )
+                                            for i in self.total_population] )
 
         else :
             abundance = np.zeros( np.shape(self.population) )
 
             for J, prob_J in enumerate( dstbn_J ):
                 Norm = J/(np.sum( [ i*c_k_partial(i, J) for i in
-                                        self.population]))
+                                        self.total_population]))
                 abundance += np.array( [ c_k_partial(i, J)*Norm for i in
-                                  self.population] ) * prob_J
+                                  self.total_population] ) * prob_J
 
             return abundance
 
@@ -349,10 +356,10 @@ class Model_MultiLVim(object):
         output
             P(J-n|n) : array
         """
-        dJtildedt   = np.zeros( np.shape(self.population) );
-        dndt        = np.zeros( np.shape(self.population) );
+        dJtildedt   = np.zeros( np.shape(self.total_population) );
+        dndt        = np.zeros( np.shape(self.total_population) );
         mean_n = self.deterministic_mean();
-        for j, J in enumerate(self.population):
+        for j, J in enumerate(self.total_population):
 
             #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
             dJtildedt[j] = ( self.birth_rate - self.death_rate ) * J * ( 1.0  -
@@ -396,10 +403,10 @@ class Model_MultiLVim(object):
         output
             P(J-n|n) : array
         """
-        ratesJ   = np.zeros( np.shape(self.population) );
-        ratesn   = np.zeros( np.shape(self.population) );
+        ratesJ   = np.zeros( np.shape(self.total_population) );
+        ratesn   = np.zeros( np.shape(self.total_population) );
         mean_n = self.deterministic_mean();
-        for j, J in enumerate(self.population):
+        for j, J in enumerate(self.total_population):
             """
             #here we have use the approximation that sum<n_i^2> ~ Jtilde<n_i>
             ratesJ[j] = J * ( ( self.birth_rate + self.death_rate )  +  (
@@ -446,11 +453,11 @@ class Model_MultiLVim(object):
 
         if approx ==  'prob_Jgiveni_deterministic':
             prob_J_given_n = self.prob_Jgivenn_det(n)
-            return np.dot( prob_J_given_n, self.population )
+            return np.dot( prob_J_given_n, self.total_population )
 
         elif approx == 'prob_Jgiveni_rates':
             prob_J_given_n = self.prob_Jgivenn_rates(n)
-            return np.dot( prob_J_given_n, self.population )
+            return np.dot( prob_J_given_n, self.total_population )
         elif approx == 'simulation':
             if n >= np.shape(self.conditional)[0]:
                 return 0.0
@@ -482,20 +489,20 @@ class Model_MultiLVim(object):
         """
 
         probability = np.zeros( np.shape(self.population)[0] )
-        dstbn_J     = self.abund_J(technique='Nava') # Q(J)
+        _, dstbn_J     = self.abund_J(technique='Nava') # Q(J)
         prob_approx = np.zeros( np.shape(self.population)[0] ) # Q(n)
-        full_dstbn_n_given_J = np.zeros( (np.shape(self.population)[0]
+        full_dstbn_n_given_J = np.zeros( (np.shape(self.total_population)[0]
                                             , np.shape(self.population)[0] ) )
 
 
         for J, prob_J in enumerate( dstbn_J ):
             full_dstbn_n_given_J[J,:] = self.dstbn_n_given_J(J) # Q(n|J)
             prob_approx += full_dstbn_n_given_J[J,:] * prob_J # sum Q(n|J)*Q(J)
-            print("HI")
 
         prob_approx /= np.sum(prob_approx) # Q(N), should be normalized
 
-        print(np.shape(prob_approx), full_dstbn_n_given_J[:,5], dstbn_J)
+        print(np.shape(prob_approx), np.shape(full_dstbn_n_given_J)
+                    , np.shape(dstbn_J) )
 
         probability[0] = 1.0
         # TODO DELETE IF BELOW WORKS
@@ -513,8 +520,8 @@ class Model_MultiLVim(object):
             probability[i] = probability[i-1] * ( ( self.immi_rate
                 + self.birth_rate*(i-1) ) / ( i * ( self.death_rate
                 + (self.birth_rate - self.death_rate) * ( i * (1.0
-                - self.comp_overlap ) + np.dot(self.population, prob_J_given_i)
-                * self.comp_overlap )  / self.carry_capacity ) ) )
+                - self.comp_overlap ) + np.dot(self.total_population
+                ,prob_J_given_i) * self.comp_overlap ) / self.carry_capacity )))
 
         probability = probability/np.sum(probability)
 
@@ -877,7 +884,7 @@ class CompareModels(object):
                     #print(time.time() - t)
 
                     rich_dstbn_mfpt[i,j], av_rich_mfpt[i,j], mfpt_2sub[i,j]\
-                        , mfpt_2dom = self.model.mean_richness_mfpt()
+                        , mfpt_2dom[i,j] = self.model.mean_richness_mfpt()
 
             metric_dict = {  'mfpt_2dom' : mfpt_2dom, 'mfpt_2sub' : mfpt_2sub
                             , 'prob_0'  : prob_0 , 'av_rich_mfpt' : av_rich_mfpt
@@ -922,15 +929,58 @@ class CompareModels(object):
             # colorbar + legend
             CB = fig.colorbar(MF, shrink=1.0, extend='both')
             #CB.ax.get_children()[5].set_linewidths(5.0)
-            fake_legend = [ Line2D([0], [0], color='k', lw=2, linestyle='solid'
+            fake_legend = [ Line2D([0],[0], color='k', lw=2, linestyle='dotted'
                             , label=r'$S(1-P(0))$')
-                            , Line2D([0], [0], color='k', lw=2, linestyle='dotted'
-                            , label=r'$\langle R \rangle$')
+                            , Line2D([0],[0], color='k', lw=2, linestyle='solid'
+                            , label=r'$\langle R \rangle_{fpt}$')
                             ]
-            ax.legend(handles=fake_legend); plt.title(r'Mean species present');
-            plt.show()
+            ax.legend(handles=fake_legend, loc=4);
+            plt.title(r'Mean species present'); plt.show()
 
             # save
+            # style
+            print(" >> Starting plotting...")
+            plt.style.use('custom_heatmap.mplstyle')
+
+            ## richness MFPT, S-R
+            # calculate
+            nbr_present = self.model.nbr_species*( 1.0 - prob_0 )
+            rich_mfpt   = self.nbr_species*( 1.0/(mfpt_2dom[:,:,-1]/mfpt_2sub[:,:,-1] - 1 ) )
+            lines = np.arange(5,self.model.nbr_species,4)
+
+            # plotting
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            MF = ax.contour( nbr_present.T, lines, linestyles='dotted'
+                                , linewidths = 4)#, cmap='YlGnBu' )
+            MFPT = ax.contour( rich_mfpt.T, lines, linestyles='solid'
+                                , linewidths = 2)#, cmap='YlGnBu' )
+
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 20
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            #ax.invert_yaxis()
+
+            # colorbar + legend
+            CB = fig.colorbar(MF, shrink=1.0, extend='both')
+            #CB.ax.get_children()[5].set_linewidths(5.0)
+            fake_legend = [ Line2D([0],[0], color='k', lw=2, linestyle='dotted'
+                            , label=r'$S(1-P(0))$')
+                            , Line2D([0],[0], color='k', lw=2, linestyle='solid'
+                            , label=r'$ R_{fpt}$')
+                            ]
+            ax.legend(handles=fake_legend, loc=4);
+            plt.title(r'Mean species present'); plt.show()
+
 
         return 0
 
