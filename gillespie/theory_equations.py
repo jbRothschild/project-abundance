@@ -930,7 +930,7 @@ class CompareModels(object):
             fake_legend = [ Line2D([0],[0], color='k', lw=2, linestyle='dotted'
                             , label=r'$S(1-P(0))$')
                             , Line2D([0],[0], color='k', lw=2, linestyle='solid'
-                            , label=r'$\langle R \rangle_{fpt}$')
+                            , label=r'$\langle R \rangle_{P_S}$')
                             ]
             ax.legend(handles=fake_legend, loc=4);
             plt.title(r'Mean species present'); plt.show()
@@ -943,7 +943,7 @@ class CompareModels(object):
             ## richness MFPT, S-R
             # calculate
             nbr_present = self.model.nbr_species*( 1.0 - prob_0 )
-            rich_mfpt   = self.nbr_species*( 1.0/(mfpt_2dom[:,:,-1]/mfpt_2sub[:,:,-1] - 1 ) )
+            rich_mfpt   = self.model.nbr_species*( 1.0/(mfpt_2dom[:,:,-1]/mfpt_2sub[:,:,-1] + 1 ) )
             lines = np.arange(5,self.model.nbr_species,4)
 
             # plotting
@@ -975,6 +975,93 @@ class CompareModels(object):
                             , label=r'$S(1-P(0))$')
                             , Line2D([0],[0], color='k', lw=2, linestyle='solid'
                             , label=r'$ R_{fpt}$')
+                            ]
+            ax.legend(handles=fake_legend, loc=4);
+            plt.title(r'Mean species present'); plt.show()
+
+            # style
+            print(" >> Starting plotting...")
+            plt.style.use('custom_heatmap.mplstyle')
+
+            ## richness mu/mean_time, S-R
+            # calculate
+            nbr_present = self.model.nbr_species*( 1.0 - prob_0 )
+            mu_mfpt   = xrange * mfpt_2sub[:,:,-1].T
+            lines = np.arange(5,self.model.nbr_species,4)
+
+            # plotting
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            MF = ax.contour( nbr_present.T, lines, linestyles='dotted'
+                                , linewidths = 4)#, cmap='YlGnBu' )
+            MFPT = ax.contour( mu_mfpt, lines, linestyles='solid'
+                                , linewidths = 2)#, cmap='YlGnBu' )
+
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 20
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            #ax.invert_yaxis()
+
+            # colorbar + legend
+            CB = fig.colorbar(MF, shrink=1.0, extend='both')
+            #CB.ax.get_children()[5].set_linewidths(5.0)
+            fake_legend = [ Line2D([0],[0], color='k', lw=2, linestyle='dotted'
+                            , label=r'$S(1-P(0))$')
+                            , Line2D([0],[0], color='k', lw=2, linestyle='solid'
+                            , label=r'$ \mu  \langle T_0(n^*) \rangle$')
+                            ]
+            ax.legend(handles=fake_legend, loc=4);
+            plt.title(r'Mean species present'); plt.show()
+
+            # style
+            print(" >> Starting plotting...")
+            plt.style.use('custom_heatmap.mplstyle')
+
+            ## richness mu/mean_time, S-R
+            # calculate
+            nbr_present = self.model.nbr_species*( 1.0 - prob_0 )
+            rich_mu_mfpt = self.model.nbr_species / ( 1
+                            + 1/(xrange*mfpt_2sub[:,:,-1].T ))
+            lines = np.arange(5,self.model.nbr_species,4)
+
+            # plotting
+            f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+            MF = ax.contour( nbr_present.T, lines, linestyles='dotted'
+                                , linewidths = 4)#, cmap='YlGnBu' )
+            MFPT = ax.contour( rich_mu_mfpt, lines, linestyles='solid'
+                                , linewidths = 2)#, cmap='YlGnBu' )
+
+            # labels and ticks
+            POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 20
+            ax.set_xticks([i for i, cval in enumerate(xrange)
+                                if i % POINTS_BETWEEN_X_TICKS == 0])
+            ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                                for i, xval in enumerate(xrange)
+                                if (i % POINTS_BETWEEN_X_TICKS==0)])
+            ax.set_yticks([i for i, kval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS == 0])
+            ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                                for i, yval in enumerate(yrange)
+                                if i % POINTS_BETWEEN_Y_TICKS==0])
+            plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+            #ax.invert_yaxis()
+
+            # colorbar + legend
+            CB = fig.colorbar(MF, shrink=1.0, extend='both')
+            #CB.ax.get_children()[5].set_linewidths(5.0)
+            fake_legend = [ Line2D([0],[0], color='k', lw=2, linestyle='dotted'
+                            , label=r'$S(1-P(0))$')
+                            , Line2D([0],[0], color='k', lw=2, linestyle='solid'
+                            , label=r'$ R(\mu, \langle T_0(n^*)) $')
                             ]
             ax.legend(handles=fake_legend, loc=4);
             plt.title(r'Mean species present'); plt.show()
@@ -1097,8 +1184,8 @@ class CompareModels(object):
                     }
             approx_dist = approx_dist_nava
             # setting of xticks
-            POINTS_BETWEEN_X_TICKS = 9
-            POINTS_BETWEEN_Y_TICKS = 9
+            POINTS_BETWEEN_X_TICKS = 10
+            POINTS_BETWEEN_Y_TICKS = 20
 
             ## Entropy 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
@@ -1350,7 +1437,7 @@ def vary_species_count(species=150):
 
 if __name__ == "__main__":
     # multimodal phase
-    #"""
+    """
     multimodal_params = {'birth_rate' : 20.0, 'death_rate'     : 1.0
                                             , 'immi_rate'       : 0.001
                                             , 'carry_capacity'  : 100
@@ -1368,8 +1455,8 @@ if __name__ == "__main__":
     #plt.title(r"$\mu=${}, $\rho=${} ".format( params['immi_rate']
     #                                            , params['comp_overlap']))
     plt.show()
-    #"""
+    """
 
     compare = CompareModels()
-    compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=False)
-    #compare.mlv_metric_compare_heatmap("comp_overlap","immi_rate", plot=False, load_npz=False)
+    #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
+    compare.mlv_metric_compare_heatmap("immi_rate","comp_overlap", file='metric41.npz' plot=True, load_npz=False)
