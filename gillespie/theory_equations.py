@@ -635,7 +635,7 @@ class Model_MultiLVim(object):
 
         return (self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0
 
-    def binomial_diversity_dstbn( self, nbr_species=None):
+    def binomial_diversity_dstbn( self, P0, nbr_species=None):
         """
         Using a binomial distribution, find the diversity distribution of
         species present R, simply
@@ -648,7 +648,7 @@ class Model_MultiLVim(object):
             species = np.arange( nbr_species + 1 )
 
         return scipy.stats.binom.pmf(species, self.nbr_species\
-                                            , 1 - self.dstbn_n[0] )
+                                            , 1 - P0 )
 
     def mfpt_a2b(self, a, b):
         """
@@ -1459,4 +1459,4 @@ if __name__ == "__main__":
 
     compare = CompareModels()
     #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
-    compare.mlv_metric_compare_heatmap("immi_rate","comp_overlap", file='metric41.npz' plot=True, load_npz=False)
+    compare.mlv_metric_compare_heatmap("immi_rate","comp_overlap", file='metric41.npz', plot=True, load_npz=False)

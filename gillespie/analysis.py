@@ -979,7 +979,7 @@ if __name__ == "__main__":
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
-
+    """
     r = np.random.randint(1600, size=4)
     mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
     mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
@@ -1003,13 +1003,12 @@ if __name__ == "__main__":
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 40)
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 1600)
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
-
-
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV35'
+    """
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
     mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
                                     , save=True)
-    #mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
-    #                                    , save=True)
+    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+                                        , save=True)
 
 
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')
