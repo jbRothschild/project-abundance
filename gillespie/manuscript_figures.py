@@ -1,4 +1,4 @@
-import os, glob, csv, pickle, copy
+import os, glob, csv, pickle, copy, time
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -38,7 +38,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     conv_dist_vary  = []                ; mf_dist_vary      = []
 
     # TODO change to dictionary
-    for i in np.arange(0,5):
+    for i in np.arange(nbr_sims):
         sim_nbr = i + 1
         with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                    'results_0.pickle', 'rb') as handle:
@@ -51,8 +51,8 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         start = time.time()
         ss_dist_sim     = model.results['ss_distribution'] \
                                 / np.sum(model.results['ss_distribution'])
-        ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
-        ss_dist_mf, _   = theory_models.abund_sid()
+        #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
+        ss_dist_mf, _   = theory_model.abund_sid()
         richness_dist   = model.results['richness']
         rich_dist_vary.append( np.array( richness_dist ) )
         sim_dist_vary.append( np.array( ss_dist_sim ) )
@@ -75,11 +75,11 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     rich_dist           = np.zeros( ( nbr_sims,length_longest_rich ) )
 
     for i in np.arange(nbr_sims):
-        conv_idx    = np.min( [ len(conv_dist_vary[i]), len_longest_sim ] )
+        #conv_idx    = np.min( [ len(conv_dist_vary[i]), len_longest_sim ] )
         mf_idx      = np.min( [ len(mf_dist_vary[i]), len_longest_sim ] )
-        sim_dist[i,:len(ss_dist_vary[i])]       = sim_dist_vary[i]
-        #conv_dist[i,:conv_idx]                  = conv_dist_vary[i,:conv_idx]
-        mf_dist[i,:mf_idx]                      = mf_dist_vary[i,:mf_idx]
+        sim_dist[i,:len(sim_dist_vary[i])]      = sim_dist_vary[i]
+        #conv_dist[i,:conv_idx]                  = conv_dist_vary[i][conv_idx]
+        mf_dist[i,:mf_idx]                      = mf_dist_vary[i][:mf_idx]
         rich_dist[i,:len(rich_dist_vary[i])]    = rich_dist_vary[i]
 
     # For heatmap stuff
