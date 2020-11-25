@@ -728,7 +728,7 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
                     , save=save)
 
     ## Richness ( divide nbr_species*(1-P0) by mean_pop )
-    heatmap(param1_2D, param2_2D, nbr_spec2D.T*(1.0-P02D).T, labelx, labely
+    heatmap(param1_2D, param2_2D, (nbr_spec2D*(1.0-P02D)), labelx, labely
             , r'$S(1-P(0))$', save=save)
     heatmap(param1_2D, param2_2D, mean_rich2D.T, labelx, labely
             , r'$\langle S \rangle$', save=save)
@@ -742,9 +742,10 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
 
     ## det_mean_n_present
     heatmap(param1_2D, param2_2D, det_mean_present2D.T, labelx, labely
-            , r'Lotka Voltera steady state with $S(1-P(0))', save=save)
+            , r'Lotka Voltera steady state with $S(1-P(0))$', save=save)
 
-    heatmap(param2_2D, param1_2D, correlation2D, labely, labelx
+    # COrrelation need not be flipped....????
+    heatmap(param2_2D, param1_2D, correlation2D, labelx, labely
             , r'$\rho_{Pears}(n_i,n_j)$', save=save)
 
     ## diversity distribution
@@ -774,28 +775,28 @@ def mlv_plot_sim_results_heatmaps(dir, parameter1, parameter2, save=False):
                                     , axes=([0],[2])) - mean_rich_binom**2
 
 
-
-    heatmap(param2_2D, param1_2D, mean_rich_sim, labely, labelx, r'mean richness (sim.)'
-                    , save=save) # mean diveristy
-    heatmap(param2_2D, param1_2D, mean_rich_binom, labely, labelx, r'mean richness (binom.)'
-                    , save=save) # mean diveristy binomial
-    heatmap(param2_2D, param1_2D, (mean_rich_sim/mean_rich_binom)
-                    , labely, labelx, r'mean richness (sim./binom.)', save=save)
+    # Somehow none of these need to be flipped... weird.
+    heatmap(param1_2D, param2_2D, mean_rich_sim, labelx, labely
+                    , r'mean richness (sim.)', save=save) # mean diveristy
+    heatmap(param1_2D, param2_2D, mean_rich_binom, labelx, labely
+                    , r'mean richness (binom.)', save=save) # av div. binonmia;
+    heatmap(param1_2D, param2_2D, (mean_rich_sim/mean_rich_binom)
+                    , labelx, labely, r'mean richness (sim./binom.)', save=save)
                 # mean/mean diveristy
 
-    heatmap(param2_2D, param1_2D, JS_rich, labely, labelx
+    heatmap(param1_2D, param2_2D, JS_rich, labelx, labely
                 , r'Jensen-Shannon divergence (sim./binom.)', save=save)
                 # JS divergenced
 
 
-    heatmap(param2_2D, param1_2D, var_rich_sim, labely, labelx
+    heatmap(param1_2D, param2_2D, var_rich_sim, labelx, labely
                 , r'variance richness (sim.)', save=save) # variance
-    heatmap(param2_2D, param1_2D, var_rich_binom, labely, labelx
+    heatmap(param1_2D, param1_2D, var_rich_binom, labelx, labely
                 , r'variance richness (binom.)', save=save) # variance
 
 
-    heatmap(param2_2D, param1_2D, var_rich_sim/var_rich_binom, labely, labelx
-                , r'var richness (sim./binom.)', save=save)
+    heatmap(param1_2D, param2_2D, (var_rich_sim/var_rich_binom), labelx
+                , labely, r'var richness (sim./binom.)', save=save)
                 # variance/variance
 
 
@@ -812,7 +813,7 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     THIS IS AN AWEFUL FUNCTION THAT NEED METRICS AND CONSOLIDATED TO BE THE SAME
     LENGTH I HATE IT
     """
-    theory_fname = theqs.THRY_FIG_DIR + os.sep + 'metric41.npz'
+    theory_fname = theqs.THRY_FIG_DIR + os.sep + 'metric45.npz'
     simulation_fname = dir + os.sep + 'consolidated_results.npz'
 
     if not os.path.exists(simulation_fname):
@@ -833,8 +834,8 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     labelx = VAR_NAME_DICT[parameter1]; labely = VAR_NAME_DICT[parameter2]
 
     with np.load(theory_fname) as f:
-        dist_thry   = f['approx_dist']; richness_thry = f['richness']
-        det_mean    = f['det_mean']
+        dist_thry2   = f['approx_dist_nava']; richness_thry = f['richness']
+        det_mean    = f['det_mean']        ; dist_thry = f['approx_dist_sid']
 
     ## J-S divergence
     JS = np.zeros( ( len(param1_2D) , len(param2_2D) ) )
@@ -848,18 +849,18 @@ def mlv_sim2theory_results_heatmaps(dir, parameter1, parameter2, save=False):
     ## mean richness
     heatmap(param1_2D, param2_2D, (30*richness_thry).T
             , labelx, labely, r'Method 2 richness', save=save)
-    heatmap(param1_2D, param2_2D, np.divide(30*richness_thry, mean_rich_sim).T
+    heatmap(param1_2D, param2_2D, np.divide(30*richness_thry, mean_rich_sim)
             , labelx, labely, r'Method 2 richness / richness simulation', save=save)
 
     ## mean deterministic vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean, mean_pop2D)).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean, mean_pop2D))
             , labelx, labely, r'LV mean / $\langle n \rangle_{sim}$', save=save)
 
     ## mean deterministic with S(1-P(0)) vs mean simulation
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, mean_pop2D)).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, mean_pop2D))
             , labelx, labely, r'LV mean $S(1-P(0))$ / $\langle n \rangle_{sim}$', save=save)
 
-    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, det_mean)).T
+    heatmap(param1_2D, param2_2D, (np.divide(det_mean_present2D, det_mean))
             , labelx, labely, r'LV mean $(S(1-P(0)))$ / LV mean $S$', save=save)
 
     ## Number of peaks
@@ -1005,9 +1006,9 @@ if __name__ == "__main__":
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
     """
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
-    mlv_plot_sim_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+    mlv_plot_sim_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
                                     , save=True)
-    mlv_sim2theory_results_heatmaps(sim_dir, 'comp_overlap', 'immi_rate'
+    mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
                                         , save=True)
 
 

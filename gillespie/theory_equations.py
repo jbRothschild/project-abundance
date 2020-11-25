@@ -707,6 +707,7 @@ class Model_MultiLVim(object):
         return rich_dstbn, np.dot(rich_dstbn,richness), mfpt_2sub, mfpt_2dom
 
 
+
 class CompareModels(object):
     """
     Trying to compare models in certain ways.
@@ -1066,6 +1067,42 @@ class CompareModels(object):
             ax.legend(handles=fake_legend, loc=4);
             plt.title(r'Mean species present'); plt.show()
 
+        # style
+        print(" >> Starting plotting...")
+        plt.style.use('custom_heatmap.mplstyle')
+
+        ## richness mu/mean_time, S-R
+        # calculate
+        nbr_present = self.model.nbr_species*( 1.0 - prob_0 )
+        rich_mu_mfpt = self.model.nbr_species / ( 1
+                        + 1/(xrange*mfpt_2sub[:,:,-1].T ))
+        lines = np.arange(5,self.model.nbr_species,4)
+
+        # plotting
+        f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+        MF = ax.contour( nbr_present.T, lines, linestyles='dotted'
+                            , linewidths = 4)#, cmap='YlGnBu' )
+        MFPT = ax.contour( rich_mu_mfpt, lines, linestyles='solid'
+                            , linewidths = 2)#, cmap='YlGnBu' )
+
+        # labels and ticks
+        POINTS_BETWEEN_X_TICKS = 10; POINTS_BETWEEN_Y_TICKS = 20
+        ax.set_xticks([i for i, cval in enumerate(xrange)
+                            if i % POINTS_BETWEEN_X_TICKS == 0])
+        ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
+                            for i, xval in enumerate(xrange)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+        ax.set_yticks([i for i, kval in enumerate(yrange)
+                            if i % POINTS_BETWEEN_Y_TICKS == 0])
+        ax.set_yticklabels([r'$10^{%d}$' % np.log10(yval)
+                            for i, yval in enumerate(yrange)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+        plt.xlabel(VAR_NAME_DICT[key1]); plt.ylabel(VAR_NAME_DICT[key2]);
+        #ax.invert_yaxis()
+
+        ax.legend(handles=fake_legend, loc=4);
+        plt.title(r'Return time $\langle T_0(0) \rangle$'); plt.show()
+
 
         return 0
 
@@ -1105,9 +1142,10 @@ class CompareModels(object):
                 raise SystemExit
             with np.load(filename) as f:
                 H = f['H']; GS = f['GS']; richness = f['richness'];
-                JS = f['JS']; xrange = ['xrange']; yrange = ['yrange'];
+                JS = f['JS']; xrange = f['xrange']; yrange = f['yrange'];
                 approx_dist_sid = f['approx_dist_sid']
                 approx_dist_nava = f['approx_dist_nava']
+                #mean_time_dominance = f['mean_time_dominance']
 
         # Create the npz file
         else:
@@ -1171,8 +1209,9 @@ class CompareModels(object):
             metric_dict = {'H' : H, 'GS' : GS, 'richness' : richness, 'JS' : JS
                             , 'approx_dist_sid' : approx_dist_sid
                             , 'approx_dist_nava' : approx_dist_nava
-                            , 'det_mean' : det_mean,
-                            'xrange' : xrange, 'yrange' : yrange}
+                            , 'det_mean' : det_mean
+                            , 'mean_time_dominance' : mean_time_dominance
+                            ,'xrange' : xrange, 'yrange' : yrange}
             np.savez(filename, **metric_dict)
 
         if plot:
@@ -1186,12 +1225,14 @@ class CompareModels(object):
             # setting of xticks
             POINTS_BETWEEN_X_TICKS = 10
             POINTS_BETWEEN_Y_TICKS = 20
-
+            xrange   = getattr(self,key1)
+            yrange   = getattr(self,key2)
             ## Entropy 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(H, interpolation='none', **imshow_kw)
+            im = ax.imshow(H.T, interpolation='none', **imshow_kw)
 
             # labels and ticks
+            print
             ax.set_xticks([i for i, cval in enumerate(xrange)
                                 if i % POINTS_BETWEEN_X_TICKS == 0])
             ax.set_xticklabels([r'$10^{%d}$' % np.log10(xval)
@@ -1211,7 +1252,7 @@ class CompareModels(object):
 
             ## Gini-Simpson 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(GS, interpolation='none', **imshow_kw)
+            im = ax.imshow(GS.T, interpolation='none', **imshow_kw)
 
             # labels and ticks
             ax.set_xticks([i for i, cval in enumerate(xrange)
@@ -1235,7 +1276,7 @@ class CompareModels(object):
 
             ## Richness 2D
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(richness, interpolation='none', **imshow_kw)
+            im = ax.imshow(richness.T, interpolation='none', **imshow_kw)
 
             # labels and ticks
             ax.set_xticks([i for i, cval in enumerate(xrange)
@@ -1258,7 +1299,7 @@ class CompareModels(object):
 
             ## Jensen-shannon
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-            im = ax.imshow(JS, interpolation='none', **imshow_kw)
+            im = ax.imshow(JS.T, interpolation='none', **imshow_kw)
 
             # labels and ticks
             ax.set_xticks([i for i, cval in enumerate(xrange)
@@ -1279,6 +1320,7 @@ class CompareModels(object):
             plt.show()
 
             ## Mean time extinction
+            """ TODO uncomment
             plt.style.use('custom_heatmap.mplstyle')
             imshow_kw ={'cmap': 'viridis', 'aspect': None }
             f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
@@ -1304,8 +1346,7 @@ class CompareModels(object):
             plt.colorbar(im,ax=ax)
             plt.title(r'Mean time to lose dominance')
             plt.show()
-
-
+            """
 
             ## Species richness 2D
             # if species are changing, additionally give species richness, not
@@ -1459,4 +1500,4 @@ if __name__ == "__main__":
 
     compare = CompareModels()
     #compare.mlv_mfpt_dom_sub_ratio("immi_rate","comp_overlap", file='mfptratio.npz', plot=True, load_npz=True)
-    compare.mlv_metric_compare_heatmap("immi_rate","comp_overlap", file='metric41.npz', plot=True, load_npz=False)
+    compare.mlv_metric_compare_heatmap("immi_rate","comp_overlap", file='metric45.npz', plot=True, load_npz=True)

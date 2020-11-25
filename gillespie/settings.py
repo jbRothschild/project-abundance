@@ -42,6 +42,8 @@ IMSHOW_KW = { 'entropy'                 : {'cmap': 'cividis', 'aspect': None }
 
 imshow_kw = {'cmap': 'YlGnBu', 'aspect': None }
 
+NPZ_SHORT_FILE = 'short_consol_results.npz'
+
 # TODO : save txt file with what parameters vary (is this possible?)
 
 # TODO : save entropy and stuff in theory equations
