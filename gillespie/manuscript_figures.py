@@ -56,7 +56,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         richness_dist   = model.results['richness']
         rich_dist_vary.append( np.array( richness_dist ) )
         sim_dist_vary.append( np.array( ss_dist_sim ) )
-        conv_dist_vary.append( np.array( ss_dist_conv ) )
+        #conv_dist_vary.append( np.array( ss_dist_conv ) )
         mf_dist_vary.append( np.array( ss_dist_mf ) )
         end = time.time()
         hours, rem = divmod( end-start, 3600 )
@@ -78,7 +78,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         conv_idx    = np.min( [ len(conv_dist_vary[i]), len_longest_sim ] )
         mf_idx      = np.min( [ len(mf_dist_vary[i]), len_longest_sim ] )
         sim_dist[i,:len(ss_dist_vary[i])]       = sim_dist_vary[i]
-        conv_dist[i,:conv_idx]                  = conv_dist_vary[i,:conv_idx]
+        #conv_dist[i,:conv_idx]                  = conv_dist_vary[i,:conv_idx]
         mf_dist[i,:mf_idx]                      = mf_dist_vary[i,:mf_idx]
         rich_dist[i,:len(rich_dist_vary[i])]    = rich_dist_vary[i]
 
@@ -98,7 +98,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         j                   = np.where( param2_2D==param2[sim] )[0][0]
         sim_dist2D[i,j]     = sim_dist[sim]
         mf_dist2D[i,j]      = mf_dist[sim]
-        conv_dist2D[i,j]    = conv_dist[sim]
+        #conv_dist2D[i,j]    = conv_dist[sim]
         rich_dist2D[i,j]    = rich_dist[sim]
 
     # arrange into a dictionary to save
