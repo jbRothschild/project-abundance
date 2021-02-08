@@ -319,6 +319,7 @@ class MultiLV(Parent):
                 j += 1
             initial_state[i] = j
         #sys.exit()
+        initial_state[np.argmin(initial_state)] = 0
 
         return initial_state
 
