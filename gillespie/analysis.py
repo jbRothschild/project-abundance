@@ -1,9 +1,9 @@
-import os, glob, csv
+import os, glob, csv, copy
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-import copy
+import pandas as pd
 
 from scipy.signal import argrelextrema
 
@@ -359,7 +359,34 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
     # save results in a npz file
     np.savez(filename, **dict_arrays)
 
-    return filename
+    return filename, dict_arrays
+
+def mlv_multiple_folder_consolidate(list_dir, consol_name_dir, parameter1=None
+                                            , parameter2=None):
+    """
+    Takes simulations from multiple folders and combines them by averaging their
+    results all together. The only reason I do this is to average the
+    distributions
+    """
+    dict_arr = []
+    for dir in list_dir:
+         _, dict_temp = mlv_consolidate_sim_results(dir, parameter1, parameter2)
+         dict_arr.append(dict_temp)
+         del dict_temp
+
+    df = pd.DataFrame(dict_arr); mean_dict = {}
+    for column in df:
+        mean_dict[column] = df[column].mean()
+
+    while not os.path.exists( consol_name_dir ):
+        os.makedirs( consol_name_dir );
+
+    filename =  consol_name_dir + os.sep + 'consolidated_results.npz'
+
+    # save results in a npz file
+    np.savez(filename, **mean_dict)
+
+    return 0
 
 def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     """
@@ -453,8 +480,6 @@ def mlv_plot_average_sim_results(dir,parameter='comp_overlap'):
     fname = 'check_steady_state'
     plt.savefig(dir + os.sep + fname + '.pdf');
     #plt.show()
-
-
 
     return 0
 
@@ -976,40 +1001,24 @@ def sir_mean_trajectory(sim_dir, plot = True):
 
 if __name__ == "__main__":
 
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV12'
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
+
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLV71'
+    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1500)
     """
-    r = np.random.randint(1600, size=4)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[3])
-
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 40)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1600)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
-
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV35'
-
-    r = np.random.randint(1600, size=4)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[0])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[1])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[2])
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = r[3])
-
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 40)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1600)
-    mlv_plot_single_sim_results(sim_dir, sim_nbr = 1560)
-    """
-    sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
     mlv_plot_sim_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
                                     , save=True)
     mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
                                         , save=True)
+    """
+    mult_fold = [RESULTS_DIR + os.sep + 'multiLV71'\
+                , RESULTS_DIR + os.sep + 'multiLV72'\
+                , RESULTS_DIR + os.sep + 'multiLV73']
+    many_dir = RESULTS_DIR + os.sep + 'many_folder1'
+    mlv_multiple_folder_consolidate(mult_fold, many_dir,  'immi_rate'
+                                            , 'comp_overlap')
 
 
     #mlv_plot_sim_results(sim_dir, 'comp_overlap')

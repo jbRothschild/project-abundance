@@ -211,8 +211,8 @@ class Parent(object):
 
 class MultiLV(Parent):
     def __init__( self, nbr_generations=10**6, max_time=10**6, sim_dir='multiLV'
-                  , tau=False, birth_rate=2.0, death_rate=1.0, immi_rate=0.015
-                  , emmi_rate=0.0, carry_capacity=50, linear=0.0, quadratic=0.0
+                  , tau=False, birth_rate=2.0, death_rate=1.0, immi_rate=0.1
+                  , emmi_rate=0.0, carry_capacity=100, linear=0.0, quadratic=0.0
                   , comp_overlap=0.2, sim_number=0, nbr_species=30
                   , **kwargs):
         super(MultiLV, self).__init__(nbr_generations, max_time, sim_dir
