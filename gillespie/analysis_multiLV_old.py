@@ -294,7 +294,7 @@ def plot_traj(trajectory, times, params, range, species_list=None, sea_colours =
             print('hi')
             plt.plot(times[-range:],trajectory[-range:,i])
 
-    ax.set_ylabel(r'Population count'); ax.set_xlabel(r'Time')
+    ax.set_ylabel(r'Population count, $n$'); ax.set_xlabel(r'Time')
     ax.set_xlim(left=times[-range], right=times[-1])
 
     #plt.xlim(hist_bins[0],hist_bins[-1])

@@ -292,7 +292,8 @@ if __name__ == "__main__":
 
 
     args = parser.parse_args()
-    model = args.model; num_runs = args.nbr_trajectories;
+    model = args.model;
+    num_runs = args.nbr_trajectories;
     param_dict = vars(args)['my_dict']
     param_dict['sim_number'] = args.sim_nbr
     param_dict['nbr_generations'] = args.nbr_rxns

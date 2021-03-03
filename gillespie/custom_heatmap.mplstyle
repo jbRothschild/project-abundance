@@ -2,7 +2,7 @@
 # See http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure
 #figure.titlesize : medium     # size of the figure title
 #figure.titleweight : normal   # weight of the figure title
-figure.figsize   : 4, 3    # figure size in inches
+figure.figsize   : 2.5, 2    # figure size in inches
 #figure.dpi       : 300      # figure dots per inch
 
 #figure.edgecolor : white   # figure edgecolor
@@ -16,7 +16,7 @@ markers.fillstyle: full ## full|left|right|bottom|top|none
 ### LINES
 # See http://matplotlib.org/api/artist_api.html#module-matplotlib.lines for more
 # information on line properties.
-lines.linewidth   : 1.5     # line width in points
+lines.linewidth   : 1     # line width in points
 #lines.linestyle   : -       # solid line
 #lines.color       : 808080    # has no affect on plot(); see axes.prop_cycle
 #lines.marker      : None    # the default marker
@@ -77,17 +77,17 @@ lines.markersize  : 4            # markersize, in points
 # 12pt is the standard value.
 #
 
-font.family         : sans-serif
+#font.family         : sans-serif
 font.sans-serif     : Arial #arial, helvetica
 font.style          : normal
 font.variant        : normal
 font.weight         : normal
 font.stretch        : normal
-font.size           : 11
+font.size           : 10
 
-text.usetex         : False # set to True and uncomment next two lines for Latex
-#font.family        : serif
-#font.serif         : cm # cm -> Computer modern
+text.usetex         : True # set to True and uncomment next two lines for Latex
+font.family        : serif
+font.serif         : cm # cm -> Computer modern
 
 ### AXES
 # default face and edge color, default tick sizes,
@@ -96,10 +96,10 @@ text.usetex         : False # set to True and uncomment next two lines for Latex
 #axes.hold           : True    # whether to clear the axes by default ons
 axes.linewidth      : 1.0     # edge linewidth
 axes.grid           : True   # display grid or not
-axes.titlesize      : 11   # fontsize of the axes title
-axes.titlepad       : 11   # vertical of20et of the axes title
-axes.labelsize      : 11  # fontsize of the x any y labels
-axes.labelpad       : 8.0     # space between label and axis
+axes.titlesize      : 10   # fontsize of the axes title
+axes.titlepad       : 10   # vertical of20et of the axes title
+axes.labelsize      : 10  # fontsize of the x any y labels
+axes.labelpad       : 3.0     # space between label and axis
 #axes.labelweight    : normal  # weight of the x and y labels
 #axes.axisbelow      : False   # whether axis gridlines and ticks are below
                                # the axes elements (lines, text, etc)
@@ -113,21 +113,21 @@ axes.prop_cycle    : cycler('color', ['E31A1C', '33A02C', 'FF7F00', '1F78B4', '6
 
 ### TICKS
 # see http://matplotlib.org/api/axis_api.html#matplotlib.axis.Tick
-xtick.major.size     : 6      # major tick size in points
-xtick.minor.size     : 3      # minor tick size in points
+xtick.major.size     : 4      # major tick size in points
+xtick.minor.size     : 2      # minor tick size in points
 xtick.major.width    : 0.75    # major tick width in points
 xtick.minor.width    : 0.75    # minor tick width in points
-xtick.major.pad      : 5      # distance to major tick label in points
-xtick.minor.pad      : 5      # distance to the minor tick label in points
+xtick.major.pad      : 2      # distance to major tick label in points
+xtick.minor.pad      : 2      # distance to the minor tick label in points
 xtick.labelsize      : 11 # fontsize of the tick labels
 #xtick.direction      : in     # direction: in, out, or inout
 
-ytick.major.size     : 6      # major tick size in points
-ytick.minor.size     : 3      # minor tick size in points
+ytick.major.size     : 4      # major tick size in points
+ytick.minor.size     : 2      # minor tick size in points
 ytick.major.width    : 0.75    # major tick width in points
 ytick.minor.width    : 0.75    # minor tick width in points
-ytick.major.pad      : 5      # distance to major tick label in points
-ytick.minor.pad      : 5      # distance to the minor tick label in points
+ytick.major.pad      : 2      # distance to major tick label in points
+ytick.minor.pad      : 2      # distance to the minor tick label in points
 ytick.labelsize      : 11 # fontsize of the tick labels
 #ytick.direction      : in     # direction: in, out, or inout
 
@@ -160,7 +160,7 @@ legend.fontsize       : 8
 #legend.columnspacing : 2.    # the border between the axes and legend edge in fraction of fontsize
 legend.shadow        : False
 legend.frameon       : True   # whether or not to draw a frame around legend
-legend.framealpha    : 1.0    # opacity of of legend frame
+legend.framealpha    : 0.0    # opacity of of legend frame
 #legend.scatterpoints : 3 # number of scatter points
 
 #### SCATTER PLOTS

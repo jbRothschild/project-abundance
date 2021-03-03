@@ -1,12 +1,12 @@
 from matplotlib import colors
 
-VAR_NAME_DICT = { 'birth_rate'      : r'$r^{+}$'
-                , 'death_rate'      : r'$r^{-}$'
-                , 'immi_rate'       : r'$\mu$'
+VAR_NAME_DICT = { 'birth_rate'      : r'birth, $r^{+}$'
+                , 'death_rate'      : r'death, $r^{-}$'
+                , 'immi_rate'       : r'immigration, $\mu$'
                 , 'emmi_rate'       : r'$\delta$'
-                , 'carry_capacity'  : r'$K$'
-                , 'comp_overlap'    : r'$\rho$'
-                , 'nbr_species'     : r'$S$'
+                , 'carry_capacity'  : r'carrying capacity, $K$'
+                , 'comp_overlap'    : r'competitive overlap, $\rho$'
+                , 'nbr_species'     : r'number of species, $S$'
 }
 
 COLOURS = {   'time'            : 'g'

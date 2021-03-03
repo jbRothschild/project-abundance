@@ -11,8 +11,7 @@ np.seterr(divide='ignore', invalid='ignore')
 from gillespie_models import RESULTS_DIR, MultiLV, SIR
 import theory_equations as theqs
 from settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW, NPZ_SHORT_FILE
-
-YBOT_GLOB, YTOP_GLOB = 20, 60;
+from manual_revision import DICT_REVISION
 
 MANU_FIG_DIR = 'figures' + os.sep + 'manuscript'
 while not os.path.exists( os.getcwd() + os.sep + MANU_FIG_DIR ):
@@ -66,7 +65,7 @@ def smooth(x,window_len=11,window='hanning'):
                             ", 'bartlett', 'blackman'")
 
     s = np.r_[ x [window_len-1:0:-1], x, x[-2:-window_len-1:-1] ]
-    #print(len(s))
+
     if window == 'flat': #moving average
         w = np.ones(window_len,'d')
     else:
@@ -100,31 +99,39 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     # TODO change to dictionary
     for i in np.arange(nbr_sims):
         sim_nbr = i + 1
-        with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
-                   'results_0.pickle', 'rb') as handle:
-            param_dict  = pickle.load(handle)
+        if not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+                   'results_0.pickle'):
+            rich_dist_vary.append( np.array( [0] ) )
+            sim_dist_vary.append( np.array( [0] ) )
+            #conv_dist_vary.append( np.array( ss_dist_conv ) )
+            mf_dist_vary.append( np.array( [0] ) )
+        else:
+            with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+                       'results_0.pickle', 'rb') as handle:
+                param_dict  = pickle.load(handle)
 
-        model           = MultiLV(**param_dict)
-        theory_model    = theqs.Model_MultiLVim(**param_dict)
+            model           = MultiLV(**param_dict)
+            theory_model    = theqs.Model_MultiLVim(**param_dict)
 
-        # distribution
-        start = time.time()
-        ss_dist_sim     = model.results['ss_distribution'] \
-                                / np.sum(model.results['ss_distribution'])
-        #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
-        ss_dist_mf, _   = theory_model.abund_sid()
-        richness_dist   = model.results['richness']
-        rich_dist_vary.append( np.array( richness_dist ) )
-        sim_dist_vary.append( np.array( ss_dist_sim ) )
-        #conv_dist_vary.append( np.array( ss_dist_conv ) )
-        mf_dist_vary.append( np.array( ss_dist_mf ) )
-        end = time.time()
-        hours, rem = divmod( end-start, 3600 )
-        minutes, seconds = divmod( rem, 60 )
-        print(">>{} Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(i, int(hours)
-                                                    , int(minutes), seconds) )
-        # Value of parameters
-        param1[i] = param_dict[parameter1]; param2[i] = param_dict[parameter2]
+            # distribution
+            start = time.time()
+            ss_dist_sim     = model.results['ss_distribution'] \
+                                    / np.sum(model.results['ss_distribution'])
+            #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
+            ss_dist_mf, _   = theory_model.abund_sid()
+            richness_dist   = model.results['richness']
+            rich_dist_vary.append( np.array( richness_dist ) )
+            sim_dist_vary.append( np.array( ss_dist_sim ) )
+            #conv_dist_vary.append( np.array( ss_dist_conv ) )
+            mf_dist_vary.append( np.array( ss_dist_mf ) )
+            end = time.time()
+            hours, rem = divmod( end-start, 3600 )
+            minutes, seconds = divmod( rem, 60 )
+            print(">>{}Time elapsed: {:0>2}:{:0>2}:{:05.2f}".format(i,int(hours)
+                                                        , int(minutes),seconds))
+            # Value of parameters
+            param1[i] = param_dict[parameter1]
+            param2[i] = param_dict[parameter2]
 
     # making all sims have same distribution length
     len_longest_sim     = len( max(sim_dist_vary,key=len) )
@@ -162,16 +169,18 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         rich_dist2D[i,j]    = rich_dist[sim]
 
     # arrange into a dictionary to save
-    dict_arrays = {  parameter1 : param1_2D, parameter2     : param2_2D
-                                            , 'sim_dist'    : sim_dist2D
-                                            , 'mf_dist'     : mf_dist2D
+    dict_arrays = { 'sim_dist'  : sim_dist2D, 'mf_dist'     : mf_dist2D
                                             , 'conv_dist'   : conv_dist2D
                                             , 'rich_dist'   : rich_dist2D
-                                            , 'carry_capacity'  : model.carry_capacity
+                                            , 'carry_capacity': model.carry_capacity
                                             , 'birth_rate'  : model.birth_rate
                                             , 'death_rate'  : model.death_rate
                                             , 'nbr_species' : model.nbr_species
+                                            , 'immi_rate'   : model.immi_rate
+                                            , 'comp_overlap': model.comp_overlap
                                             }
+    dict_arrays[parameter1] = param1_2D
+    dict_arrays[parameter2] = param2_2D
     # save results in a npz file
     np.savez(filename, **dict_arrays)
 
@@ -245,34 +254,56 @@ def mfpt_b2a(dstbn, a, b, mu, rplus, rminus, K):
         mfpt += ( np.sum(dstbn[i+1:]) ) / ( ( rplus*i + mu ) * dstbn[i] )
         return mfpt
 
-def determine_modality( arr ):
+def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
     """
     This is a fine art, which I do not truly believe in
 
     Input
         arr     : 3D array of distributions
+        plot    : Whether to plot the results from the array
+        multimodmanual : Whether to override the multimodal check manually, use
+                        number of simulation (defined in manual_multimodality)
     """
 
-    line_colours = ['khaki','slateblue','mediumturquoise', 'lightcoral']
+    line_colours = ['khaki','slateblue','mediumturquoise','lightcoral'\
+                            ,'lightgray']
     line_names   = ['unimodal\n peak at 0','unimodal\n peak at >0'\
-                        ,'bimodal', 'multimodal']
-    bounds       = [-0.5, 0.5, 1.5, 2.5];
+                        ,'bimodal', 'multimodal', r'$P(0)$ unsampled']
+    bounds       = [-0.5, 0.5, 1.5, 2.5, 3.5];
 
-    modality_arr = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    #modality_arr = 2*np.ones( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    modality_arr = 2*np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+
     for i in np.arange(np.shape(arr)[0]):
         for j in np.arange(np.shape(arr)[1]):
             #smooth_arr = smooth(arr[i,j,:],21)
-            smooth_arr = smooth(arr[i,j,:65],4)
+            smooth_arr = smooth(arr[i,j,:65],4) # 71, 78
+            #smooth_arr = smooth(arr[i,j,:100],15) # 79
             max_idx, _ = find_peaks( smooth_arr )
-            if arr[i,j,0] > arr[i,j,1]:
+            if arr[i,j,0] == 0.0:
+                if sampleP0 == True:
+                    modality_arr[i,j] = line_names.index(r'$P(0)$ unsampled')
+            elif arr[i,j,0] > arr[i,j,1]:
                 modality_arr[i,j] = line_names.index('bimodal')
-                if len(max_idx) == 1 and max_idx[0]<4:
+                if len(max_idx) == 1 and max_idx[0]<3:
                     modality_arr[i,j] = line_names.index('unimodal\n peak at 0')
-                if len(max_idx) > 2:
-                    modality_arr[i,j] = line_names.index('multimodal')
+                elif len(max_idx) > 2:
+                    if revisionmanual == None:
+                        pass
+                        modality_arr[i,j] = line_names.index('multimodal')
             else:
+                pass
                 modality_arr[i,j] = line_names.index('unimodal\n peak at >0')
 
+    if revisionmanual != None:
+        for keys_revision in DICT_REVISION[revisionmanual]:
+            for idx_revision in DICT_REVISION[revisionmanual][keys_revision]:
+                i = idx_revision[0]; j=idx_revision[1]
+                modality_arr[i,j] = line_names.index('multimodal')
+    if plot:
+        for i in np.arange(np.shape(arr)[0]):
+            for j in np.arange(np.shape(arr)[1]):
+                plot_prob(arr[i,j,:],i, j, line_colours[int(modality_arr[i,j])])
     return modality_arr, line_names, line_colours
 
 def determine_bimodality_mf( arr ):
@@ -294,71 +325,360 @@ def meanJ_est(dstbn, nbr_species):
     #plt.colorbar(im,ax=ax); ax.invert_yaxis(); plt.show()
     return meanJ
 
-def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
+def plot_prob(probability, i, j, colour):
+    DIST_DIR = MANU_FIG_DIR + os.sep + 'distributions'
+    os.makedirs(DIST_DIR, exist_ok=True)
+    f = plt.figure(figsize=(1.75,1.25)); fig = plt.gcf(); ax = plt.gca()
+    plt.plot(probability[:125], color=colour, linewidth=2, zorder=10)
+    plt.xticks([0,50,100])
+    size = 7; ax.axes.labelsize = size
+    plt.xlabel(r'n',fontsize=size, labelpad=2);
+    plt.ylabel(r'P(n)', fontsize=size, labelpad=2);
+    plt.xlim([0,125]); plt.yscale('log')
+    ax.tick_params(axis='both', which='major', labelsize=size)
+    #ax.tick_params(axis='both', which='minor', labelsize=6)
+
+    if save:
+        plt.savefig(DIST_DIR + os.sep + "dstbn_" + str(i) + '_' + str(j)+'.pdf')
+    else:
+        plt.show()
+    plt.close()
+
+    return 0
+
+def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
+                    , revision=None, distplots=False, pbx=20, pby=20):
     """
     Heatmap of richness, with
     """
+    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
 
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    lines = [2,30]; line_colours = ['firebrick','hotpink']
-    imshow_kw = { 'cmap' : 'cividis_r', 'aspect' : None, 'interpolation' : None}
+    # transform
+    rangex = data[xlabel]; rangey = data[ylabel]
+
+    start = 0
+    if xlabel=='nbr_species':
+        start = 1
+
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
+    sim_rich = 1 - data['sim_dist'][start:,:,0]
+    mf_rich  = 1 - data['mf_dist'][start:,:,0]
+
+    arr = np.ones( ( np.shape(sim_rich)[0], np.shape(sim_rich)[1] ) )
+    if xlabel=='nbr_species':
+        sim_nbr_spec = data['nbr_species'][start:,None]*sim_rich
+        S =  data['nbr_species'][start:,None]*arr
+        sim_frac_spec_minus1 = (data['nbr_species'][start:,None]-1.)/(data['nbr_species'][start:,None])*arr
+        mf_nbr_spec = data['nbr_species'][start:,None]*mf_rich
+    elif ylabel=='nbr_species':
+        sim_nbr_spec = data['nbr_species'][start:,None]*sim_rich
+        S =  data['nbr_species'][start:,None]*arr
+        sim_frac_spec_minus1 = (data['nbr_species']-1.)/(data['nbr_species'])[start:,None]*arr
+        mf_nbr_spec = S*mf_rich
+    else:
+        sim_nbr_spec = data['nbr_species']*sim_rich
+        mf_nbr_spec = data['nbr_species']*mf_rich
+        sim_frac_spec_minus1 = (data['nbr_species']-1.)/data['nbr_species']*arr
+
+
+    sim_rich_cat = np.zeros( ( np.shape(sim_rich)[0], np.shape(sim_rich)[1] ) )
+    mf_rich_cat = np.zeros( ( np.shape(mf_rich)[0], np.shape(mf_rich)[1] ) )
+
+    for i in np.arange(np.shape(sim_rich_cat)[0]):
+        for j in np.arange(np.shape(sim_rich_cat)[1]):
+            if sim_rich[i,j] >= sim_frac_spec_minus1[i,j]:
+                sim_rich_cat[i,j] = 1.0
+            elif sim_nbr_spec[i,j] < 1.5:
+                sim_rich_cat[i,j] = -1.0
+            else: pass
+
+            if mf_rich[i,j] >= sim_frac_spec_minus1[i,j]:
+                mf_rich_cat[i,j] = 1.0
+            elif mf_nbr_spec[i,j] < 2:
+                mf_rich_cat[i,j] = -1.0
+            else: pass
+
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
 
     # plots
-    xrange = data[xlabel]; yrange = data[ylabel]
-    mean_rich_sim = np.tensordot(data['rich_dist'] ,
-                        np.arange(np.shape(data['rich_dist'])[2]) , axes=(2,0))
-    mf_rich = np.shape(data['rich_dist'])[2] * ( 1 - data['mf_dist'][:,:,0] )
-    rates_rich_sim = data['sim_dist'][:,:,0]/(1.0 - data['sim_dist'][:,:,0])
-    mask = 4*np.ones(( len(xrange), len(yrange) ))
-    rates_rich_29 = np.ma.masked_where(np.around(2*rates_rich_sim) != 28., mask)
-    rates_rich_2 = np.ma.masked_where(np.around(29*rates_rich_sim) != 1., mask)
+    bounds = [-1.5, -0.5, 0.5, 1.5]; line_colours = ['mediumblue','cornflowerblue','lightsteelblue']
+    cmap = colors.ListedColormap( line_colours )
+    norm = colors.BoundaryNorm( bounds, cmap.N )
 
-    im = ax.imshow(mean_rich_sim.T, **imshow_kw)
-    MF = ax.contour( mf_rich.T, lines, linestyles='solid'
-                        , colors = line_colours, linewidths = 3)
-    x, y = np.meshgrid( np.arange(len(xrange)), np.arange(len(yrange)) )
-    plt.scatter(x, y, s=rates_rich_29[x,y], marker='x', c=line_colours[0])
-    plt.scatter(x, y, s=rates_rich_2[x,y], marker='x', edgecolor='k'
-                    , c=line_colours[1])
+    im = plt.imshow(sim_rich_cat.T, cmap=cmap, norm=norm, aspect='auto')
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
-                        if i % POINTS_BETWEEN_X_TICKS == 0])
-    ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
-                        if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
-                        if i % POINTS_BETWEEN_Y_TICKS == 0])
-    ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
-                        if i % POINTS_BETWEEN_Y_TICKS==0])
-    ax.invert_yaxis();
-    cb = plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap'])
-    cb.ax.hlines(lines, cb.vmin, cb.vmax, colors=line_colours, lw=[3,6])
+    #im = ax.imshow(mean_rich_sim.T, **imshow_kw)
+    if start == 0:
+        MF = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
+                                    , linewidths = 1)
+    MF2 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
+                                , linewidths = 1)
+    #x, y = np.meshgrid( np.arange(len(rangex)), np.arange(len(rangey)) )
+    #plt.scatter(x, y, s=rates_rich_29[x,y], marker='x', c=line_colours[0])
+    #plt.scatter(x, y, s=rates_rich_2[x,y], marker='x', edgecolor='k'
+    #                , c=line_colours[1])
+
+    #cb = plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap'])
+    #cb.ax.hlines(lines, cb.vmin, cb.vmax, colors=line_colours, lw=[3,6])
     #cb.set_label('mean richness simulation')
-    cb.ax.set_title('sim.')
-    plt.ylim([YBOT_GLOB,YTOP_GLOB])
+    #cb.ax.set_title('sim.')
+    ax.set_xticks([i for i, xval in enumerate(rangex)
+                        if i % POINTS_BETWEEN_X_TICKS == 0])
+    ax.set_yticks([i for i, yval in enumerate(rangey)
+                        if i % POINTS_BETWEEN_Y_TICKS == 0])
+    if xlog:
+        ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    else:
+        ax.set_xticklabels([r'$%.0f$' % round(xval, 2)
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    if ylog:
+        ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    else:
+        ax.set_yticklabels([r'$%.2f$' % round(yval, 2)
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    ax.invert_yaxis();
+    if ydatalim != None:
+        plt.ylim([ydatalim[0],ydatalim[1]])
+    if xdatalim != None:
+        plt.xlim([xdatalim[0],xdatalim[1]])
+
     plt.xlabel(VAR_NAME_DICT[xlabel]); plt.ylabel(VAR_NAME_DICT[ylabel])
     fake_legend = [ Line2D([0],[0], color='grey', lw=2, linestyle='solid'
                     , label=r'mean field approx.')
                     , Line2D([0],[0], color='grey', lw=2, linestyle='dotted'
                                     , label=r'flux balance sim.')
                     ]
-    ax.legend(handles=fake_legend, loc=4)
-    plt.title('Richness')
+    #ax.legend(handles=fake_legend, loc=4)
+    #plt.title('Richness')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_"+ xlabel + '.pdf');
+        #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    if xlabel != 'nbr_species':
+
+        f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+        R=np.shape(data['rich_dist'])[2]-1
+        plt.plot(data['rich_dist'][0,R], color=line_colours[0]
+                        ,marker='s', markeredgecolor='None', linewidth=2, zorder=10)
+        plt.plot(data['rich_dist'][int(5*(R)/10), int(8*(R)/10)]
+                        , color=line_colours[1], marker='o', markeredgecolor='None'
+                        ,linewidth=2, zorder=10)
+        plt.plot(data['rich_dist'][R,0], color=line_colours[2]
+                        , marker='D', markeredgecolor='None',linewidth=2, zorder=10)
+        plt.ylim([0,1.0])
+        plt.xlim([0,np.shape(data['rich_dist'])[2]-1])
+        plt.xlabel(r'species present, $S^*$')
+        plt.ylabel(r'P($S^*$)')
+
+        if save:
+            plt.savefig(MANU_FIG_DIR + os.sep + "richness_dist_"+ xlabel + '.pdf');
+            #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
+        else:
+            plt.show()
+        plt.close()
+
+    return 0
+
+
+def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
+                    , revision=None, distplots=False, pbx=20, pby=20):
+    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
+    """
+    Heatmap of modality
+    Need to smooth out simulation results. How to compare?
+    """
+    data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
+
+    start = 0
+    if xlabel=='nbr_species':
+        start = 1
+
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
+    print(rangey)
+
+    K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
+    mu = data['immi_rate']; S = data['nbr_species']
+
+    sim_dist = data['sim_dist'][start:,:,:]
+    mf_dist = data['mf_dist'][start:,:,:]
+    rich_dist = data['rich_dist'][start:,:,:]
+
+    modality_sim, line_names, line_colours\
+                        = determine_modality( sim_dist, distplots, revision )
+    modality_mf, _, _  = determine_modality( mf_dist, False )
+
+    lines = [float(i) for i in list( range( 0, len(line_names) ) ) ]
+    bounds = [ i - 0.5 for i in lines + [lines[-1] + 1.0]  ]
+    lines_center = [ a + b for a, b in zip( lines, [0]*len(line_names) ) ]
+
+    mf_meanJ = meanJ_est(mf_dist, (np.shape(rich_dist)[2]-1))
+    mf_rich = np.shape(mf_dist)[2] * ( 1 - mf_dist )
+    mf_meanJ = meanJ_est(sim_dist, (np.shape(rich_dist)[2]-1))
+
+    if xlabel == 'immi_rate':
+        mu  = (rangex*np.ones( (np.shape(sim_dist)[0]
+                                , np.shape(sim_dist)[1])).T).T
+
+    rho = (rangey*np.ones( (np.shape(sim_dist)[0]
+                                , np.shape(sim_dist)[1])))
+
+    mf_unimodal = (1./mu)*(rminus + (rplus-rminus)*( 1. +
+                                rho*( mf_meanJ - 1. ) )/K )
+
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+    #f = plt.figure(figsize=(2,2)); fig = plt.gcf(); ax = plt.gca()
+
+    # plots
+    cmap = colors.ListedColormap( line_colours )
+    norm = colors.BoundaryNorm( bounds, cmap.N )
+
+    im = plt.imshow(modality_sim.T, cmap=cmap, norm=norm, aspect='auto')
+
+    MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
+                        , colors = 'k', linewidths = 1)
+    MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
+                        , colors = 'k', linewidths = 1)
+
+    ax.set_xticks([i for i, xval in enumerate(rangex)
+                        if i % POINTS_BETWEEN_X_TICKS == 0])
+    ax.set_yticks([i for i, yval in enumerate(rangey)
+                        if i % POINTS_BETWEEN_Y_TICKS == 0])
+    if xlog:
+        ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    else:
+        ax.set_xticklabels([r'$%.0f$' % round(xval, 2)
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    if ylog:
+        ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    else:
+        ax.set_yticklabels([r'$%.2f$' % round(yval, 2)
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    ax.invert_yaxis();
+    if ydatalim != None:
+        plt.ylim([ydatalim[0],ydatalim[1]])
+    if xdatalim != None:
+        print('doing')
+        plt.xlim([xdatalim[0],xdatalim[1]])
+
+    plt.xlabel(VAR_NAME_DICT[xlabel]); plt.ylabel(VAR_NAME_DICT[ylabel])
+    #plt.title('Modality')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "modality_" + xlabel + '.pdf');
+        #plt.savefig(MANU_FIG_DIR + os.sep + "modality" + '.png');
+    else:
+        plt.show()
+    return 0
+
+    return 0
+
+def fig2A_old(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
+    """
+    Heatmap of richness, with
+    """
+    data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    lines = [2,30]; line_colours = ['firebrick','hotpink','r']
+    #imshow_kw = { 'cmap' : 'cividis_r', 'aspect' : None, 'interpolation' : None}
+
+    cmap = colors.ListedColormap( line_colours )
+    norm = colors.BoundaryNorm( bounds, cmap.N )
+
+    # plots
+    rangex = data[xlabel]; rangey = data[ylabel]
+    mean_rich_sim = np.tensordot(data['rich_dist'] ,
+                        np.arange(np.shape(data['rich_dist'])[2]) , axes=(2,0))
+    mf_rich = np.shape(data['rich_dist'])[2] * ( 1 - data['mf_dist'][:,:,0] )
+    #rates_rich_sim = data['sim_dist'][:,:,0]/(1.0 - data['sim_dist'][:,:,0])
+    #mask = 4*np.ones(( len(rangex), len(rangey) ))
+    #rates_rich_29 = np.ma.masked_where(np.around(2*rates_rich_sim) != 28., mask)
+    #rates_rich_2 = np.ma.masked_where(np.around(29*rates_rich_sim) != 1., mask)
+
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+
+    # plots
+    cmap = colors.ListedColormap( line_colours )
+    norm = colors.BoundaryNorm( bounds, cmap.N )
+
+    im = plt.imshow(modality_sim.T, cmap=cmap, norm=norm, aspect='auto')
+
+    #im = ax.imshow(mean_rich_sim.T, **imshow_kw)
+    MF = ax.contour( mf_rich.T, lines, linestyles='solid'
+                        , colors = ['k','k'], linewidths = 1)
+    #x, y = np.meshgrid( np.arange(len(rangex)), np.arange(len(rangey)) )
+    #plt.scatter(x, y, s=rates_rich_29[x,y], marker='x', c=line_colours[0])
+    #plt.scatter(x, y, s=rates_rich_2[x,y], marker='x', edgecolor='k'
+    #                , c=line_colours[1])
+
+    #cb = plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap'])
+    #cb.ax.hlines(lines, cb.vmin, cb.vmax, colors=line_colours, lw=[3,6])
+    #cb.set_label('mean richness simulation')
+    #cb.ax.set_title('sim.')
+    ax.set_xticks([i for i, xval in enumerate(rangex)
+                        if i % POINTS_BETWEEN_X_TICKS == 0])
+    ax.set_yticks([i for i, yval in enumerate(rangey)
+                        if i % POINTS_BETWEEN_Y_TICKS == 0])
+    if xlog:
+        ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    else:
+        ax.set_xticklabels([r'$%.0f$' % round(xval, 2)
+                            for i, xval in enumerate(rangex)
+                            if (i % POINTS_BETWEEN_X_TICKS==0)])
+    if ylog:
+        ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    else:
+        ax.set_yticklabels([r'$%.2f$' % round(yval, 2)
+                            for i, yval in enumerate(rangey)
+                            if i % POINTS_BETWEEN_Y_TICKS==0])
+    ax.invert_yaxis();
+    if ydatalim != None:
+        plt.ylim([ydatalim[0],ydatalim[1]])
+    if xdatalim != None:
+        plt.xlim([xdatalim[0],xdatalim[1]])
+
+    plt.xlabel(VAR_NAME_DICT[xlabel]); plt.ylabel(VAR_NAME_DICT[ylabel])
+    fake_legend = [ Line2D([0],[0], color='grey', lw=2, linestyle='solid'
+                    , label=r'mean field approx.')
+                    , Line2D([0],[0], color='grey', lw=2, linestyle='dotted'
+                                    , label=r'flux balance sim.')
+                    ]
+    #ax.legend(handles=fake_legend, loc=4)
+    #plt.title('Richness')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
     else:
         plt.show()
 
-def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
+def fig2B_old(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     """
     Heatmap of modality
     Need to smooth out simulation results. How to compare?
     """
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
 
@@ -374,10 +694,10 @@ def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     mf_rich = np.shape(data['rich_dist'])[2] * ( 1 - data['mf_dist'][:,:,0] )
     mf_meanJ = meanJ_est(data['sim_dist'], (np.shape(data['rich_dist'])[2]-1))
 
-    mu  = (xrange*np.ones( (np.shape(data['sim_dist'])[0]
+    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])).T).T
 
-    rho = (yrange*np.ones( (np.shape(data['sim_dist'])[0]
+    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])))
 
     mf_unimodal = (1./mu)*(rminus + (rplus-rminus)*( 1. +
@@ -441,15 +761,15 @@ def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     MF4 = ax.contour( (nstar3.imag).T, [0.], linestyles='dotted'
                         , colors = 'lightblue', linewidths = 3)
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
+    ax.set_xticks([i for i, xval in enumerate(rangex)
                         if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
+                        for i, xval in enumerate(rangex)
                         if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
+    ax.set_yticks([i for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS == 0])
     ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
+                        for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS==0])
     ax.invert_yaxis();
     cb = plt.colorbar(im, ax=ax, cmap=cmap, ticks=lines_center)
@@ -480,14 +800,14 @@ def fig3A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     """
 
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
 
-    mu  = (xrange*np.ones( (np.shape(data['sim_dist'])[0]
+    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])).T).T
 
-    rho = (yrange*np.ones( (np.shape(data['sim_dist'])[0]
+    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])))
 
     # Nava
@@ -508,15 +828,15 @@ def fig3A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
                     , 'norm' : mpl.colors.LogNorm()}
     im = plt.imshow( turnover.T, **imshow_kw)
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
+    ax.set_xticks([i for i, xval in enumerate(rangex)
                         if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
+                        for i, xval in enumerate(rangex)
                         if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
+    ax.set_yticks([i for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS == 0])
     ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
+                        for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS==0])
     ax.invert_yaxis();
 
@@ -536,7 +856,7 @@ def fig3B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     Taylors Law
     """
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
 
@@ -544,7 +864,7 @@ def fig3B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     start = 1
     prob = data[dist][:,:,start:]\
             /np.sum(data[dist][:,:,start:],axis=2)[:,:,np.newaxis]
-    print(np.shape(prob))
+
     square      = np.tensordot( prob,np.arange(start,np.shape(data[dist])[2])**2
                                 , axes=(2,0) )
     square_flat = square.flatten()
@@ -593,14 +913,14 @@ def fig3CDE(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     Time to extinction, time to dominance
     """
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
 
-    mu  = (xrange*np.ones( (np.shape(data['sim_dist'])[0]
+    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])).T).T
 
-    rho = (yrange*np.ones( (np.shape(data['sim_dist'])[0]
+    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])))
 
     arr             = data['sim_dist']
@@ -641,15 +961,15 @@ def fig3CDE(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
                     , 'norm' : mpl.colors.LogNorm()}
     im = plt.imshow( dom_turnover.T, **imshow_kw)
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
+    ax.set_xticks([i for i, xval in enumerate(rangex)
                         if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
+                        for i, xval in enumerate(rangex)
                         if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
+    ax.set_yticks([i for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS == 0])
     ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
+                        for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS==0])
     ax.invert_yaxis();
 
@@ -671,15 +991,15 @@ def fig3CDE(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
                     , 'norm' : mpl.colors.LogNorm()}
     im = plt.imshow( fpt_dominance.T, **imshow_kw)
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
+    ax.set_xticks([i for i, xval in enumerate(rangex)
                         if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
+                        for i, xval in enumerate(rangex)
                         if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
+    ax.set_yticks([i for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS == 0])
     ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
+                        for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS==0])
     ax.invert_yaxis();
 
@@ -701,15 +1021,15 @@ def fig3CDE(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
                     , 'norm' : mpl.colors.LogNorm()}
     im = plt.imshow( fpt_submission.T, **imshow_kw)
 
-    ax.set_xticks([i for i, xval in enumerate(xrange)
+    ax.set_xticks([i for i, xval in enumerate(rangex)
                         if i % POINTS_BETWEEN_X_TICKS == 0])
     ax.set_xticklabels([r'$10^{%d}$' % np.log10(round(xval, 13))
-                        for i, xval in enumerate(xrange)
+                        for i, xval in enumerate(rangex)
                         if (i % POINTS_BETWEEN_X_TICKS==0)])
-    ax.set_yticks([i for i, yval in enumerate(yrange)
+    ax.set_yticks([i for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS == 0])
     ax.set_yticklabels([r'$10^{%d}$' % np.log10(round(yval, 13))
-                        for i, yval in enumerate(yrange)
+                        for i, yval in enumerate(rangey)
                         if i % POINTS_BETWEEN_Y_TICKS==0])
     ax.invert_yaxis();
 
@@ -730,13 +1050,13 @@ def fig3F(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
     """
 
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
-    mu  = (xrange*np.ones( (np.shape(data['sim_dist'])[0]
+    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])).T).T
 
-    rho = (yrange*np.ones( (np.shape(data['sim_dist'])[0]
+    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
                                 , np.shape(data['sim_dist'])[1])))
 
     nbr_species = S # Or something different?
@@ -747,17 +1067,17 @@ def many_parameters_dist(filename, save=False, xlabel='immi_rate'
                                 , ylabel='comp_overlap'):
 
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    xrange = data[xlabel]; yrange = data[ylabel]
+    rangex = data[xlabel]; rangey = data[ylabel]
 
     # plots
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     cmap = mpl.cm.get_cmap("plasma")
     divide = 1
-    print(xrange[2])
-    for j in np.arange(int(len(yrange)/divide)):
+
+    for j in np.arange(int(len(rangey)/divide)):
         plt.plot(np.arange(0,np.shape(data['sim_dist'])[2])
                     , data['sim_dist'][2][j], lw= 0.5
-                    , c=cmap(j/int( len(yrange)/divide ) ) )
+                    , c=cmap(j/int( len(rangey)/divide ) ) )
             #plt.scatter(mean[i,j],variance[i,j], s=(float(j)/float(np.shape(mean)[1]))
             #, marker='o', edgecolors=None, c=cmap(i/np.shape(mean)[0]) )
     #plt.xscale('log');
@@ -788,25 +1108,25 @@ def convert_npz_mat(filename):
 
 
 if __name__ == "__main__":
-    sim = 'many_folder1';
-    #mlv_consolidate_sim_results( sim_dir )
 
-    mult_fold = [RESULTS_DIR + os.sep + 'multiLV71'\
-                , RESULTS_DIR + os.sep + 'multiLV72'\
-                , RESULTS_DIR + os.sep + 'multiLV73']
-    #sim         = 'many_folder1'
-    sim_dir     = RESULTS_DIR + os.sep + sim
-    npz_file    = sim_dir + os.sep + NPZ_SHORT_FILE
+    sim_immi        = RESULTS_DIR + os.sep + 'multiLV71'
+    sim_immi_inset  = RESULTS_DIR + os.sep + 'multiLV79'
+    sim_spec        = RESULTS_DIR + os.sep + 'multiLV77'
 
-    #convert_npz_mat( npz_file )
 
-    mlv_multiple_folder_consolidate(mult_fold, sim_dir, 'immi_rate'
-                                            , 'comp_overlap', True)
+    #mlv_consolidate_sim_results( sim_spec, 'nbr_species', 'comp_overlap')
+    #mlv_consolidate_sim_results( sim_immi, 'immi_rate', 'comp_overlap')
+
+
     save = True
     #many_parameters_dist(npz_file, save)
 
-    #fig2A(npz_file, save)
-    fig2B(npz_file, save)
+    fig2A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
+    fig2B(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #fig2A(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', distplots=False, xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #fig2B(sim_immi_inset+os.sep+NPZ_SHORT_FILE, save, ylog=False, xlog=False, distplots=False, pby=15)
+    #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, save)
     #fig3A(npz_file, save)
     #fig3B(npz_file, save)
     #fig3CDE(npz_file, save)

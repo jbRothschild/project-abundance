@@ -103,7 +103,7 @@ class Parent(object):
                                 , times[idx_sort])
 
         # Save state and some results of the simulation
-        del self.results['temp_time']
+        self.results['temp_time']
         self.results['time_btwn_ext'] = np.array(self.results['time_btwn_ext'])
         with open(self.sim_subdir + os.sep + 'results_%s.pickle' %(traj),
                   'wb') as handle:
@@ -244,7 +244,14 @@ class MultiLV(Parent):
                                                         self.nbr_species))
                             , 'av_ni_temp' : np.zeros(self.nbr_species)
                             , 'av_ni_sq_temp' : np.zeros(self.nbr_species)
-                            , 'corr_ni_nj' : 0.0
+                            , 'corr_ni_nj' : 0.0, 'coeff_ni_nj' : 0.0
+                            , 'av_J' : 0.0, 'av_J_sq' : 0.0
+                            , 'av_J_n' : np.zeros(self.nbr_species)
+                            , 'corr_J_n' : 0.0, 'coeff_J_n' :0.0
+                            , 'av_Jminusn' : np.zeros(self.nbr_species)
+                            , 'av_Jminusn_sq' : np.zeros(self.nbr_species)
+                            , 'av_Jminusn_n' : np.zeros(self.nbr_species)
+                            , 'corr_Jminusn_n' : 0.0, 'coeff_Jminusn_n' : 0.0
                             }
 
     def propensity( self, current_state ):
@@ -349,6 +356,13 @@ class MultiLV(Parent):
 
         # Tally the joint distribution P(n_i,n_j) and temporary variables for
         # correlation calculation
+        J = np.sum(current_state)
+        self.results['av_J'] += dt*J
+        self.results['av_J_sq'] += dt*J**2
+        self.results['av_J_n'] += dt*J*current_state
+        self.results['av_Jminusn'] += dt*(J-current_state)
+        self.results['av_Jminusn_sq'] += dt*np.square(J-current_state)
+        self.results['av_Jminusn_n'] += dt*(J-current_state)*current_state
         for i, value_i in enumerate(current_state):
             self.results['av_ni_temp'][i] += dt*value_i
             self.results['av_ni_sq_temp'][i] += dt*value_i**2
@@ -364,10 +378,11 @@ class MultiLV(Parent):
         Explain what is going on
         """
         # normalize the distribution
-        self.results['ss_distribution'] /= np.max(times)
+        total_time = np.max(times)
+        self.results['ss_distribution'] /= total_time
 
         # normalize the richness
-        self.results['richness'] /= np.max(times)
+        self.results['richness'] /= total_time
 
 
         # Calculate conditional probability
@@ -393,31 +408,79 @@ class MultiLV(Parent):
 
 
         # Calculate correlation
-        self.results['av_ni_temp'] /= np.max(times)
-        self.results['av_ni_sq_temp'] /= np.max(times)
-        self.results['av_ni_nj_temp'] /= np.max(times)
+        self.results['av_ni_temp'] /= total_time
+        self.results['av_ni_sq_temp'] /= total_time
+        self.results['av_ni_nj_temp'] /= total_time
+        self.results['av_J'] /= total_time
+        self.results['av_J_sq'] /= total_time
+        self.results['av_J_n'] /= total_time
+        self.results['av_Jminusn'] /= total_time
+        self.results['av_Jminusn_sq'] /= total_time
+        self.results['av_Jminusn_n'] /= total_time
         nbr_correlations = 0
+
+        print( self.results['av_ni_sq_temp'],self.results['av_ni_temp']**2 )
+
         for i in np.arange(0, self.nbr_species):
+            var_J_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
+                        - self.results['av_ni_temp'][i]**2 ) ) * (
+                        np.sqrt( self.results['av_J_sq']
+                        - self.results['av_J']**2 ) ) )
+            var_Jminusn_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
+                            - self.results['av_ni_temp'][i]**2 ) ) * (
+                            np.sqrt( self.results['av_Jminusn_sq'][i]
+                            - self.results['av_Jminusn'][i]**2 ) ) )
+            # cov(J,n)
+            cov_J_n = (self.results['av_J_n'][i] - self.results['av_ni_temp'][i]
+                        * self.results['av_J'] )
+            # cov(J-n,n)
+            cov_Jminusn_n = (self.results['av_Jminusn_n'][i]
+                            - self.results['av_ni_temp'][i] *
+                            self.results['av_Jminusn'][i] )
+            # coefficients of variation
+            if self.results['av_J_n'][i] != 0.0:
+                self.results['coeff_J_n']+= cov_J_n / self.results['av_J_n'][i]
+            if self.results['av_Jminusn_n'][i] != 0.0:
+                self.results['coeff_Jminusn_n'] += ( cov_Jminusn_n
+                                            / self.results['av_Jminusn_n'][i] )
+            # Pearson correlation
+            if var_J_n != 0.0:
+                self.results['corr_J_n'] += cov_J_n / var_J_n
+            if var_Jminusn_n != 0.0:
+                self.results['corr_Jminusn_n'] += cov_Jminusn_n / var_Jminusn_n
+
             for j in np.arange(i+1, self.nbr_species):
-                variance = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
+                var_nm = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
                 - self.results['av_ni_temp'][i]**2 ) ) * (
                 np.sqrt( self.results['av_ni_sq_temp'][j]
                 - self.results['av_ni_temp'][j]**2 ) ) )
-                if variance != 0.0:
-                    self.results['corr_ni_nj'] += (
-                            self.results['av_ni_nj_temp'][i][j]
+                # cov(n_i,n_j)
+                cov_ni_nj = ( self.results['av_ni_nj_temp'][i][j]
                             - self.results['av_ni_temp'][i] *
-                            self.results['av_ni_temp'][j] ) / variance
+                            self.results['av_ni_temp'][j] )
+                # coefficients of variation
+                if self.results['av_ni_nj_temp'][i][j] != 0.0:
+                    self.results['coeff_ni_nj'] += ( cov_ni_nj
+                                        / self.results['av_ni_nj_temp'][i][j] )
+                # Pearson correlation
+                if var_nm != 0.0:
+                    self.results['corr_ni_nj'] += cov_ni_nj / var_nm
                     nbr_correlations += 1
 
-        #self.results['corr_ni_nj'] /= nbr_correlations
+        # Taking the average over all species
         self.results['corr_ni_nj'] /= ( self.nbr_species*(self.nbr_species-1)/2)
+        self.results['coeff_ni_nj'] /= ( self.nbr_species*(self.nbr_species-1)/2)
+        self.results['corr_J_n'] /= ( self.nbr_species)
+        self.results['coeff_J_n'] /= ( self.nbr_species)
+        self.results['corr_Jminusn_n'] /= ( self.nbr_species)
+        self.results['coeff_Jminusn_n'] /= ( self.nbr_species)
 
-        del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
-            , self.results['av_ni_nj_temp'], self.results['joint_temp']
+        #del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
+        #    , self.results['av_ni_nj_temp'], self.results['joint_temp']
 
         super(MultiLV, self).save_trajectory(simulation, times, traj)
 
+        # TODO : Check I can get rid of.
         # with open('filename.pickle', 'rb') as handle:
         #    b = pickle.load(handle)
         #print(self.results['corr_ni_nj'])
