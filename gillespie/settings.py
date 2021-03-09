@@ -9,6 +9,15 @@ VAR_NAME_DICT = { 'birth_rate'      : r'birth, $r^{+}$'
                 , 'nbr_species'     : r'number of species, $S$'
 }
 
+VAR_SYM_DICT = { 'birth_rate'      : r'$r^{+}$'
+                , 'death_rate'      : r'$r^{-}$'
+                , 'immi_rate'       : r'$\mu$'
+                , 'emmi_rate'       : r'$\delta$'
+                , 'carry_capacity'  : r'$K$'
+                , 'comp_overlap'    : r'$\rho$'
+                , 'nbr_species'     : r'$S$'
+                }
+
 COLOURS = {   'time'            : 'g'
             , 'population'      : 'r'
             , 'metric'          : 'b'

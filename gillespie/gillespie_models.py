@@ -103,8 +103,9 @@ class Parent(object):
                                 , times[idx_sort])
 
         # Save state and some results of the simulation
-        self.results['temp_time']
         self.results['time_btwn_ext'] = np.array(self.results['time_btwn_ext'])
+        self.results['times'] = times
+        self.results['trajectory'] = simulation
         with open(self.sim_subdir + os.sep + 'results_%s.pickle' %(traj),
                   'wb') as handle:
             pickle.dump(self.__dict__, handle, protocol=pickle.HIGHEST_PROTOCOL)
