@@ -2,10 +2,12 @@ import os, glob, csv, pickle, copy, time, scipy
 
 import matplotlib as mpl; from matplotlib import colors
 import matplotlib.pyplot as plt; from matplotlib.lines import Line2D
-import numpy as np; from scipy.signal import argrelextrema
-import pandas as pd
-import scipy.io as sio
-from scipy.signal import savgol_filter, find_peaks
+import numpy as np; import pandas as pd
+import scipy.io as sio;
+from scipy.signal import savgol_filter, find_peaks, argrelextrema
+from autocorrelation import autocorrelation_spectrum as autospec
+from autocorrelation import average_timescale_autocorrelation, exponential_fit_autocorrelation
+
 np.seterr(divide='ignore', invalid='ignore')
 
 from gillespie_models import RESULTS_DIR, MultiLV
@@ -22,6 +24,57 @@ plt.style.use('custom.mplstyle')
 
 
 POINTS_BETWEEN_X_TICKS = 20; POINTS_BETWEEN_Y_TICKS = 20
+
+def deterministic_mean(nbr_species, mu, rho, rplus, rminus, K):
+    # Deterministic mean fixed point
+    det_mean = K*( ( 1. + np.sqrt( 1.+ 4.*mu*( 1. + rho*( nbr_species - 1. ) ) /
+                (K*(rplus-rminus)) ) ) / ( 2.*( 1. + rho*(nbr_species-1.) ) ) )
+    return int(det_mean)
+
+def meanJ_sim(dstbn, nbr_species):
+    return nbr_species * np.dot(dstbn, np.arange( len(dstbn) ) )
+
+def meanJ_est(dstbn, nbr_species):
+    meanJ = np.zeros((np.shape(dstbn)[0],np.shape(dstbn)[1]))
+    for i in np.arange(np.shape(dstbn)[0]):
+        for j in np.arange(np.shape(dstbn)[1]):
+            dstbnij = dstbn[i,j]
+            meanJ[i,j] = meanJ_sim(dstbnij, nbr_species)
+    #f = plt.figure(); fig = plt.gcf(); ax = plt.gca() im = ax.imshow(meanJ.T);
+    #plt.colorbar(im,ax=ax); ax.invert_yaxis(); plt.show()
+    return meanJ
+
+def mfpt_a2b( dstbn, a, b, mu=1.0, rplus=2.0 ):
+    """
+    From distribution, get the mfpt <T_{b}(a)>, a<b
+    """
+    mfpt = 0.0
+    for i in np.arange(a,b):
+        mfpt += np.divide( np.sum( dstbn[:i+1] )  , ( rplus*i + mu )*dstbn[i] )
+    return mfpt
+
+def mfpt_b2a( dstbn, a, b, mu=1.0, rplus=2.0 ):
+    """
+    From distribution, get the mfpt <T_{a}(b)>
+    """
+    mfpt = 0
+    for i in np.arange(a,b):
+        mfpt += np.divide( np.sum(dstbn[i+1:]) , ( rplus*i + mu ) * dstbn[i] )
+    return mfpt
+
+def mfpt_020( dstbn, mu=1.0 ):
+    """
+    From distribution, get the mfpt <T_{0}(0)>
+    """
+    return np.divide( 1., ( dstbn[0] * mu ) )
+
+def mfpt_a2a( dstbn, a, mu=1.0, rplus=2.0, rminus=1.0, K=100, rho=1.0, S=30 ):
+    """
+    From distribution, get the mfpt <T_{a}(a)> for a!=0
+    """
+    return np.divide( ( 1. + dstbn[a] ) , ( dstbn[a]
+            * ( rplus*a + mu + a*( rminus + ( rplus-rminus )
+            * ( ( 1. - rho ) * a + rho * meanJ_sim(dstbn, S) ) / K ) ) ) )
 
 def smooth(x,window_len=11,window='hanning'):
     """
@@ -75,6 +128,77 @@ def smooth(x,window_len=11,window='hanning'):
     y = np.convolve( w / w.sum(), s, mode='valid')
     return y
 
+def correlations_fix(model, filesave):
+
+    print("Warning, previously MLV6 calculated coefficient of variation wrong")
+
+    model.results['corr_ni_nj'] = 0.0
+    model.results['coeff_ni_nj'] = 0.0
+    model.results['corr_J_n']  = 0.0
+    model.results['coeff_J_n']  = 0.0
+    model.results['corr_Jminusn_n']  = 0.0
+    model.results['coeff_Jminusn_n']  = 0.0
+    for i in np.arange(0, model.nbr_species):
+            var_J_n = ( ( np.sqrt( model.results['av_ni_sq_temp'][i]
+                        - model.results['av_ni_temp'][i]**2 ) ) * (
+                        np.sqrt( model.results['av_J_sq']
+                        - model.results['av_J']**2 ) ) )
+            var_Jminusn_n = ( ( np.sqrt( model.results['av_ni_sq_temp'][i]
+                            - model.results['av_ni_temp'][i]**2 ) ) * (
+                            np.sqrt( model.results['av_Jminusn_sq'][i]
+                            - model.results['av_Jminusn'][i]**2 ) ) )
+            # cov(J,n)
+            cov_J_n = (model.results['av_J_n'][i] - model.results['av_ni_temp'][i]
+                        * model.results['av_J'] )
+            # cov(J-n,n)
+            cov_Jminusn_n = (model.results['av_Jminusn_n'][i]
+                            - model.results['av_ni_temp'][i] *
+                            model.results['av_Jminusn'][i] )
+            # coefficients of variation
+            if model.results['av_J'] != 0.0 and model.results['av_ni_temp'][i] != 0.0:
+                model.results['coeff_J_n']+= ( cov_J_n /( model.results['av_J']
+                                            * model.results['av_ni_temp'][i] ) )
+            if model.results['av_Jminusn'][i] != 0.0 and model.results['av_ni_temp'][i] != 0.0:
+                model.results['coeff_Jminusn_n'] += ( cov_Jminusn_n
+                                            / ( model.results['av_Jminusn'][i]
+                                            * model.results['av_ni_temp'][i] ) )
+            # Pearson correlation
+            if var_J_n != 0.0:
+                model.results['corr_J_n'] += cov_J_n / var_J_n
+            if var_Jminusn_n != 0.0:
+                model.results['corr_Jminusn_n'] += cov_Jminusn_n / var_Jminusn_n
+
+            for j in np.arange(i+1, model.nbr_species):
+                var_nm = ( ( np.sqrt( model.results['av_ni_sq_temp'][i]
+                - model.results['av_ni_temp'][i]**2 ) ) * (
+                np.sqrt( model.results['av_ni_sq_temp'][j]
+                - model.results['av_ni_temp'][j]**2 ) ) )
+                # cov(n_i,n_j)
+                cov_ni_nj = ( model.results['av_ni_nj_temp'][i][j]
+                            - model.results['av_ni_temp'][i] *
+                            model.results['av_ni_temp'][j] )
+                # coefficients of variation
+                if model.results['av_ni_nj_temp'][i][j] != 0.0:
+                    model.results['coeff_ni_nj'] += ( cov_ni_nj
+                                    / ( model.results['av_ni_temp'][i]
+                                    * model.results['av_ni_temp'][j] ) )
+                # Pearson correlation
+                if var_nm != 0.0:
+                    model.results['corr_ni_nj'] += cov_ni_nj / var_nm
+
+    # Taking the average over all species
+    model.results['corr_ni_nj'] /= ( model.nbr_species*(model.nbr_species-1)/2)
+    model.results['coeff_ni_nj'] /= ( model.nbr_species*(model.nbr_species-1)/2)
+    model.results['corr_J_n'] /= ( model.nbr_species)
+    model.results['coeff_J_n'] /= ( model.nbr_species)
+    model.results['corr_Jminusn_n'] /= ( model.nbr_species)
+    model.results['coeff_Jminusn_n'] /= ( model.nbr_species)
+
+    with open(filesave, 'wb') as handle:
+        pickle.dump(model.__dict__, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    return 0
+
 def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
                                     , parameter2='comp_overlap'):
     """
@@ -92,6 +216,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
 
     # count number of subdirectories
     nbr_sims        = len( next( os.walk(dir) )[1] )
+
     # initialize the
     param1          = np.zeros(nbr_sims); param2            = np.zeros(nbr_sims)
     sim_dist_vary   = []                ; rich_dist_vary    = []
@@ -99,14 +224,21 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     coeff_ni_nj     = np.zeros(nbr_sims); corr_ni_nj        = np.zeros(nbr_sims)
     coeff_J_n       = np.zeros(nbr_sims); corr_J_n          = np.zeros(nbr_sims)
     coeff_Jminusn_n = np.zeros(nbr_sims); corr_Jminusn_n    = np.zeros(nbr_sims)
-
+    # TEMP TIMES
+    time_autocor_spec = np.zeros( nbr_sims )
+    mean_time_autocor_abund = np.zeros( nbr_sims )
+    std_time_autocor_abund  = np.zeros( nbr_sims )
+    dominance_turnover      = np.zeros( nbr_sims )
+    suppress_turnover       = np.zeros( nbr_sims )
+    dominance_return        = np.zeros( nbr_sims )
+    suppress_return         = np.zeros( nbr_sims )
 
     # TODO change to dictionary
     for i in np.arange(nbr_sims):
         sim_nbr = i + 1
         if not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                    'results_0.pickle'):
-            print("Missing simulation: " + str(sim_nbr))
+            print( "Missing simulation: " + str(sim_nbr) )
             rich_dist_vary.append( np.array( [0] ) )
             sim_dist_vary.append( np.array( [0] ) )
             #conv_dist_vary.append( np.array( ss_dist_conv ) )
@@ -130,12 +262,45 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
             sim_dist_vary.append( np.array( ss_dist_sim ) )
             #conv_dist_vary.append( np.array( ss_dist_conv ) )
             mf_dist_vary.append( np.array( ss_dist_mf ) )
+
+            # TEMP FIX FOR SOME WRONG COEFFICIENT OF VARIATION
+            #correlations_fix(model, dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+            #           'results_0.pickle')
+
             corr_ni_nj[sim_nbr-1] = model.results['corr_ni_nj']
             coeff_ni_nj[sim_nbr-1] = model.results['coeff_ni_nj']
             corr_J_n[sim_nbr-1] = model.results['corr_J_n']
             coeff_J_n[sim_nbr-1] = model.results['coeff_J_n']
             corr_Jminusn_n[sim_nbr-1] = model.results['corr_Jminusn_n']
             coeff_Jminusn_n[sim_nbr-1] = model.results['coeff_Jminusn_n']
+
+            ############################################################################################################################
+            # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
+            ############################################################################################################################
+            n=2; fracTime=100
+            autocor, _, specAutocor, _, newTimes =\
+                    autospec(model.results['times'][n:],\
+                    model.results['trajectory'][n:])
+
+            _, time_autocor_spec[sim_nbr-1] = exponential_fit_autocorrelation(specAutocor, newTimes, fracTime)
+            mean_time_autocor_abund[sim_nbr-1], std_time_autocor_abund[sim_nbr-1] =\
+                    average_timescale_autocorrelation( autocor, newTimes, fracTime)
+
+            S = model.nbr_species; K = model.carry_capacity
+            mu = model.immi_rate; rho = model.comp_overlap
+            rplus = model.birth_rate; rminus = model.death_rate
+            nbr_species = int( S*(1.0-ss_dist_sim[0]) )
+            nbr = deterministic_mean(nbr_species, mu, rho, rplus, rminus, K)
+
+            dominance_turnover[sim_nbr-1] = mfpt_a2a(ss_dist_sim, nbr, mu, rplus, rminus, K, rho, S)
+            suppress_turnover[sim_nbr-1]  = mfpt_020(ss_dist_sim, mu)
+            dominance_return[sim_nbr-1]   = mfpt_a2b(ss_dist_sim, 0, nbr, mu, rplus)
+            suppress_return[sim_nbr-1]    = mfpt_b2a(ss_dist_sim, 0, nbr, mu, rplus)
+
+            ############################################################################################################################
+            # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
+            ############################################################################################################################
+
             end = time.time()
             hours, rem = divmod( end-start, 3600 )
             minutes, seconds = divmod( rem, 60 )
@@ -177,6 +342,14 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     corr_Jminusn_n2D    = np.zeros( ( dim_1,dim_2 ) )
     coeff_Jminusn_n2D   = np.zeros( ( dim_1,dim_2 ) )
 
+    time_autocor_spec2D       = np.zeros( ( dim_1,dim_2 ) )
+    mean_time_autocor_abund2D = np.zeros( ( dim_1,dim_2 ) )
+    std_time_autocor_abund2D  = np.zeros( ( dim_1,dim_2 ) )
+    dominance_turnover2D      = np.zeros( ( dim_1,dim_2 ) )
+    suppress_turnover2D       = np.zeros( ( dim_1,dim_2 ) )
+    dominance_return2D        = np.zeros( ( dim_1,dim_2 ) )
+    suppress_return2D         = np.zeros( ( dim_1,dim_2 ) )
+
     # put into a 2d array all the previous results
     for sim in np.arange(nbr_sims):
         i                       = np.where( param1_2D==param1[sim] )[0][0]
@@ -191,6 +364,22 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         coeff_J_n2D[i,j]        = coeff_J_n[sim]
         corr_Jminusn_n2D[i,j]   = corr_Jminusn_n[sim]
         coeff_Jminusn_n2D[i,j]  = coeff_Jminusn_n[sim]
+
+        #----------------------------------------------------------------------------------------------------------------------------
+        # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
+        #----------------------------------------------------------------------------------------------------------------------------
+
+        time_autocor_spec2D[i,j]        = time_autocor_spec[sim]
+        mean_time_autocor_abund2D[i,j]  = mean_time_autocor_abund[sim]
+        std_time_autocor_abund2D[i,j]   = std_time_autocor_abund[sim]
+        dominance_turnover2D[i,j]       = dominance_turnover[sim]
+        suppress_turnover2D[i,j]        = suppress_turnover[sim]
+        dominance_return2D[i,j]         = dominance_return[sim]
+        suppress_return2D[i,j]          = suppress_return[sim]
+
+        #----------------------------------------------------------------------------------------------------------------------------
+        # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
+        #----------------------------------------------------------------------------------------------------------------------------
 
     # arrange into a dictionary to save
     dict_arrays = { 'sim_dist'  : sim_dist2D, 'mf_dist'     : mf_dist2D
@@ -209,6 +398,13 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
                                         , 'nbr_species'     : model.nbr_species
                                         , 'immi_rate'       : model.immi_rate
                                         , 'comp_overlap'    : model.comp_overlap
+                                        , 'time_autocor_spec2D'       : time_autocor_spec2D
+                                        , 'mean_time_autocor_abund2D' : mean_time_autocor_abund2D
+                                        , 'std_time_autocor_abund2D'  : std_time_autocor_abund2D
+                                        , 'dominance_turnover2D'      : dominance_turnover2D
+                                        , 'suppress_turnover2D'       : suppress_turnover2D
+                                        , 'dominance_return2D'        : dominance_return2D
+                                        , 'suppress_return2D'         : suppress_return2D
                                         }
     dict_arrays[parameter1] = param1_2D
     dict_arrays[parameter2] = param2_2D
@@ -260,30 +456,6 @@ def mlv_multiple_folder_consolidate(list_dir, consol_name_dir, parameter1=None
     np.savez(filename, **mean_dict)
 
     return 0
-
-def deterministic_mean(nbr_species, mu, rho, rplus, rminus, K):
-    # Deterministic mean fixed point
-    det_mean = K*( ( 1. + np.sqrt( 1.+ 4.*mu*( 1. + rho*( nbr_species - 1. ) ) /
-                (K*(rplus-rminus)) ) ) / ( 2.*( 1. + rho*(nbr_species-1.) ) ) )
-    return int(det_mean)
-
-def mfpt_a2b(dstbn, a, b, mu, rplus, rminus, K):
-    """
-    From distribution, get the mfpt <T_{b}(a)>, a<b
-    """
-    mfpt = 0.0
-    for i in np.arange(a,b):
-        mfpt += ( np.sum(dstbn[:i+1] ) ) / ( ( rplus*i + mu )*dstbn[i] )
-    return mfpt
-
-def mfpt_b2a(dstbn, a, b, mu, rplus, rminus, K):
-    """
-    From distribution, get the mfpt <T_{a}(b)>
-    """
-    mfpt = 0
-    for i in np.arange(a,b):
-        mfpt += ( np.sum(dstbn[i+1:]) ) / ( ( rplus*i + mu ) * dstbn[i] )
-        return mfpt
 
 def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
     """
@@ -346,16 +518,6 @@ def determine_bimodality_mf( arr ):
             if max_idx.tolist() != []:
                 modality_arr[i,j] = 1.
     return modality_arr
-
-def meanJ_est(dstbn, nbr_species):
-    meanJ = np.zeros((np.shape(dstbn)[0],np.shape(dstbn)[1]))
-    for i in np.arange(np.shape(dstbn)[0]):
-        for j in np.arange(np.shape(dstbn)[1]):
-            dstbnij = dstbn[i,j]
-            meanJ[i,j] = nbr_species*np.dot(dstbnij,np.arange(len(dstbnij)))
-    #f = plt.figure(); fig = plt.gcf(); ax = plt.gca() im = ax.imshow(meanJ.T);
-    #plt.colorbar(im,ax=ax); ax.invert_yaxis(); plt.show()
-    return meanJ
 
 def plot_prob(probability, i, j, colour):
     DIST_DIR = MANU_FIG_DIR + os.sep + 'distributions'
@@ -776,16 +938,30 @@ def figTaylor(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
         plt.show()
 
 def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
-                , xlog=True, ylog=True, ydatalim=None, xdatalim=None
-                , revision=None, distplots=False, pbx=20, pby=20):
+                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
+                    , revision=None, distplots=False, pbx=20, pby=20):
     """
     Time to extinction, time to dominance
     """
     # loading
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
-    rangex = data[xlabel]; rangey = data[ylabel]
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
+
+    start = 0
+    if xlabel=='nbr_species':
+        start = 1
+
+    # setting simulation parameters
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
+    K = data['carry_capacity']; rminus = data['death_rate'];
+    rplus = data['birth_rate'];
+    mu = data['immi_rate']; S = data['nbr_species']
+
+    # simulation results
+    sim_dist = data['sim_dist'][start:,:,:]
+    mf_dist = data['mf_dist'][start:,:,:]
+    rich_dist = data['rich_dist'][start:,:,:]
 
     # 2D rho-mu
     mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
@@ -798,36 +974,30 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     meanJ           = meanJ_est(arr, (np.shape(data['rich_dist'])[2]-1))
     max_arr         = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     dom_turnover    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    sub_turnover    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     fpt_dominance   = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     fpt_submission  = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     for i in np.arange(np.shape(arr)[0]):
         for j in np.arange(np.shape(arr)[1]):
-            smooth_arr = arr[i,j,:]
-            smooth_arr = smooth(arr[i,j,:-25],7)
-            max_idx, _ = find_peaks( smooth_arr )
-            if len(max_idx) == 0:
-                print("No maximum's found, problematic")
-                nbr_species = np.dot(data['rich_dist'][i,j]
-                                    , np.arange(len(data['rich_dist'][i,j])) )
-                nbr = deterministic_mean(nbr_species, mu[i,j],rho[i,j], rplus
-                                                    , rminus, K)
-                # Or something else
-            else:
-                nbr = max_idx[-1]
-            max_arr[i,j] = nbr
-            dom_turnover[i,j] = ( ( 1. + arr[i,j,nbr] ) / ( arr[i,j,nbr]
-                    * ( rplus*nbr + mu[i,j] + nbr*( rminus + ( rplus-rminus )
-                    * ( ( 1. - rho[i,j] ) * nbr + rho[i,j] * meanJ[i,j] )/K ))))
-            fpt_dominance[i,j] = mfpt_a2b(arr[i,j], 0, nbr, mu[i,j], rplus
-                                                    , rminus, K)
-            fpt_submission[i,j] = mfpt_b2a(arr[i,j], 0, nbr, mu[i,j], rplus
-                                                    , rminus, K)
+            nbr_species = S*(1.0-arr[i,j,0])#np.dot(data['rich_dist'][i,j]
+                            #    , np.arange(len(data['rich_dist'][i,j])) )
+            nbr = deterministic_mean(nbr_species, mu[i,j],rho[i,j], rplus
+                                                , rminus, K)
 
-    fpt_dom_turnover = fpt_dominance + fpt_submission
+            max_arr[i,j] = nbr
+            sub_turnover[i,j]   = mfpt_020( arr[i,j], mu[i,j] )
+            dom_turnover[i,j]   = mfpt_a2a( arr[i,j], nbr, mu[i,j], rplus, rminus
+                                        , K, rho[i,j], S )
+            fpt_submission[i,j] = mfpt_b2a( arr[i,j], 0, nbr, mu[i,j], rplus)
+            fpt_dominance[i,j]  = mfpt_a2b( arr[i,j], 0, nbr, mu[i,j], rplus)
+
+    fpt_cycling    = fpt_dominance + fpt_submission
+    ratio_turnover = sub_turnover / dom_turnover
+    ratio_switch   = fpt_dominance / fpt_submission
 
     # Fig3C
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
     my_cmap.set_bad((0,0,0))
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
@@ -837,16 +1007,37 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{n*}(n*) \rangle$')
+    plt.title(r'$\langle T_{n^*}(n^*) \rangle$')
     if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "dominance_turnover" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "dominance_turnover" + '.png');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.png');
     else:
         plt.show()
+    plt.close()
+
+    # FIG
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad((0,0,0))
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( sub_turnover.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\langle T_{0}(0) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.png');
+    else:
+        plt.show()
+    plt.close()
 
     ## FIGURE 3D
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
     my_cmap.set_bad((0,0,0))
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
@@ -857,17 +1048,18 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
     # title
-    plt.title(r'$\langle T_{n*}(0) \rangle$')
+    plt.title(r'$\langle T_{n^*}(0) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.png');
     else:
         plt.show()
+    plt.close()
 
     ## FIGURE 3E
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
     my_cmap.set_bad((0,0,0))
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
@@ -877,33 +1069,76 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(n*) \rangle$')
+    plt.title(r'$\langle T_{0}(n^*) \rangle$')
     if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_submission" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_submission" + '.png');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.png');
     else:
         plt.show()
+    plt.close()
 
     ## FIGURE 3F
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
     my_cmap.set_bad((0,0,0))
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
-    im = plt.imshow( fpt_dom_turnover.T, **imshow_kw)
+    im = plt.imshow( fpt_cycling.T, **imshow_kw)
     set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
     plt.title(r'$\langle T_{0}(n^*) \rangle+\langle T_{n^*}(0) \rangle$')
     if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_submission" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_submission" + '.png');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.png');
     else:
         plt.show()
+    plt.close()
 
+    ## RATIO turnover
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+    my_cmap.set_bad((0,0,0))
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( ratio_turnover.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\langle T_{0}(0) \rangle / \langle T_{n^*}(n^*) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## Ratio go to
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+    my_cmap.set_bad((0,0,0))
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( ratio_switch.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\langle T_{0}(n^*) \rangle / \langle T_{n^*}(0) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.png');
+    else:
+        plt.show()
+    plt.close()
 
     return 0
 
@@ -1050,9 +1285,9 @@ def fig_corr(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     corref_name = [r'cov($n_i,n_j$)/$\sigma_{n_i}\sigma_{n_j}$'\
                     , r'cov($J,n$)/$\sigma_{J}\sigma_{n}$'\
                     , r'cov($J-n,n$)/$\sigma_{J-n}\sigma_{n}$'\
-                    , r'cov($n_i,n_j$)/$\langle n_i n_j \rangle$'\
-                    , r'cov($J,n$)/$\langle J n \rangle$'\
-                    , r'cov($J-n,n$)/$\langle (J-n) n \rangle$'\
+                    , r'cov($n_i,n_j$)/$\langle n_i \rangle \langle n_j\rangle$'\
+                    , r'cov($J,n$)/$\langle J \rangle \langle n \rangle$'\
+                    , r'cov($J-n,n$)/$\langle (J-n) \rangle \langle n \rangle$'\
                     ]
 
     # plots
@@ -1093,12 +1328,170 @@ def fig_corr(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
             plt.show()
     return 0
 
+def fig_timecorr(sim, sim_nbr, save=False, xlabel='immi_rate'
+                    , ylabel='comp_overlap', start=0, xlog=True, ylog=True
+                    , ydatalim=None, xdatalim=None, revision=None, pbx=20
+                    , pby=20 ):
+
+    filename = sim + os.sep + 'sim' + str(sim_nbr) + os.sep + 'results_0.pickle'
+    with open(filename, 'rb') as handle: data = pickle.load(handle)
+
+    plt.style.use('custom_heatmap.mplstyle')
+
+    n = 2 # TODO : Need the [2:] for now, not sure why...
+    autocor, spectrum, specAutocor, specSpectrum, newTimes =\
+            autospec(data['results']['times'][n:],\
+            data['results']['trajectory'][n:])
+
+    conditions = VAR_SYM_DICT[xlabel] + ': ' + str(data[xlabel])[:6] + ' and '\
+                        + VAR_SYM_DICT[ylabel] + ': ' + str(data[ylabel])[:5]
+    fracTime = 10
+
+    #
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    plt.plot(newTimes[:len(specAutocor)//fracTime], specAutocor[:len(specAutocor)//fracTime], 'k')
+    #plt.yscale('log');
+    plt.xlim(left=0.0)
+    plt.title('time correlation richness ' + conditions )
+    figname = 'rich_corr.pdf'
+    if save:
+        plt.savefig(sim + os.sep + 'sim' + str(sim_nbr) + os.sep + figname);
+        plt.close()
+    else: plt.show()
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    for i in np.random.randint(low=0, high=len(autocor), size=(6,)):
+        plt.plot(newTimes[:len(autocor[i])//fracTime], autocor[i][:len(autocor[i])//fracTime])
+    plt.xlim(left=0.0); plt.yscale('log');
+    plt.title('time correlation abundance ' + conditions)
+    figname = 'abund_corr.pdf'
+    if save:
+        plt.savefig(sim + os.sep + 'sim' + str(sim_nbr) + os.sep + figname);
+        plt.close()
+    else: plt.show()
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    plt.plot(specSpectrum, 'k');
+    plt.xscale('log'); plt.yscale('log')
+    plt.title('spectrum richness')
+    figname = 'rich_spectrum.pdf'
+    if save:
+        plt.savefig(sim + os.sep + 'sim' + str(sim_nbr) + os.sep + figname);
+        plt.close()
+    else: plt.show()
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    for i in np.random.randint(low=0, high=len(spectrum), size=(6,)):
+        plt.plot( spectrum[i] )
+    plt.yscale('log'); plt.xscale('log')
+    plt.title('spectrum abundance')
+    figname = 'abund_spectrum.pdf'
+    if save:
+        plt.savefig(sim + os.sep + 'sim' + str(sim_nbr) + os.sep + figname);
+        plt.close()
+    else: plt.show()
+
+    return 0
+
+def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
+                                , xlabel='immi_rate', ylabel='comp_overlap'):
+
+    filename = sim + os.sep + NPZ_SHORT_FILE
+    with open(filename, 'rb') as handle: data = pickle.load(handle)
+
+    conditions = VAR_SYM_DICT[xlabel] + ': ' + str(data[xlabel])[:7] + ' and '\
+                        + VAR_SYM_DICT[ylabel] + ': ' + str(data[ylabel])[:6]
+
+    data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
+    rangex = data[xlabel]; rangey = data[ylabel][start:]
+    if range == xlabel: other = rangey; otherLabel = ylabel; plotRange = rangex
+    else: other = rangex; otherLabel = xlabel; plotRange = rangey
+
+    ######################### plot Species exponential #########################
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    cmap = mpl.cm.get_cmap("viridis")
+
+    for j, element in enumerate(plotRange):
+        color = cmap(j/len(plotRange ) )
+        ax.plot(other, data['time_autocor_spec2D'][i,:], lw=2, fmt='-o'
+                    , c=color)
+        plt.scatter(other, data['suppress_return2D'][i,:]+['dominance_turnover2D'][i,:]
+                    , lw=2, c=color, edgecolor='none' )
+    ax.plot(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
+                    , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
+    plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none'
+            , label=r'$\langle T_0(n^*) \rangle + \langle T_{n^*}(0) \rangle$')
+
+    ax.set_title(r'Time scale species correlation $e^{-t/T_{exp}}$');
+    plt.legend(); plt.xscale('log'); plt.yscale('log')
+    plt.xlim(np.min(other), np.max(other)) #plt.ylim( np.min(,),np.max() )
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.LogNorm(
+                vmin=np.min(plotRange), vmax=np.max(plotRange)))
+    clb = plt.colorbar(sm)
+    clb.set_label(VAR_SYM_DICT[range], labelpad=-30, y=1.1, rotation=0)
+    plt.xlabel(VAR_NAME_DICT[otherLabel]); plt.ylabel(r'times')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + range
+                                    + '_' + 'species_timescale_cor' +'.pdf');
+        #plt.savefig(MANU_FIG_DIR + os.sep + range + '_' + 'maximums' +'.png');
+        plt.close()
+    else: plt.show()
+
+    time_autocor_spec2D[i,:]        = time_autocor_spec[sim]
+    mean_time_autocor_abund2D[i,j]  = mean_time_autocor_abund[sim]
+    std_time_autocor_abund2D[i,j]   = std_time_autocor_abund[sim]
+    dominance_turnover2D[i,j]       = dominance_turnover[sim]
+    suppress_turnover2D[i,j]        = suppress_turnover[sim]
+    dominance_return2D[i,j]         = dominance_return[sim]
+    suppress_return2D[i,j]          = suppress_return[sim]
+
+    ######################### plot abundance exponential #######################
+
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    cmap = mpl.cm.get_cmap("viridis")
+
+    for j, element in enumerate(plotRange):
+        color = cmap(j/len(plotRange ) )
+        ax.errorbar(other, data['mean_time_autocor_abund2D'][i,:]
+                        , yerr=data['std_time_autocor_abund2D'][i,:], fmt='-o'
+                        , c=color)
+        plt.scatter(other, data['suppress_turnover2D'][i,:], lw=2, c=color
+                        , edgecolor='none', marker='o' )
+        plt.scatter(other, data['dominance_turnover2D'][i,:], lw=2, c=color
+                        , edgecolor='none', marker='x' )
+    ax.errorbar(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
+                        , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
+    plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none', marker='o'
+                        , label=r'$\langle T_0(0) \rangle$')
+    plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none', marker='x'
+                        , label=r'$\langle T_{n^*}({n^*}) \rangle$')
+
+    ax.set_title(r'Time scale abundance correlation $e^{-t/T_{exp}}$')
+    plt.legend(); plt.xscale('log'); plt.yscale('log')
+    plt.xlim(np.min(other), np.max(other)) #plt.ylim( np.min(,),np.max() )
+
+    sm = plt.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.LogNorm(
+                vmin=np.min(plotRange), vmax=np.max(plotRange)))
+    clb = plt.colorbar(sm)
+    clb.set_label(VAR_SYM_DICT[range], labelpad=-30, y=1.1, rotation=0)
+    plt.xlabel(VAR_NAME_DICT[otherLabel]); plt.ylabel(r'times')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + range
+                                    + '_' + 'abundance_timescale_cor'+'.pdf');
+        #plt.savefig(MANU_FIG_DIR + os.sep + range + '_' + 'maximums' +'.png');
+        plt.close()
+    else: plt.show()
+
+    return 0
+
 if __name__ == "__main__":
 
     sim_immi        = RESULTS_DIR + os.sep + 'multiLV71'
     sim_immi_inset  = RESULTS_DIR + os.sep + 'multiLV79'
     sim_spec        = RESULTS_DIR + os.sep + 'multiLV77'
     sim_corr        = RESULTS_DIR + os.sep + 'multiLV80'
+    sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
 
 
     #mlv_consolidate_sim_results( sim_spec, 'nbr_species', 'comp_overlap')
@@ -1107,19 +1500,27 @@ if __name__ == "__main__":
 
 
     save = True
+    #for i in np.arange(31,37):
+        #fig_timecorr( sim_time, i , save=save); print("done ",i)
+
+    #mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
+
+
     #many_parameters_dist(npz_file, save)
 
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=20, start=20)
-    many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20, fixed=30)
-    maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20)
+    #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20, fixed=30)
+    #maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20)
 
-
+    # THESE ARE GOOD
     #fig2(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     #fig_corr(sim_corr+os.sep+NPZ_SHORT_FILE, save, revision='80')
+    #fig_timecorr(sim_time + os.sep + "sim1" + os.sep + "results_0.pickle")
+    #fig3A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     fig3(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
-    #fig_autocorr()
 
+    # OLD STUFF
     #fig2A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
     #fig2B(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     #fig2A(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)

@@ -420,8 +420,6 @@ class MultiLV(Parent):
         self.results['av_Jminusn_n'] /= total_time
         nbr_correlations = 0
 
-        print( self.results['av_ni_sq_temp'],self.results['av_ni_temp']**2 )
-
         for i in np.arange(0, self.nbr_species):
             var_J_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
                         - self.results['av_ni_temp'][i]**2 ) ) * (
@@ -439,11 +437,15 @@ class MultiLV(Parent):
                             - self.results['av_ni_temp'][i] *
                             self.results['av_Jminusn'][i] )
             # coefficients of variation
-            if self.results['av_J_n'][i] != 0.0:
-                self.results['coeff_J_n']+= cov_J_n / self.results['av_J_n'][i]
-            if self.results['av_Jminusn_n'][i] != 0.0:
+            if self.results['av_J_n'][i] != 0.0 \
+                                    and self.results['av_ni_temp'][i] != 0.0:
+                self.results['coeff_J_n']+= ( cov_J_n /( self.results['av_J']
+                                            * self.results['av_ni_temp'][i] ) )
+            if self.results['av_Jminusn'][i] != 0.0 \
+                                    and self.results['av_ni_temp'][i] != 0.0:
                 self.results['coeff_Jminusn_n'] += ( cov_Jminusn_n
-                                            / self.results['av_Jminusn_n'][i] )
+                                            / ( self.results['av_Jminusn'][i]
+                                            * self.results['av_ni_temp'][i] ) )
             # Pearson correlation
             if var_J_n != 0.0:
                 self.results['corr_J_n'] += cov_J_n / var_J_n
@@ -460,9 +462,11 @@ class MultiLV(Parent):
                             - self.results['av_ni_temp'][i] *
                             self.results['av_ni_temp'][j] )
                 # coefficients of variation
-                if self.results['av_ni_nj_temp'][i][j] != 0.0:
+                if self.results['av_ni_temp'][i] != 0.0 \
+                                    and self.results['av_ni_temp'][j] != 0.0:
                     self.results['coeff_ni_nj'] += ( cov_ni_nj
-                                        / self.results['av_ni_nj_temp'][i][j] )
+                                    / ( self.results['av_ni_temp'][i]
+                                    * self.results['av_ni_temp'][j] ) )
                 # Pearson correlation
                 if var_nm != 0.0:
                     self.results['corr_ni_nj'] += cov_ni_nj / var_nm

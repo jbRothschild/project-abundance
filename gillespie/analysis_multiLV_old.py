@@ -168,8 +168,6 @@ def draw_MTE_1D(fig, ax, n, total_indiv, num_species, **params):
 
     for i, prob in enumerate(P):
 
-
-
     #Norm = num_species/(np.sum( [P[i] for i in np.arange(0,len(x))] ))
     Norm = N/(np.sum( [i*P[i] for i in np.arange(0,len(x))] ))
 
