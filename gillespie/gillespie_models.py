@@ -97,6 +97,7 @@ class Parent(object):
         For now simply saves each trajectory and some results
         """
         idx_sort = np.argsort(times)
+        # TODO Get rid of this. No longer need to save cumbersome txt files
         np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s.txt' %(traj)
                                 , simulation[idx_sort,:] )
         np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s_time.txt' %(traj)

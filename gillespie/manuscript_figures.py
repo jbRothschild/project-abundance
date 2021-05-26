@@ -1,6 +1,6 @@
 import os, glob, csv, pickle, copy, time, scipy
 
-import matplotlib as mpl; from matplotlib import colors
+import matplotlib as mpl; from matplotlib import colors, ticker
 import matplotlib.pyplot as plt; from matplotlib.lines import Line2D
 import numpy as np; import pandas as pd
 import scipy.io as sio;
@@ -44,6 +44,15 @@ def meanJ_est(dstbn, nbr_species):
     #plt.colorbar(im,ax=ax); ax.invert_yaxis(); plt.show()
     return meanJ
 
+def death_rate( n, dstbn, rplus, rminus, K, rho, S):
+    J = meanJ_sim(dstbn, S) # could change to just meanJ
+    r = rplus - rminus
+    return rminus * n + r * n * ( ( 1. - rho ) + rho * J ) / K
+
+def richness_from_rates( dstbn, rplus, rminus, K, rho, mu, S ):
+    deathTimesP1 = death_rate(1, dstbn, rplus, rminus, K, rho, S)*dstbn[1]
+    return ( mu*S - deathTimesP1 )/( deathTimesP1 - mu )
+
 def mfpt_a2b( dstbn, a, b, mu=1.0, rplus=2.0 ):
     """
     From distribution, get the mfpt <T_{b}(a)>, a<b
@@ -64,7 +73,7 @@ def mfpt_b2a( dstbn, a, b, mu=1.0, rplus=2.0 ):
 
 def mfpt_020( dstbn, mu=1.0 ):
     """
-    From distribution, get the mfpt <T_{0}(0)>
+    From distribution, get the mfpt <T(0\rightarrow 0)>
     """
     return np.divide( 1., ( dstbn[0] * mu ) )
 
@@ -474,13 +483,13 @@ def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
                         ,'bimodal', 'multimodal', r'$P(0)$ unsampled']
     bounds       = [-0.5, 0.5, 1.5, 2.5, 3.5];
 
-    #modality_arr = 2*np.ones( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     modality_arr = 2*np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
 
     for i in np.arange(np.shape(arr)[0]):
         for j in np.arange(np.shape(arr)[1]):
             #smooth_arr = smooth(arr[i,j,:],21)
             smooth_arr = smooth(arr[i,j,:65],4) # 71, 78
+            #smooth_arr = smooth(arr[i,j,:40],4)
             #smooth_arr = smooth(arr[i,j,:100],15) # 79 inset
             max_idx, _ = find_peaks( smooth_arr )
 
@@ -491,6 +500,7 @@ def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
                 elif len(max_idx) > 2:
                     if revisionmanual == None:
                         pass
+                    else:
                         modality_arr[i,j] = line_names.index('multimodal')
             else:
                 modality_arr[i,j] = line_names.index('unimodal\n peak at >0')
@@ -581,13 +591,13 @@ def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
 
-    # transform
-    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
-
     # species simulations didn't all work, erase the 0s
     start = 0
     if xlabel=='nbr_species':
         start = 1
+
+    # transform
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
 
     # simulation/mf results
     sim_rich = 1 - data['sim_dist'][start:,:,0]
@@ -683,6 +693,71 @@ def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
 
     return sim_rich_cat, mf_rich_cat, lines
 
+def compare_richness(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
+                    , revision=None, distplots=False, pbx=20, pby=20):
+    """
+    compare sim richness with the richness from the rates found in Appendix I
+    """
+    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
+    data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
+
+    # transform
+    rangex = data[xlabel][:]; rangey = data[ylabel][:]
+
+    # simulation/mf results
+    K = data['carry_capacity']; rminus = data['death_rate'];
+    rplus = data['birth_rate'];
+    mu = data['immi_rate']; S = data['nbr_species']
+    sim_rich = 1 - data['sim_dist'][:,:,0]
+    rates_rich = np.zeros( ( np.shape(sim_rich)[0], np.shape(sim_rich)[1] ) )
+    for i in np.arange( np.shape(sim_rich)[0] ):
+        for j in np.arange(  np.shape(sim_rich)[1] ):
+            dstbn = data['sim_dist'][i,j]
+            rates_rich[i,j] = richness_from_rates( dstbn, rplus, rminus, K
+                                                    , rangey[i], rangex[j], S )
+
+    # Fig SImualtion richness
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(( 0,0,0 ))
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None}
+    # heatmap
+    im = plt.imshow( sim_rich.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\langle S^* \rangle$ simulation')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_simulation" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_simulation" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    # Fig rrates richness
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(( 0,0,0 ))
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None}
+    # heatmap
+    im = plt.imshow( sim_rich.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\langle S^* \rangle$ simulation')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_from_rates" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_from_rates" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+
+    return 0
+
 
 def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
@@ -754,6 +829,7 @@ def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "modality_" + xlabel + '.pdf');
         #plt.savefig(MANU_FIG_DIR + os.sep + "modality" + '.png');
+        print(MANU_FIG_DIR+ os.sep + "modality_" + xlabel + '.pdf')
     else:
         plt.show()
 
@@ -766,6 +842,7 @@ def fig2(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     Heatmap of modality
     Need to smooth out simulation results. How to compare?
     """
+    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     sim_rich_cat, mf_rich_cat, lines_rich =\
         fig2A(filename, save, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                             , None, distplots, pbx, pby)
@@ -861,7 +938,7 @@ def fig3A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # plots
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad( color_bad )
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     im = plt.imshow( turnover.T, **imshow_kw)
@@ -871,7 +948,7 @@ def fig3A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
 
-    plt.title(r'$\langle T_0(0) \rangle$')
+    plt.title(r'$\langle T(0\rightarrow 0) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "turnover" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "turnover" + '.png');
@@ -977,14 +1054,15 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     sub_turnover    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     fpt_dominance   = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     fpt_submission  = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    nbr_species_arr = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
     for i in np.arange(np.shape(arr)[0]):
         for j in np.arange(np.shape(arr)[1]):
-            nbr_species = S*(1.0-arr[i,j,0])#np.dot(data['rich_dist'][i,j]
+            nbr_species_arr[i,j] = S*(1.0-arr[i,j,0])#np.dot(data['rich_dist'][i,j]
                             #    , np.arange(len(data['rich_dist'][i,j])) )
-            nbr = deterministic_mean(nbr_species, mu[i,j],rho[i,j], rplus
+            nbr = deterministic_mean(nbr_species_arr[i,j], mu[i,j],rho[i,j], rplus
                                                 , rminus, K)
-
-            max_arr[i,j] = nbr
+            #max_arr[i,j] = nbr
+            max_arr[i,j] = 1 + np.argmax( arr[i,j,1:] )
             sub_turnover[i,j]   = mfpt_020( arr[i,j], mu[i,j] )
             dom_turnover[i,j]   = mfpt_a2a( arr[i,j], nbr, mu[i,j], rplus, rminus
                                         , K, rho[i,j], S )
@@ -993,12 +1071,17 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
 
     fpt_cycling    = fpt_dominance + fpt_submission
     ratio_turnover = sub_turnover / dom_turnover
+    ratio_dominance_loss = fpt_submission / dom_turnover
+    ratio_suppression_loss = fpt_dominance / sub_turnover
     ratio_switch   = fpt_dominance / fpt_submission
+    weighted_timescale = ( ( S - nbr_species_arr) * sub_turnover
+                                + nbr_species_arr * dom_turnover  ) / S
 
+    color_bad = (211/256,211/256,211/256)
     # Fig3C
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1007,7 +1090,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{n^*}(n^*) \rangle$')
+    plt.title(r'$\langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.png');
@@ -1018,7 +1101,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # FIG
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1027,7 +1110,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(0) \rangle$')
+    plt.title(r'$\langle T(0\rightarrow 0) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.png');
@@ -1038,7 +1121,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     ## FIGURE 3D
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1048,7 +1131,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
     # title
-    plt.title(r'$\langle T_{n^*}(0) \rangle$')
+    plt.title(r'$\langle T(0\rightarrow \tilde{n}) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.png');
@@ -1060,7 +1143,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1069,7 +1152,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(n^*) \rangle$')
+    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.png');
@@ -1081,7 +1164,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1090,7 +1173,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(n^*) \rangle+\langle T_{n^*}(0) \rangle$')
+    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle+\langle T(0\rightarrow \tilde{n}) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.png');
@@ -1102,7 +1185,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
     my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1111,7 +1194,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(0) \rangle / \langle T_{n^*}(n^*) \rangle$')
+    plt.title(r'$\langle T(0\rightarrow 0) \rangle / \langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.png');
@@ -1123,7 +1206,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     # plots
     my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
-    my_cmap.set_bad((0,0,0))
+    my_cmap.set_bad(color_bad)
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
@@ -1132,10 +1215,167 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T_{0}(n^*) \rangle / \langle T_{n^*}(0) \rangle$')
+    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle / \langle T(0\rightarrow \tilde{n}) \rangle$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
+    sim_rich_cat, mf_rich_cat, lines_rich =\
+        fig2A(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+                            , None, distplots, pbx, pby)
+    modality_sim, modality_mf, mf_unimodal, lines_mod, colours_mod =\
+    fig2B(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+                        , revision, distplots, pbx, pby)
+
+    ## Ratio dominance loss
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    font_label_contour = 8
+    im = plt.imshow( ratio_dominance_loss.T, **imshow_kw)
+    #ax1 = ax.contour( ratio_dominance_loss.T, [10.0, 100.0, 10**5], linestyles=['dotted','dashed','solid']
+    boundary = 100.0; boundary_colour = 'gray'
+
+    MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
+                        , colors = 'k', linewidths = 2)
+    MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
+                        , colors = 'k', linewidths = 2)
+    if start == 0:
+        MF3 = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
+                                    , linewidths = 2)
+    MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
+                                , linewidths = 2)
+
+    ax1 = ax.contour( ratio_dominance_loss.T, [boundary], linestyles=['dashed']
+                        , colors = boundary_colour, linewidths = 1)
+
+    #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    #plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle / \langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_dominance_loss" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_dominance_loss" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    colours_line = ['r','g','b']; plots = [40,20,0];
+    markerline = ['o-','x-','D-']
+    f = plt.figure(figsize=(3.25,2.5))
+    fig = plt.gcf(); ax = plt.gca()
+    # lineplot
+    font_label_contour = 8
+    for i, val in enumerate(plots):
+        array = np.array( ratio_dominance_loss.T[:,val] )
+        array[array == np.inf] = np.nan
+        plt.plot(rangey[ydatalim[0]:ydatalim[1]+1], array[ydatalim[0]:ydatalim[1]+1]
+                    , markerline[i], c=colours_line[i]
+                    , label=VAR_SYM_DICT[xlabel] + ": " + r'$10^{%d}$' %
+                    np.log10(round(rangex[val], 13) ) )
+    plt.axhline(y=boundary, color=boundary_colour, linestyle='--')
+    plt.xlim((rangey[ydatalim[0]],rangey[ydatalim[1]]))
+    # legend
+    plt.legend(loc='best')
+    plt.xscale('log'); plt.yscale('log')
+    plt.ylabel(r'$\langle T(\tilde{n}\rightarrow 0) \rangle / \langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
+    plt.xlabel(VAR_NAME_DICT[ylabel])
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_dominance_loss_lineplot" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_dominance_loss_lineplot" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## Ratio supression loss
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    boundary = 1.0
+    im = plt.imshow( ratio_suppression_loss.T, **imshow_kw)
+
+    MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
+                        , colors = 'k', linewidths = 2)
+    MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
+                        , colors = 'k', linewidths = 2)
+    if start == 0:
+        MF3 = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
+                                    , linewidths = 2)
+    MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
+                                , linewidths = 2)
+
+    ax1 = ax.contour( ratio_suppression_loss.T, [boundary], linestyles=['dashed']
+                        , colors = boundary_colour, linewidths = 1)
+    #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    #plt.title(r'$\langle T(0\rightarrow \tilde{n}) \rangle / \langle T(0\rightarrow 0) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    f = plt.figure(figsize=(3.25,2.5))
+    fig = plt.gcf(); ax = plt.gca()
+    # lineplot
+    font_label_contour = 8
+    for i, val in enumerate(plots):
+        array = np.array( ratio_suppression_loss.T[:,val] )
+        array[array == np.inf] = np.nan
+        plt.plot(rangey[ydatalim[0]:ydatalim[1]+1], array[ydatalim[0]:ydatalim[1]+1]
+                    , markerline[i], c=colours_line[i]
+                    , label=VAR_SYM_DICT[xlabel] + ": " + r'$10^{%d}$' %
+                    np.log10(round(rangex[val], 13) ) )
+    plt.axhline(y=boundary, color=boundary_colour, linestyle='--')
+    plt.xlim((rangey[ydatalim[0]],rangey[ydatalim[1]]))
+    # legend
+    plt.legend(loc='best')
+    plt.xscale('log'); plt.yscale('log')
+    plt.ylabel(r'$\langle T(0\rightarrow \tilde{n}) \rangle / \langle T(0\rightarrow 0) \rangle$')
+    plt.xlabel(VAR_NAME_DICT[ylabel])
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss_lineplot" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss_lineplot" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## Weighted timescales
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( weighted_timescale.T, **imshow_kw)
+    set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$\frac{S-\langle S^* \rangle }{S}\langle T(0\rightarrow 0) \rangle + \frac{\langle S^* \rangle }{S}\langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_weighted_timescale" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_weighted_timescale" + '.png');
     else:
         plt.show()
     plt.close()
@@ -1244,7 +1484,7 @@ def maximum_plot(filename, save=False, range='comp_overlap', start=0
                 vmin=np.min(plotRange), vmax=np.max(plotRange)))
     clb = plt.colorbar(sm)
     clb.set_label(VAR_SYM_DICT[range], labelpad=-30, y=1.1, rotation=0)
-    plt.xlabel(VAR_NAME_DICT[otherLabel]); plt.ylabel(r'$n^*$')
+    plt.xlabel(VAR_NAME_DICT[otherLabel]); plt.ylabel(r'$\tilde{n}$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + range + '_' + 'maximums' +'.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + range + '_' + 'maximums' +'.png');
@@ -1304,10 +1544,10 @@ def fig_corr(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
         """
         if score[:3] == 'cor':
             my_cmap = copy.copy(mpl.cm.get_cmap('magma_r')) # copy the default cmap
-            my_cmap.set_bad((0,0,0))
+            my_cmap.set_bad(( 0,0,0 ))
         else:
             my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-            my_cmap.set_bad((0,0,0))
+            my_cmap.set_bad(( 0,0,0 ))
         imshow_kw['cmap'] = my_cmap
         """
 
@@ -1420,7 +1660,7 @@ def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
     ax.plot(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
                     , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
     plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none'
-            , label=r'$\langle T_0(n^*) \rangle + \langle T_{n^*}(0) \rangle$')
+            , label=r'$\langle T_0(\tilde{n}) \rangle + \langle T(0\rightarrow \tilde{n}) \rangle$')
 
     ax.set_title(r'Time scale species correlation $e^{-t/T_{exp}}$');
     plt.legend(); plt.xscale('log'); plt.yscale('log')
@@ -1463,9 +1703,9 @@ def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
     ax.errorbar(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
                         , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
     plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none', marker='o'
-                        , label=r'$\langle T_0(0) \rangle$')
+                        , label=r'$\langle T(0\rightarrow 0) \rangle$')
     plt.scatter(np.NaN, np.Nan, lw=2, c='silver', edgecolor='none', marker='x'
-                        , label=r'$\langle T_{n^*}({n^*}) \rangle$')
+                        , label=r'$\langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
 
     ax.set_title(r'Time scale abundance correlation $e^{-t/T_{exp}}$')
     plt.legend(); plt.xscale('log'); plt.yscale('log')
@@ -1484,6 +1724,66 @@ def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
     else: plt.show()
 
     return 0
+
+def plot_trajectory(dir, sim_nbr, nbr_steps, plot_dstbn=True, colour='red'
+                        , save=False):
+    """
+    Plot species trajectories for the t=time last reactions. May also print the
+    distribution on the side if needed.
+    """
+    with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+               'results_0.pickle', 'rb') as handle:
+        data  = pickle.load(handle)
+
+    # distribution
+    ss_dist_sim     = data['results']['ss_distribution'] \
+                            / np.sum(data['results']['ss_distribution'])
+
+    # TODO : NEW BETTER WAY OF DOING IT
+    trajectories = data['results']['trajectory'][-nbr_steps:]
+    times        = data['results']['times'][-nbr_steps:]
+
+    # DUMB OLD WAY
+    #trajectories = np.loadtxt(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+    #                                'trajectory_0.txt')[-nbr_steps:]
+    #times        = np.loadtxt(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+    #                                'trajectory_0_time.txt')[-nbr_steps:]
+
+
+    if plot_dstbn: fig, (ax1, ax2) = plt.subplots(1, 2
+                                        , gridspec_kw={'width_ratios': [3, 1]}
+                                        , figsize=(4,2.5))
+    else: fig, ax1 = plt.figure(figsize=(3.25,2.5))
+
+    focus_species = 15
+    for i in np.arange( np.shape( trajectories )[1] ):
+        ax1.plot(times, trajectories[:,i], alpha=0.1, color='gray')
+    ax1.plot(times, trajectories[:,focus_species], color='k')
+
+    ax1.set_xlabel('time'); ax1.set_ylabel(r'abundance, $n$')
+    ax1.set_xlim( left=min(times), right=max(times) )
+
+    if plot_dstbn:
+        ax2.plot(ss_dist_sim, np.arange(0,len( ss_dist_sim )), color=colour
+                            , linewidth=3)
+        ax2.set_xscale('log')
+        ax2.set_xlabel(r'$P(n)$')
+
+    # set 0 abundance as limit
+    ax1.set_ylim(bottom=0, top=int(1.5*data['carry_capacity']) )
+    ax2.set_ylim(bottom=0, top=int(1.5*data['carry_capacity']) )
+
+    # Hide x labels and tick labels for top plots and y ticks for right plots.
+    ax2.label_outer()
+
+    if save:
+        plt.savefig(dir + os.sep + 'traj_' + str(sim_nbr) + '.pdf')
+        #plt.savefig(MANU_FIG_DIR + os.sep + range + '_' + 'maximums' +'.png');
+        plt.close()
+    else: plt.show()
+
+    return 0
+
 
 if __name__ == "__main__":
 
@@ -1515,16 +1815,23 @@ if __name__ == "__main__":
 
     # THESE ARE GOOD
     #fig2(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #fig2(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #compare_richness(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     #fig_corr(sim_corr+os.sep+NPZ_SHORT_FILE, save, revision='80')
     #fig_timecorr(sim_time + os.sep + "sim1" + os.sep + "results_0.pickle")
     #fig3A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     fig3(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+
+    #plot_trajectory(sim_time, 19, 100000, colour='mediumturquoise', save=True)
+    #plot_trajectory(sim_time, 34, 100000, colour='khaki', save=True)
+
 
     # OLD STUFF
     #fig2A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
     #fig2B(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     #fig2A(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
     #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', distplots=False, xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #fig2(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
     #fig2B(sim_immi_inset+os.sep+NPZ_SHORT_FILE, save, ylog=False, xlog=False, distplots=False, pby=15)
     #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, save)
     #fig3A(npz_file, save)

@@ -5,3 +5,4 @@ gillespie/sim_results/*
 *.eps
 *.txt
 *slurm*
+*.npz
