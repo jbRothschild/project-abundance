@@ -39,7 +39,7 @@ NUM_TASKS_ZERO=$((NUM_TASKS-1))
 
 # multiLV model, varying parameters
 VAR1=($(logspace -2 0 ${NUM_TASKS_1} | tr -d '[],'))
-VAR1_NAME="comOverlap"
+VAR1_NAME="compOverlap"
 
 VAR2=($(logspace -3 1 ${NUM_TASKS_2} | tr -d '[],'))
 VAR2_NAME="immiRate"
