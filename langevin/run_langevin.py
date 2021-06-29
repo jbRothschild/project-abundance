@@ -60,6 +60,9 @@ if __name__ == '__main__':
                         , default=False, required=False, help = "Use to save.")
     parser.add_argument('-id', '--identification', type = int, default = 1
                         , nargs = '?', help = "Identification of simulation.")
+    parser.add_argument('-savet','--saveTrajectory', dest='saveTraj'
+                        , action='store_true', default=False
+                        , required=False, help = "Use save whole trajetcory.")
 
     args = parser.parse_args()
     dir = DATA_FOLDER + os.sep + args.directory
@@ -73,14 +76,14 @@ if __name__ == '__main__':
     nbrSteps = args.nbrSteps
 
     population = initialize_pop( param)
-    fcn_force = lotkvol_force( param ); fcn_diff = mehta_diff( param )
+    fcn_force = lotkvol_force( param ); fcn_diff = master_diff( param )
 
     simulation = NumericalLangevin(fcn_force=fcn_force, fcn_diff=fcn_diff
                                         , population=population)
 
     traj = simulation.euler_scheme(nbrSteps, timeStep)
 
-    save_sim( param, traj )
+    save_sim( param, traj, args.saveTraj )
 
     file = dir + os.sep + 'sim' + str(args.identification) + "_results"
     if args.save:

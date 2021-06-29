@@ -1,9 +1,10 @@
-import os, glob, csv, copy
+import os, glob, csv, copy, io
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import scipy.io as sio
 
 from scipy.signal import argrelextrema
 
@@ -36,7 +37,7 @@ def consolidate_trajectories(sim_dir, save_file=False, FORCE_NUMBER=3000):
     """
 
     num_traj = 0
-    for subdir, dirs, files in os.walk(sim_dir):
+    for subdir, dirs, fmean_popiles in os.walk(sim_dir):
         for filename in files:
             filepath = subdir + os.sep + filename
             if filepath.endswith("time.txt"):
@@ -200,11 +201,17 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
     else:
         conditional = None
 
+    if 'av_J' in model.results:
+        print("YAY I GOT IT")
+        av_J = model.results['av_J']
+    else:
+        av_J = None
+
     # TODO : change to dictionary
     return param_dict, ss_dist, richness_dist, time_btwn_ext, mean_pop\
                      , mean_rich, mean_time_present, P0, nbr_local_max, H, GS\
                      , param_dict['nbr_species'], det_mean_present, correlation\
-                     , conditional
+                     , conditional, av_J
 
 
 def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
@@ -233,6 +240,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
     nbr_species = np.zeros(nbr_sims); ss_dist_vary      = []
     rich_dist_vary = []             ; det_mean_present  = np.zeros(nbr_sims)
     correlation = np.zeros(nbr_sims); cond_vary      = []
+    av_J        = np.zeros(nbr_sims);
 
     # if 2 parameters vary in the simulation
     if parameter2 != None: param2 = np.zeros(nbr_sims)
@@ -242,7 +250,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
         param_dict, ss_dist_sim, richness_dist,  _, mean_pop[i], mean_rich[i]\
                     , mean_time_present[i], P0[i], nbr_local_max[i], H[i]\
                     , GS[i], nbr_species[i], det_mean_present[i],correlation[i]\
-                    , conditional\
+                    , conditional, av_J[i]\
                   = mlv_extract_results_sim(dir, sim_nbr = i+1)
         # sims might not have same distribution length
         rich_dist_vary.append( np.array( richness_dist ) )
@@ -321,6 +329,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
         correlation2D       = np.zeros((dim_1,dim_2))
         cond_2D             = np.zeros((dim_1,dim_2,length_longest_cond
                                                     ,length_longest_cond))
+        av_J2D              = np.zeros((dim_1,dim_2))
 
         # put into a 2d array all the previous results
         for sim in np.arange(nbr_sims):
@@ -339,6 +348,7 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
             det_mean_present2D[i,j]  = det_mean_present[sim]
             correlation2D[i,j]       = correlation[sim]
             cond_2D[i,j]             = cond_dist[sim]
+            av_J2D[i,j]              = av_J[sim]
 
         # arrange into a dictionary to save
         dict_arrays = {  parameter1 : param1_2D, parameter2  : param2_2D
@@ -354,10 +364,12 @@ def mlv_consolidate_sim_results(dir, parameter1=None, parameter2=None):
                                            , 'det_mean_present' : det_mean_present2D
                                            , 'rich_dist'        : rich_dist2D
                                            , 'correlation'      : correlation2D
-                                           , 'conditional'      : cond_2D
+                                           #, 'conditional'      : cond_2D
+                                           , 'av_J2D'           : av_J2D
                                            }
     # save results in a npz file
     np.savez(filename, **dict_arrays)
+    sio.savemat(filename[:-4]+'.mat',mdict=dict_arrays)
 
     return filename, dict_arrays
 
@@ -385,6 +397,7 @@ def mlv_multiple_folder_consolidate(list_dir, consol_name_dir, parameter1=None
 
     # save results in a npz file
     np.savez(filename, **mean_dict)
+    sio.savemat(filename[:-4]+'.mat',mdict=mean_dict)
 
     return 0
 
@@ -1003,11 +1016,13 @@ if __name__ == "__main__":
 
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
-
+    """
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
     sim_dir = RESULTS_DIR + os.sep + 'multiLV71'
+    mlv_consolidate_sim_results(dir, 'immi_rate', 'comp_overlap')
+
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 1500)
-    """
+
     mlv_plot_sim_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
                                     , save=True)
     mlv_sim2theory_results_heatmaps(sim_dir, 'immi_rate', 'comp_overlap'
@@ -1026,3 +1041,7 @@ if __name__ == "__main__":
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)
     #sir_mean_trajectory(sim_dir)
+
+I'm a current PhD at the Univeristy of Toronto, and I've taken it upon myself to organize sessions of professional development for current grads. I'm hoping to get some alumni to come in and chat about their careers post graduations. Let me know if you'd like details!
+Cheers,
+Jeremy

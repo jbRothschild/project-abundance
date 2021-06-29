@@ -46,7 +46,7 @@ class NumericalLangevin():
                                 + self.fcn_force(trajectory[:,i-1])*timeStep )
             # count number of times a zero appears
             if np.any(nextTraj<0): checkZero += 1
-            # set negatives to zero
+            # set negatives to zero # TODO : reflection? -nextTraj
             nextTraj[nextTraj<0.0] = 0.0; trajectory[:,i] = nextTraj
             update_progress(i/nbrSteps)
         print("\nNumber of zeros : " + str(checkZero) )

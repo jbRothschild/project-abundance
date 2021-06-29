@@ -31,6 +31,13 @@ def deterministic_mean(nbr_species, mu, rho, rplus, rminus, K):
                 (K*(rplus-rminus)) ) ) / ( 2.*( 1. + rho*(nbr_species-1.) ) ) )
     return int(det_mean)
 
+def deterministic_mean_arr(nbr_species, mu, rho, rplus, rminus, K):
+    # Deterministic mean fixed point
+    det_mean = K*( ( 1. + np.sqrt( 1.+ 4.*mu*( 1. + rho*( nbr_species - 1. ) ) /
+                (K*(rplus-rminus)) ) ) / ( 2.*( 1. + rho*(nbr_species-1.) ) ) )
+    return det_mean
+
+
 def meanJ_sim(dstbn, nbr_species):
     return nbr_species * np.dot(dstbn, np.arange( len(dstbn) ) )
 
@@ -497,11 +504,13 @@ def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
                 modality_arr[i,j] = line_names.index('bimodal')
                 if len(max_idx) == 1 and max_idx[0]<3:
                     modality_arr[i,j] = line_names.index('unimodal\n peak at 0')
+                """
                 elif len(max_idx) > 2:
                     if revisionmanual == None:
                         pass
                     else:
                         modality_arr[i,j] = line_names.index('multimodal')
+                """
             else:
                 modality_arr[i,j] = line_names.index('unimodal\n peak at >0')
 
@@ -582,7 +591,7 @@ def set_axis(ax, plt, POINTS_BETWEEN_X_TICKS, POINTS_BETWEEN_Y_TICKS, rangex
 
     return ax, plt
 
-def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
                     , revision=None, distplots=False, pbx=20, pby=20):
     """
@@ -664,11 +673,9 @@ def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "richness_"+ xlabel + '.pdf');
         #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
-    else:
-        plt.show()
     plt.close()
 
-    # 2D heatmap of species present
+    # 2D heatmap of species present, show a couple example richness plots
     if xlabel != 'nbr_species':
         f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
         R=np.shape(data['rich_dist'])[2]-1
@@ -681,17 +688,15 @@ def fig2A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , marker='D', markeredgecolor='None',linewidth=2, zorder=10)
         plt.ylim([0,1.0])
         plt.xlim([0,np.shape(data['rich_dist'])[2]-1])
-        plt.xlabel(r'species present, $S^*$')
-        plt.ylabel(r'P($S^*$)')
+        plt.xlabel(r'species present, $\langle S^* \rangle$')
+        plt.ylabel(r'\text{P}($S^*$)')
 
         if save:
             plt.savefig(MANU_FIG_DIR + os.sep + "richness_dist_"+xlabel+'.pdf');
             #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
-        else:
-            plt.show()
         plt.close()
 
-    return sim_rich_cat, mf_rich_cat, lines
+    return sim_rich_cat, mf_rich_cat, lines, mf_rich, sim_rich
 
 def compare_richness(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
@@ -736,7 +741,7 @@ def compare_richness(filename, save=False, xlabel='immi_rate', ylabel='comp_over
         plt.show()
     plt.close()
 
-    # Fig rrates richness
+    # Fig rates richness
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
     my_cmap.set_bad(( 0,0,0 ))
@@ -755,11 +760,10 @@ def compare_richness(filename, save=False, xlabel='immi_rate', ylabel='comp_over
         plt.show()
     plt.close()
 
-
     return 0
 
 
-def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
                     , revision=None, distplots=False, pbx=20, pby=20):
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
@@ -829,13 +833,11 @@ def fig2B(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "modality_" + xlabel + '.pdf');
         #plt.savefig(MANU_FIG_DIR + os.sep + "modality" + '.png');
-        print(MANU_FIG_DIR+ os.sep + "modality_" + xlabel + '.pdf')
-    else:
-        plt.show()
+    plt.close()
 
     return modality_sim, modality_mf, mf_unimodal, lines, line_colours
 
-def fig2(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+def figure_regimes(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
                     , revision=None, distplots=False, pbx=20, pby=20):
     """
@@ -843,11 +845,11 @@ def fig2(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     Need to smooth out simulation results. How to compare?
     """
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
-    sim_rich_cat, mf_rich_cat, lines_rich =\
-        fig2A(filename, save, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+    sim_rich_cat, mf_rich_cat, lines_rich, mf_rich, sim_rich =\
+        figure_richness_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                             , None, distplots, pbx, pby)
     modality_sim, modality_mf, mf_unimodal, lines_mod, colours_mod =\
-    fig2B(filename, save, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+    figure_modality_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                         , revision, distplots, pbx, pby)
 
     data = np.load(filename); plt.style.use('custom_heatmap.mplstyle')
@@ -884,15 +886,57 @@ def fig2(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
 
     im = plt.imshow(combined_sim.T, cmap=cmap, norm=norm, aspect='auto')
 
+    # Mean-field contours in black
+    modality_mf = scipy.ndimage.filters.gaussian_filter(modality_mf, 0.7)
+    mf_unimodal = scipy.ndimage.filters.gaussian_filter(mf_unimodal, 0.7)
     MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
                         , colors = 'k', linewidths = 2)
     MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
                         , colors = 'k', linewidths = 2)
     if start == 0:
+        mf_rich_cat = scipy.ndimage.filters.gaussian_filter(mf_rich_cat,0.7) #smooth
         MF3 = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
                                     , linewidths = 2)
-    MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
+        MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
                                 , linewidths = 2)
+
+    # Equation contours
+    testingEqns = True
+    if testingEqns:
+        # 2D mu-rho
+        mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
+                                    , np.shape(data['sim_dist'])[1])).T).T
+
+        rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
+                                    , np.shape(data['sim_dist'])[1])))
+
+        lotkaVolteraSol = deterministic_mean_arr(S, mu, rho, rplus, rminus, K)
+        lotkaVolteraAlt = deterministic_mean_arr(S*sim_rich, mu, rho, rplus, rminus, K)
+        J = lotkaVolteraSol * S
+        Jalt = lotkaVolteraAlt * S * sim_rich
+
+        Eq5 = (1./mu)*(rminus + (rplus-rminus)*( 1. + rho*( J - 1. ) )/K )
+        Eq5alt = (1./mu)*(rminus + (rplus-rminus)*( 1. + rho*( Jalt - 1. ) )/K )
+        #print(J, lotkaVolteraSol
+        Eq6 = ( (rplus-rminus)*(K-rho*J)**2 ) * (1./ (4. * K)) * (1.0 / ( rplus - mu ) ) * ( 1.0 /( 1.0 - rho ) )
+        Eq6alt = ( (rplus-rminus)*(K-rho*Jalt)**2 ) * (1./ (4. * K)) * (1.0 / ( rplus - mu ) ) * ( 1.0 /( 1.0 - rho ) )
+
+        #im = plt.imshow(Eq6alt.T,  norm=norm, aspect='auto')
+        eq5 = plt.contour( Eq5.T, [1.], linestyles='solid', colors = 'r'
+                            , linewidths = 1)
+        eq5alt = plt.contour( Eq5alt.T, [1.], linestyles='dashed', colors = 'g'
+            , linewidths = 1)
+        eq6 = plt.contour( np.real(Eq6.T), [1.], linestyles='solid', colors = 'b'
+                            , linewidths = 1)
+        eq6alt = plt.contour( np.real(Eq6alt.T), [1.], linestyles='solid', colors = 'orange'
+            , linewidths = 1)
+        contours = [eq5,eq5alt,eq6,eq6alt]
+        h1, _ = eq5.legend_elements(); h2, _ = eq5alt.legend_elements()
+        h3, _ = eq6.legend_elements(); h4, _ = eq6alt.legend_elements()
+        h = [h1[0], h2[0], h3[0], h4[0]]
+        labels = [r'Eq.5; $J=n_{LV}S$',r'Eq.5; $J=n_{LV}^*\langle S^* \rangle$'\
+            , r'Eq.6; $J=n_{LV}S$', r'Eq.6; $J=n_{LV}^*\langle S^* \rangle$']
+        plt.legend(h, labels, loc='lower left', facecolor='white', framealpha=0.7)
 
     set_axis(ax, plt, POINTS_BETWEEN_X_TICKS, POINTS_BETWEEN_Y_TICKS, rangex
                     , rangey, xlog, ylog, xdatalim, ydatalim, xlabel, ylabel)
@@ -1014,7 +1058,7 @@ def figTaylor(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
 
         plt.show()
 
-def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
                     , revision=None, distplots=False, pbx=20, pby=20):
     """
@@ -1078,6 +1122,7 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                                 + nbr_species_arr * dom_turnover  ) / S
 
     color_bad = (211/256,211/256,211/256)
+    """
     # Fig3C
     f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
     my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
@@ -1222,13 +1267,14 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     else:
         plt.show()
     plt.close()
+    """
 
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
-    sim_rich_cat, mf_rich_cat, lines_rich =\
-        fig2A(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+    sim_rich_cat, mf_rich_cat, lines_rich, _, _ =\
+        figure_richness_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                             , None, distplots, pbx, pby)
     modality_sim, modality_mf, mf_unimodal, lines_mod, colours_mod =\
-    fig2B(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
+    figure_modality_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                         , revision, distplots, pbx, pby)
 
     ## Ratio dominance loss
@@ -1243,20 +1289,21 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     font_label_contour = 8
     im = plt.imshow( ratio_dominance_loss.T, **imshow_kw)
     #ax1 = ax.contour( ratio_dominance_loss.T, [10.0, 100.0, 10**5], linestyles=['dotted','dashed','solid']
-    boundary = 100.0; boundary_colour = 'gray'
+    boundary = S; boundary_colour = 'k'
 
-    MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
-                        , colors = 'k', linewidths = 2)
-    MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
-                        , colors = 'k', linewidths = 2)
-    if start == 0:
-        MF3 = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
-                                    , linewidths = 2)
-    MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
-                                , linewidths = 2)
+    #ax1 = ax.contour( (ratio_dominance_loss*(1.0-mf_dist[:,:,0])/mf_dist[:,:,0]).T, [boundary]
+    ax1 = ax.contour( (ratio_dominance_loss/(S*(1.0-mf_dist[:,:,0]))).T, [1.0]
+            , linestyles=['dotted'], colors = boundary_colour, linewidths = 1)
+    ax2 = ax.contour( (ratio_dominance_loss).T, [boundary]
+            , linestyles=['dashed'], colors = boundary_colour, linewidths = 1)
+    ax3 = ax.contour( (ratio_dominance_loss).T, [100]
+            , linestyles=[(0, (3, 1, 1, 1))], colors = boundary_colour, linewidths = 1)
 
-    ax1 = ax.contour( ratio_dominance_loss.T, [boundary], linestyles=['dashed']
-                        , colors = boundary_colour, linewidths = 1)
+    h1, _ = ax1.legend_elements(); h2, _ = ax2.legend_elements()
+    h3, _ = ax3.legend_elements()
+    h = [h1[0], h2[0], h3[0]]
+    labels = [r'$\langle S^* \rangle$',r'$S$', r'$10^2$']
+    plt.legend(h, labels, loc='lower left', facecolor='white', framealpha=0.85)
 
     #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
     set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
@@ -1284,7 +1331,9 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , markerline[i], c=colours_line[i]
                     , label=VAR_SYM_DICT[xlabel] + ": " + r'$10^{%d}$' %
                     np.log10(round(rangex[val], 13) ) )
+    plt.text(0.03, S+30, 'niche-like', fontsize=10, va='center', ha='center')#, backgroundcolor='w')
     plt.axhline(y=boundary, color=boundary_colour, linestyle='--')
+    plt.text(0.03, S-18, 'rare-biosphere', fontsize=10, va='center', ha='center')#, backgroundcolor='w')
     plt.xlim((rangey[ydatalim[0]],rangey[ydatalim[1]]))
     # legend
     plt.legend(loc='best')
@@ -1306,9 +1355,10 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
-    boundary = 1.0
+    boundary = 1./(S-1)
+    boundary_colour = 'gray'
     im = plt.imshow( ratio_suppression_loss.T, **imshow_kw)
-
+    """
     MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
                         , colors = 'k', linewidths = 2)
     MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
@@ -1318,9 +1368,19 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                                     , linewidths = 2)
     MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
                                 , linewidths = 2)
+    """
 
     ax1 = ax.contour( ratio_suppression_loss.T, [boundary], linestyles=['dashed']
                         , colors = boundary_colour, linewidths = 1)
+    ax2 = ax.contour( ratio_suppression_loss.T, [1.], linestyles=['dotted']
+                        , colors = boundary_colour, linewidths = 1)
+    ax3 = ax.contour( (1.0 - mf_dist[:,:,0]).T, [(S-1.)/S], linestyles=['solid']
+                        , colors = boundary_colour, linewidths = 1)
+    h1, _ = ax1.legend_elements(); h2, _ = ax2.legend_elements()
+    h3, _ = ax3.legend_elements()
+    h = [h1[0],h2[0],h3[0]]
+    labels = [r'$1/S$',r'$10^0$','mean-field']
+    plt.legend(h, labels, loc='upper left', facecolor='white', framealpha=0.85)
     #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
     set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
                 , xlabel, ylabel)
@@ -1345,9 +1405,11 @@ def fig3(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , markerline[i], c=colours_line[i]
                     , label=VAR_SYM_DICT[xlabel] + ": " + r'$10^{%d}$' %
                     np.log10(round(rangex[val], 13) ) )
+    plt.text(0.17, boundary+0.05, 'full coexistence', fontsize=10, va='center', ha='center')#, backgroundcolor='w')
     plt.axhline(y=boundary, color=boundary_colour, linestyle='--')
+    plt.text(0.08, boundary-0.02, 'partial', fontsize=10, va='center', ha='center')#, backgroundcolor='w')
     plt.xlim((rangey[ydatalim[0]],rangey[ydatalim[1]]))
-    # legend
+    # legendimag
     plt.legend(loc='best')
     plt.xscale('log'); plt.yscale('log')
     plt.ylabel(r'$\langle T(0\rightarrow \tilde{n}) \rangle / \langle T(0\rightarrow 0) \rangle$')
@@ -1793,47 +1855,51 @@ if __name__ == "__main__":
     sim_corr        = RESULTS_DIR + os.sep + 'multiLV80'
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
 
-
+    # Create appropriate npz file for the sim_dir
     #mlv_consolidate_sim_results( sim_spec, 'nbr_species', 'comp_overlap')
     #mlv_consolidate_sim_results( sim_immi, 'immi_rate', 'comp_overlap')
     #mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
-
-
-    save = True
-    #for i in np.arange(31,37):
-        #fig_timecorr( sim_time, i , save=save); print("done ",i)
-
     #mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
 
+    save = True
 
-    #many_parameters_dist(npz_file, save)
-
+    # plots many SAD distributions, different colours for different
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=20, start=20)
-    #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20, fixed=30)
-    #maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=True, start=20)
+    #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=save, start=20, fixed=30)
 
-    # THESE ARE GOOD
-    #fig2(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
-    #fig2(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    # plots of maximums as a function of either immi_rate or comp_overlap
+    #maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=save, start=20)
+    #maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='comp_overlap', save=save, start=0)
+
+    # Phase diagram
+    #figure_regimes(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+
+    # Richness between experiments and models
     #compare_richness(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+
+    # correlation business
     #fig_corr(sim_corr+os.sep+NPZ_SHORT_FILE, save, revision='80')
     #fig_timecorr(sim_time + os.sep + "sim1" + os.sep + "results_0.pickle")
     #fig3A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
-    fig3(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
 
-    #plot_trajectory(sim_time, 19, 100000, colour='mediumturquoise', save=True)
-    #plot_trajectory(sim_time, 34, 100000, colour='khaki', save=True)
+    # MFPT
+    mfpt(sim_immi+os.sep+NPZ_SHORT_FILE, save=True, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+
+    # plots trajectories, however it would appear that MultiLV6 (traj.zip) has been deleted
+    #plot_trajectory(sim_time, 19, 100000, colour='mediumturquoise', save=save)
+    #plot_trajectory(sim_time, 34, 100000, colour='khaki', save=save)
 
 
     # OLD STUFF
-    #fig2A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
-    #fig2B(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
-    #fig2A(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
-    #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', distplots=False, xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
-    #fig2(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
-    #fig2B(sim_immi_inset+os.sep+NPZ_SHORT_FILE, save, ylog=False, xlog=False, distplots=False, pby=15)
-    #fig2B(sim_spec+os.sep+NPZ_SHORT_FILE, save)
+    #figure_richness_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
+    #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #figure_richness_phases(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #figure_modality_phases(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species', distplots=False, xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    #figure_modality_phases(sim_immi_inset+os.sep+NPZ_SHORT_FILE, save, ylog=False, xlog=False, distplots=False, pby=15)
+    #figure_modality_phases(sim_spec+os.sep+NPZ_SHORT_FILE, save)
     #fig3A(npz_file, save)
     #fig3B(npz_file, save)
     #fig3CDE(npz_file, save)

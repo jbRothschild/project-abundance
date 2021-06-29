@@ -45,6 +45,7 @@ VAR2=($(logspace -3 1 ${NUM_TASKS_2} | tr -d '[],'))
 VAR2_NAME="immiRate"
 
 SIM_DIR='mehta'
+#SIM_DIR='master'
 
 # 2 variable vary
 parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python run_langevin.py -s -id {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} -d ${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}

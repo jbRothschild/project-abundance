@@ -10,10 +10,13 @@ def abundance( param, trajectory ):
     binCentres = np.array( (binEdges[:-1] + binEdges[1:])/2. )
     return binCentres, countsNorm
 
-def save_sim( param, traj ):
+def save_sim( param, traj, saveTraj ):
     binCentres, countsNorm = abundance( param, traj )
 
     param['countsNorm'] = countsNorm
     param['binCentres'] = binCentres
 
+    if saveTraj:
+        param['trajectory'] = traj
+        
     return param

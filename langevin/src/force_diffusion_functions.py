@@ -12,10 +12,16 @@ def lotkvol_force( param_dict ):
 
     def wrapped( population ): # <- factori-ed / created function
         force = np.zeros( len(population) ); J = np.sum(population)
+        """
         for i in np.arange( 0, len(population) ):
             force[i] = params.immiRate/params.carryCapacity + ( params.birthRate
                         - params.deathRate ) * population[i] * ( 1.0 -
                         ( ( 1.0 - params.compOverlap ) * population[i] +
+                        params.compOverlap * J ) )
+        """
+        force = params.immiRate/params.carryCapacity + ( params.birthRate
+                        - params.deathRate ) * population * ( 1.0 -
+                        ( ( 1.0 - params.compOverlap ) * population +
                         params.compOverlap * J ) )
         return force
 
@@ -26,12 +32,19 @@ def master_diff( param_dict ):
 
     def wrapped( population ):
         diff = np.zeros( len(population) ); J = np.sum(population)
+        """
         for i in np.arange( 0, len(population) ):
             diff[i] = ( params.immiRate/params.carryCapacity +
                         ( params.birthRate + params.deathRate ) * population[i]
                          + ( params.birthRate - params.deathRate )
                          * population[i] * ( ( 1.0 - params.compOverlap )
                          * population[i] + params.compOverlap * J ) )
+        """
+        diff = ( params.immiRate/params.carryCapacity +
+                    ( params.birthRate + params.deathRate ) * population
+                     + ( params.birthRate - params.deathRate )
+                     * population * ( ( 1.0 - params.compOverlap )
+                     * population + params.compOverlap * J ) )
         return np.sqrt( diff / params.carryCapacity )
 
     return wrapped
