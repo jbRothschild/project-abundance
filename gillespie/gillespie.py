@@ -32,12 +32,10 @@ Example usage :
 # TODO : num_states is poorly named, should be number of species or something.
 #        Even deleted if if must.
 
+import os, random, time, argparse
 import numpy as np
-import random, time, argparse
-from gillespie_models import MODELS
-#import gillespie_analysis as ga unnecessary
-import os
-import gillespie_models as gm
+import src.gillespie_models as gm
+from src.gillespie_models import MODELS
 
 def gillespie_sample_discrete(probs, r2):
     """

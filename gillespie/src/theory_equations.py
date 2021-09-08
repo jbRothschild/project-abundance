@@ -14,9 +14,9 @@ import scipy, scipy.stats; import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
 #import seaborn as sns
-from settings import VAR_NAME_DICT
+from src.settings import VAR_NAME_DICT
 
-plt.style.use('custom.mplstyle')
+#plt.style.use('custom.mplstyle')
 
 # TODO : all these scripts are a bit of a mess. FIgure out a good modular way
 #        to do this all.
@@ -301,6 +301,54 @@ class Model_MultiLVim(object):
 
         return dstbn_n, abundance
 
+    def abund_sid_J(self):
+        """
+        Mean field approximation :  Solving Master equation by assuming
+                                    <J|n_1>=S <n>
+        """
+        def fcn_prob_n(mean_n):
+            prob_n_unnormalized = np.zeros( np.shape(self.population) );
+            prob_n_unnormalized[0] = 1.0#1E-250;
+            for n in np.arange( 1, len(prob_n_unnormalized)):
+                previous_n = n - 1
+                prob_n_unnormalized[n] = prob_n_unnormalized[previous_n] * (
+                    ( self.immi_rate + self.birth_rate*previous_n)
+                    / ( n* (self.death_rate + (1-self.comp_overlap)*n*(
+                    self.birth_rate-self.death_rate)/self.carry_capacity
+                    + ( self.birth_rate-self.death_rate)*(
+                    (self.nbr_species)*mean_n )*self.comp_overlap
+                    / self.carry_capacity ) ) )
+
+            prob_n = prob_n_unnormalized / ( np.sum( prob_n_unnormalized ) )
+
+            return prob_n
+
+        def equations(vars):
+            mean_n = vars
+
+            dstbn_n = fcn_prob_n(mean_n); eqn = 1.0
+
+            eqn = np.dot(dstbn_n,self.population)-mean_n
+
+            return eqn
+
+        # TODO Maybe something better?
+        initial_guess = self.carry_capacity / ( 1.0 +
+                        self.comp_overlap*(self.nbr_species-1) )
+
+        # numerically solve for <n>
+        mean_n_approx = sp_solver(equations, initial_guess)
+
+        # Probability distribution of n
+        dstbn_n = fcn_prob_n(mean_n_approx)
+
+        # Abundance of n
+        abundance = dstbn_n * self.nbr_species
+
+        self.dstbn_n = dstbn_n
+
+        return dstbn_n, abundance
+
     def abund_kolmog(self, const_J = True, dstbn_approx = 'Jeremy'):
         # TODO REMOVE
         """
@@ -521,7 +569,7 @@ class Model_MultiLVim(object):
                 - self.comp_overlap ) + np.dot(self.population
                 ,prob_J_given_i) * self.comp_overlap ) / self.carry_capacity )))
 
-        probability = probability/np.sum(probability)
+        probability = probability / np.sum(probability)
 
         self.dstbn_n = probability
 

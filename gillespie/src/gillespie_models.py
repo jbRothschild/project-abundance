@@ -1,6 +1,6 @@
 import os, csv, sys
 import numpy as np
-from theory_equations import Model_MultiLVim
+from src.theory_equations import Model_MultiLVim
 import random
 import pickle
 
@@ -247,13 +247,17 @@ class MultiLV(Parent):
                             , 'av_ni_temp' : np.zeros(self.nbr_species)
                             , 'av_ni_sq_temp' : np.zeros(self.nbr_species)
                             , 'corr_ni_nj' : 0.0, 'coeff_ni_nj' : 0.0
-                            , 'av_J' : 0.0, 'av_J_sq' : 0.0
+                            , 'av_J' : 0.0, 'av_J_sq' : 0.0, 'cov_ni_nj' : 0.0
                             , 'av_J_n' : np.zeros(self.nbr_species)
                             , 'corr_J_n' : 0.0, 'coeff_J_n' :0.0
                             , 'av_Jminusn' : np.zeros(self.nbr_species)
                             , 'av_Jminusn_sq' : np.zeros(self.nbr_species)
                             , 'av_Jminusn_n' : np.zeros(self.nbr_species)
                             , 'corr_Jminusn_n' : 0.0, 'coeff_Jminusn_n' : 0.0
+                            , 'cov_J_n' : 0.0, 'cov_Jminusn_n' : 0.0
+                            , 'corr_ni_nj_S' : 0.0, 'coeff_ni_nj_S' : 0.0
+                            , 'corr_J_n_S' : 0.0, 'coeff_J_n_S' : 0.0
+                            , 'corr_Jminusn_n_S' : 0.0, 'coeff_Jminusn_n_S' : 0.0
                             }
 
     def propensity( self, current_state ):
@@ -280,7 +284,7 @@ class MultiLV(Parent):
                         + self.immi_rate)
                         # birth + immigration
             prop[i*2+1] = (current_state[i] * ( self.death_rate + self.emmi_rate
-                          + ( self.birth_rate - self.death_rate )*( 1
+                          + ( self.birth_rate - self.death_rate )*( 1.0
                           - self.quadratic )*(current_state[i]
                           + self.comp_overlap*np.sum(
                           np.delete(current_state,i)))/self.carry_capacity ) )
@@ -391,8 +395,8 @@ class MultiLV(Parent):
         self.results['joint_temp'] /= np.sum( self.results['joint_temp'] )
         for i in np.arange(0, np.shape(self.results['joint_temp'])[0]):
             self.results['conditional'][i][i] = \
-                                        self.results['joint_temp'][i][i]
-                                        # I don't think should be double
+                                        2*self.results['joint_temp'][i][i]
+                                        # It should be double. I didn't before...
             for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
                 self.results['conditional'][j][i] = \
                                 ( self.results['joint_temp'][i][j]\
@@ -420,6 +424,7 @@ class MultiLV(Parent):
         self.results['av_Jminusn_sq'] /= total_time
         self.results['av_Jminusn_n'] /= total_time
         nbr_correlations = 0
+        nbr_spec_corr = 0
 
         for i in np.arange(0, self.nbr_species):
             var_J_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
@@ -437,6 +442,7 @@ class MultiLV(Parent):
             cov_Jminusn_n = (self.results['av_Jminusn_n'][i]
                             - self.results['av_ni_temp'][i] *
                             self.results['av_Jminusn'][i] )
+
             # coefficients of variation
             if self.results['av_J_n'][i] != 0.0 \
                                     and self.results['av_ni_temp'][i] != 0.0:
@@ -450,14 +456,15 @@ class MultiLV(Parent):
             # Pearson correlation
             if var_J_n != 0.0:
                 self.results['corr_J_n'] += cov_J_n / var_J_n
+                nbr_spec_corr += 1
             if var_Jminusn_n != 0.0:
                 self.results['corr_Jminusn_n'] += cov_Jminusn_n / var_Jminusn_n
 
             for j in np.arange(i+1, self.nbr_species):
                 var_nm = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
-                - self.results['av_ni_temp'][i]**2 ) ) * (
-                np.sqrt( self.results['av_ni_sq_temp'][j]
-                - self.results['av_ni_temp'][j]**2 ) ) )
+                        - self.results['av_ni_temp'][i]**2 ) ) * (
+                        np.sqrt( self.results['av_ni_sq_temp'][j]
+                        - self.results['av_ni_temp'][j]**2 ) ) )
                 # cov(n_i,n_j)
                 cov_ni_nj = ( self.results['av_ni_nj_temp'][i][j]
                             - self.results['av_ni_temp'][i] *
@@ -474,6 +481,15 @@ class MultiLV(Parent):
                     nbr_correlations += 1
 
         # Taking the average over all species
+        # counting species that contribute
+        self.results['corr_ni_nj_S'] = self.results['corr_ni_nj'] / nbr_correlations
+        self.results['coeff_ni_nj_S'] = self.results['coeff_ni_nj'] / nbr_correlations
+        self.results['corr_J_n_S'] = self.results['corr_J_n'] / nbr_spec_corr
+        self.results['coeff_J_n_S'] = self.results['coeff_J_n'] / nbr_spec_corr
+        self.results['corr_Jminusn_n_S'] = self.results['corr_Jminusn_n'] / nbr_spec_corr
+        self.results['coeff_Jminusn_n_S'] = self.results['coeff_Jminusn_n'] / nbr_spec_corr
+
+        # all species
         self.results['corr_ni_nj'] /= ( self.nbr_species*(self.nbr_species-1)/2)
         self.results['coeff_ni_nj'] /= ( self.nbr_species*(self.nbr_species-1)/2)
         self.results['corr_J_n'] /= ( self.nbr_species)

@@ -8,9 +8,9 @@ import scipy.io as sio
 
 from scipy.signal import argrelextrema
 
-from gillespie_models import RESULTS_DIR, MultiLV, SIR
-import theory_equations as theqs
-from settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW
+from src.gillespie_models import RESULTS_DIR, MultiLV, SIR
+import src.theory_equations as theqs
+from src.settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW
 
 SIM_FIG_DIR = 'figures' + os.sep + 'simulations'
 while not os.path.exists( os.getcwd() + os.sep + SIM_FIG_DIR ):
@@ -18,7 +18,7 @@ while not os.path.exists( os.getcwd() + os.sep + SIM_FIG_DIR ):
 
 import pickle
 
-plt.style.use('custom.mplstyle')
+plt.style.use('src/custom.mplstyle')
 
 def consolidate_trajectories(sim_dir, save_file=False, FORCE_NUMBER=3000):
     """
@@ -202,7 +202,6 @@ def mlv_extract_results_sim(dir, sim_nbr=1):
         conditional = None
 
     if 'av_J' in model.results:
-        print("YAY I GOT IT")
         av_J = model.results['av_J']
     else:
         av_J = None
@@ -1016,9 +1015,13 @@ if __name__ == "__main__":
 
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
-    """
+
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
     sim_dir = RESULTS_DIR + os.sep + 'multiLV71'
+    sim_dir = RESULTS_DIR + os.sep + 'multiLVNavaJ'
+
+    mlv_consolidate_sim_results(sim_dir, 'immi_rate', 'comp_overlap')
+    """
     mlv_consolidate_sim_results(dir, 'immi_rate', 'comp_overlap')
 
     mlv_plot_single_sim_results(sim_dir, sim_nbr = 1500)
@@ -1041,7 +1044,3 @@ if __name__ == "__main__":
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)
     #sir_mean_trajectory(sim_dir)
-
-I'm a current PhD at the Univeristy of Toronto, and I've taken it upon myself to organize sessions of professional development for current grads. I'm hoping to get some alumni to come in and chat about their careers post graduations. Let me know if you'd like details!
-Cheers,
-Jeremy

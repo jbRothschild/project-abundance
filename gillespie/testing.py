@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as pl
 from scipy.fftpack import fft, ifft, ifftshift
 
-
 def autocorrelation(x) :
     xp = (x - np.average(x))/np.std(x)
     f = fft(xp)
