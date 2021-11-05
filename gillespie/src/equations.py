@@ -75,8 +75,10 @@ def peak_analytical_method1(meanN, rplus, rminus, K, rho, mu, S, pos=1.):
     pos (int) : +1 or -1
     """
     assert (pos==1. or pos==-1.), "pos neither +1 or -1. Not solution to quadratic eq."
-    return ( ( K - (S - 1.) * np.multiply( rho, meanN) ) + pos * np.sqrt(( K - (S - 1.)
-                * np.multiply( rho, meanN) )**2 + 4 * ( mu - rplus ) * K / (rplus-rminus) + 0j ) ) / 2.0
+    return ( ( K - (S - 1.) * np.multiply( rho, meanN) - 1.0 ) + pos * np.sqrt(( K - (S - 1.)
+                * np.multiply( rho, meanN) - 1.0 )**2 + 4 * ( mu - rplus ) * K / (rplus-rminus) + 0j ) ) / 2.0
+    #return ( ( K - (S - 1.) * np.multiply( rho, meanN)) + pos * np.sqrt(( K - (S - 1.)
+    #            * np.multiply( rho, meanN))**2 + 4 * ( mu - rplus ) * K / (rplus-rminus) + 0j ) ) / 2.0             # POCHHAMMER? Previous der.
 
 
 def peak_analytical_method3(meanN, rplus, rminus, K, rho, mu, S, pos=1.):
@@ -96,25 +98,45 @@ def boundaryI(meanN, rplus, rminus, K, rho, mu, S):
                                             * np.multiply( rho, meanN) ) / K )
     return regimeI
 
+def boundaryI3(meanN, rplus, rminus, K, rho, mu, S):
+    """
+    return 2 if in Regime I, 0 if not. Using method 3 (NOT CORRECT YET)
+    """
+    regimeI = ( 1. / mu ) * ( rminus + (rplus-rminus) * ( 1. + ( S - 1.0 )
+                                            * np.multiply( rho, meanN) ) / K )
+    return regimeI
+
 def realBoundaryIII(meanN, rplus, rminus, K, rho, mu, S):
     """
-    return 1 if in Regime III, 0 if not. Using method 1
+    return 2 if in Regime III, 0 if not. Using method 1
     """
-    boundaryIII = ( rplus - rminus) * ( K - ( S - 1.0) * np.multiply( rho, meanN) )**2 \
+    boundaryIII = ( rplus - rminus) * ( K - ( S - 1.0) * np.multiply( rho, meanN) - 1.0 )**2 \
                         + 4 * K *( mu - rplus )
+    #boundaryIII = ( rplus - rminus) * ( K - ( S - 1.0) * np.multiply( rho, meanN) )**2 \
+    #                    + 4 * K *( mu - rplus ) # POCHHAMMER? Previous der.
 
-    conditionAlt = peak_analytical_method1( meanN, rplus, rminus, K, rho, mu, S)
-    array2 = np.zeros( ( np.shape(conditionAlt)[0], np.shape(conditionAlt)[1] ) )
-    array2[np.imag(conditionAlt) != 0.0 ] = 1.0
+    # positive condition
+    conditionNeg = peak_analytical_method1( meanN, rplus, rminus, K, rho, mu, S, -1.0)
+    conditionPos = peak_analytical_method1( meanN, rplus, rminus, K, rho, mu, S, 1.0)
+    array = np.zeros( ( np.shape(conditionPos)[0], np.shape(conditionPos)[1] ) )
+    array2 = np.zeros( ( np.shape(conditionNeg)[0], np.shape(conditionNeg)[1] ) )
+    array3 = np.zeros( ( np.shape(boundaryIII)[0], np.shape(boundaryIII)[1] ) )
+    array4 = np.zeros( ( np.shape(boundaryIII)[0], np.shape(boundaryIII)[1] ) )
+    array[np.real(conditionPos) >= 0.0] = 1.0; array2[np.real(conditionNeg) >= 0.0] = 1.0
+    array3[boundaryIII < 0.0] = 1.0
+    #array4[np.imag(conditionPos) <= 1E-7 ] = 1.0
+    condition = array + array2 + array3; condition[condition > 0.0] = 2.0
+    #condition = array + array2 + array4; condition[condition > 0.0] = 2.0
+    boundaryIII *= condition
 
-    return boundaryIII, array2
+    return boundaryIII, condition
 
 def realBoundaryIII3(meanN, rplus, rminus, K, rho, mu, S):
     """
     return 2 if in Regime III, 0 if not. Using method 3
     """
-    boundaryIII =  ( ( (rplus-rminus)*(K- S * np.multiply( rho, meanN) )**2 ) * (1./ (4. * K)) *
-                        ( 1.0 / ( rplus - mu ) ) * ( 1.0 /( 1.0 - rho ) ) )
+    #boundaryIII =  ( ( (rplus-rminus)*(K- S * np.multiply( rho, meanN) )**2 ) * (1./ (4. * K)) *
+    #                    ( 1.0 / ( rplus - mu ) ) * ( 1.0 /( 1.0 - rho ) ) )
     boundaryIII = (rplus-rminus) * (K - S * np.multiply( rho, meanN) )**2 \
                                 + 4 * K * ( mu - rplus ) * ( 1.0 - rho )
     # positive condition
@@ -148,3 +170,28 @@ def mfpt_hubbel_regime(fluxNtilde, mu, nbr_spec_pres, S ):
 
 def mfpt_return_full(fNmin, mu, nbr_spec_pres, S):
     return ( ( S - nbr_spec_pres ) * mu ) * (1.0 / fNmin ) / S**2
+
+def KL_divergence(P, Q):
+    # 1D kullback-leibler divergence between 2 distributions P and Q
+    dimP = len(P); dimQ = len(Q) # TODO change to np.shape
+
+    if dimP != dimQ:
+        print('Dimension of 2 distributions not equal!')
+        P = P[:]
+        P = P[:np.min([dimQ,dimP])]; Q = Q[:np.min([dimQ,dimP])];
+
+    KLpq = np.sum(P[P>0.0]*np.log(P[P>0.0])) \
+                        - np.sum(P[Q>0.0]*np.log(Q[Q>0.0]))
+
+    return KLpq
+
+def JS_divergence(P, Q):
+    # 1D Jensen-Shannon between 2 distributions P and Q
+    dimP = len(P); dimQ = len(Q) # TODO change to np.shape
+    if dimP != dimQ:
+        print('Dimension of 2 distributions not equal!')
+        P = P[:np.min([dimQ,dimP])]; Q = Q[:np.min([dimQ,dimP])];
+
+    #print((self.KL_divergence(P,Q) + self.KL_divergence(Q,P))/2.0)
+
+    return (KL_divergence(P,Q) + KL_divergence(Q,P))/2.0

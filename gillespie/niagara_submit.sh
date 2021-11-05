@@ -58,7 +58,7 @@ VAR2=($(logspace -3 1 ${NUM_TASKS_2} | tr -d '[],'))
 VAR2_NAME="immi_rate"
 
 RESULTS_DIR='sim_results'
-SIM_DIR='multiLV100'
+SIM_DIR='multiLV50'
 
 mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
@@ -67,7 +67,7 @@ mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
 # 2 variable vary
 #parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 1000000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
-parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 10000000 -n {#} -p birth_rate=2.0 death_rate=1.0 carry_capacity=100 ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
+parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 30000000 -n {#} -p birth_rate=2.0 death_rate=1.0 carry_capacity=50 ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
 
 
 # 1 parameter choice only

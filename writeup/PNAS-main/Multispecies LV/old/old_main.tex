@@ -1,0 +1,1276 @@
+\documentclass[%aapm,mph,%
+ amsmath,amssymb,
+%preprint,% 
+ reprint,% 
+%author-year,%
+%author-numerical,%
+]{revtex4-2}
+
+%(preprint=one column), (reprint=two columns), revtex - for APS journals   
+
+\usepackage{dblfloatfix}
+\usepackage{enumitem}
+
+\usepackage{graphicx}% Include figure files
+\usepackage{dcolumn}% Align table columns on decimal point
+\usepackage{bm} % bold math
+\usepackage{multirow}
+
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows}
+\tikzstyle{startstop} = [rectangle, rounded corners, minimum width=1cm, minimum height=1cm,text centered, draw=black]
+\tikzstyle{io} = [trapezium, trapezium left angle=70, trapezium right angle=110, minimum width=0.5cm, minimum height=1cm, text centered, text width=2cm, draw=black]
+\tikzstyle{process} = [rectangle, minimum width=1cm, minimum height=1cm, text centered, draw=black, fill=orange!30]
+\tikzstyle{decision} = [diamond, minimum width=1cm, minimum height=1cm, text centered, draw=black, fill=green!30]
+\tikzstyle{arrow} = [thick,->,>=stealth]
+
+
+\usepackage{chemfig}
+\usepackage{authblk}
+
+
+
+
+%\usepackage[mathlines]{lineno}% Enable numbering of text and display math
+%\modulolinenumbers[5]% Line numbers with a gap of 5 lines
+%\linenumbers\relax % Commence numbering lines
+
+\begin{document}
+
+%\preprint{AAPM/123-QED}
+
+\title{Different Modalities of Species-Abundance Distribution in Competitive Ecosystems}
+
+
+\author{Author1}
+%\author{}%
+ %\email{Second.Author@institution.edu.}
+\affiliation{affiliation1 
+%\\This line break forced with \textbackslash\textbackslash
+}%
+\author{Author2}
+%\author{}%
+ %\email{Second.Author@institution.edu.}
+\affiliation{affiliation2 
+%\\This line break forced with \textbackslash\textbackslash
+}%
+
+
+
+\begin{abstract}
+\textcolor{red}{The following `abstract' is only for ourselves:} \\
+Known:
+\begin{itemize}
+    \item Both unimodality and multimidality SAD are measured in competitive ecosystems
+    \item Universal unimodality 
+    \item Many theoretical explanations for unimodality, Hubble 
+    \item Bimodality is explained using variations of LV eq.  (e.g. random environment/competition/growth/death ) 
+    \item behavioral phase transition for $\rho=1$ (Chou's paper) + also HL paper shows bi-uni-modal transition 
+\end{itemize}
+Novelty:
+\begin{itemize}
+    \item Using inherent stochastic model - Master equation 
+    \item Presenting complete phase space, for $\rho$ and $\mu$ (adding $S$ or $K$?)  
+    \item Phases boundaries (using approximation)  
+    \item Phase transition; location and height of 2nd peak.  
+\end{itemize}
+Next:
+\begin{itemize}
+    \item fig 1 introduction to competition of ecosystem
+    + graphical illustration of question
+    \item fig 2 - fig1 + data + illustration at every regime
+    \item fig 3 kinetics - extinction time + turnover
+    \item real data/examples?
+\end{itemize}
+\end{abstract}
+
+\keywords{Suggested keywords}%Use showkeys class option if keyword
+                              %display desired
+\maketitle
+
+
+\section{\label{sec:introduction}Introduction}
+
+Ecological competition is the struggle between organisms for the same resources, e.g. food or sunlight, within an environment. 
+These resources are the components of the environment that are required for survival and reproduction. 
+Competition among individuals from different species is referred to as intraspecific competition, while competition among members of the same species is called interspecific competition \cite{grover1997resource,begon2006ecology,pocheville2015ecological}.  
+
+Models of competition are used to described various systems in a vast array of disciplines. 
+One of the most well known phenomenon, that was the inspiration for the specific ecological competition paradigm, was the differentiation in beaks forms of finches in the Gal\'apagos islands \cite{lewin1983finches,lack1983darwin}. Ecological competition models are also used to describe microbial dynamics, for example in human gut \cite{coyte2015ecology,gorter2020understanding}, the appearance of dominant clones during cells reprogramming \cite{shakiba2019cell}, the evolution of neoplasm, and in particular cancer cells \cite{merlo2006cancer,kareva2015cancer}, or even to describe competition  economics \cite{budzinski2007monoculture}, and social network \cite{koura2017competitive}, as a partial list of examples.
+
+Deterministic competition models predict that stable coexisence is found only when the intraspecific competition is smaller than intraspecific competition  \cite{hardin1960competitive,macarthur1967limiting,MacArthur1969species, gause2019struggle}. This statement, known as Gause's Law or the competitive exclusion principle, states that if a limiting resource exists in the environment and two species rely on that resource, only one of the species will survive. The other will either become extinct in the environment or it will develop evolutionary adaptations that shift it toward a different ecological niche \cite{hardin1960competitive}. Gause’s law is
+theoretically recovered in some particular Lotka-Volterra (LV) equations, e.g. \cite{macarthur1967limiting,MacArthur1969species}.
+
+%Ecological competition therefore can act as a mechanism to drive evolutionary adaptation. One of the most famous examples of evolutionary adaptation driven by competition for resources is that of Darwin’s finches. There are at least 13 species of finches on the Galapogos Islands. Scientists believe that all of the species evolved from one ancestral species. Because food resources on the islands are limited, competition between members of the ancestral species drove individuals to consume food that was not optimal. This competitive pressure favored individuals with bill shapes that could eat the food for which the competition was not as intense. These individuals eventually became entirely different species than the original ancestor. Over time, more than a dozen species of finches were established because of ecological competition.
+
+%In 1935 British ecologist Arthur Tansley (1871–1955) performed experiments with a plant called Gallium, also known as bedstraw. Tansley planted two species, one that was native to alkaline soil and one found in a more basic soil. When planted alone, both species could grow in either the alkaline or basic soil type. However, when planted together, the plant in its native soil always grew much larger than the plant in non-native soil. Tansley realized that the native plant was able to more effectively obtain resources than the plant grown in non-native conditions. Tansley surmised that competition has broad effects on community structure. In particular, the presence or absence of a competitor can play a large role in determining the size, population size, and health of other organisms in the environment.
+
+Interestingly, observations data suggest that the competitive exclusion principle seems to be violated, since vast diversity of species that we see in nature persists despite differences
+between species in competitive ability \cite{hutchinson1961paradox,chesson2000mechanisms}. 
+The tremendous diversity of species in ecological communities has motivated decades of research into the mechanisms that maintain biodiversity, e.g. \cite{tilman1982resource,loreau1998biodiversity,verberk2011explaining,lynch2015ecology,fowler2013colonization,barabas2016effect,kalmykov2012mechanistic,kalmykov2013verification}. %For example, it was found that by changing some parameters of a system, a biosphere may present significant dominant (core) species together with some low abundance species \cite{lynch2015ecology,verberk2011explaining}. In particular, the influence of competition (strength/network-topology/etc.) on properties of the system were examined \cite{lynch2015ecology,verberk2011explaining}. For example, the niche overlap affects the richness of community, the size of the total population, and abundance distribution, see \cite{lynch2015ecology,verberk2011explaining}. 
+
+
+%Many organisms face a constant battle for resources. Vast numbers of microbes are present in all but the most rarified environments. 
+Species abundance distribution (SAD) describes how abundance varies among species. SAD is amongst the most studied descriptors of community structure in ecology.
+It was found that underlying the numerically dominant microbial populations is a highly diverse, low-abundance population \cite{lynch2015ecology}. This so called 'rare biosphere' or 'hollow curved' is described by a unimodal SAD.  This unimodality behavior is repeatedly empirically observed in various systems, and thus considered universal, see for example \cite{mcgill2007species,magurran2013measuring} and the references therein. Various theoretical explanations for the hollow curved SAD in the competitive ecosystem have been suggested \cite{mcgill2007species,magurran2013measuring}. 
+Nevertheless, it was also found that a biosphere may present significant dominant species together with some low abundance species, such that a multi-modal SAD is observed  \cite{hanski1982dynamics,scheiner1997placing,loreau1999immigration,segura2013competition,zhang2020lifting,vergnon2012emergent}.  
+%In particular, the influence of competition (e.g. its distribution, strength and network topology) on properties of the system were examined, e.g. \cite{case1991invasion,verberk2011explaining,lynch2015ecology}. %For example, the strength of competition affects the richness of community  \cite{}, the size of the total population \cite{}, and abundance distribution \cite{}, to name only few.
+
+Commonly, many studies are
+based on variations of the (deterministic) LV approach where, for example, some randomness is
+considered for the interspecific interactions or additional environmental noise, see e.g
+\cite{lynch2015ecology,verberk2011explaining,fowler2013colonization,barabas2016effect,tilman1982resource}. For example, emergent neutrality model, which is based on LV equation, may lead to multimodal SAD \cite{vergnon2012emergent,scheffer2006self}.  This approach ignores the inherent stochastic nature of the process, i.e. the fact that increasing or decreasing the number of individuals of a given species is random.
+
+Nearly 20 years ago, stochasticity-based approach was suggested to investigate the ecological
+drift \cite{hubbell2001unified,alonso2006merits}. However, as far as we know, the first attempt to present a common quantitative
+framework for niche and neutral theories was Haegeman and Loreau’s (HL) work \cite{haegeman2011mathematical}. %There, the authors assume symmetrical system (all species have the same parameters, namely identical species). 
+Recent studies,
+based on HL model, presented results for some properties, e.g. the richness, as a function of the niche overlap, see for example \cite{capitan2015similar,capitan2017stochastic,capitan2020competitive}. % far as we know, the emergence of unimodal or multi-modal SADs have never been assessed and analytically quantified using the stochastic-based approach.
+
+%Generally, species abundance distribution is subject to factors that influence growth and immigration versus those that influence death. 
+Recently, it was found that the neutral birth-death model with immigration presents both power-law and bimodal SADs, depend on the immigration rate \cite{xu2018immigration}. As far as we know, the behavior of the SAD  has never been examined in the HL model, i.e. where the niche overlap is taken into the account. 
+In this paper, we examine the role of immigration rate together with the competition strength (i.e. niche overlap coefficient) on the behavior of the survived species.  
+% Mathematically, there are two main approaches to model these kind of system, deterministic and stochastic models \cite{murray2007mathematical,Perthame2015parabolic}. Deterministic models have the clear advantage; the possibility to provide exact analytical predictions. Nevertheless, stochastic dynamics seems to play an important role in some properties of the system. Importantly, some properties of the system are essentially random and cannot be predicted with deterministic analysis. Here we use both deterministic and stochastic models. 
+
+
+%In biological communities the abundances may vary greatly and provide many complex specie distributions. We sometimes think of the abundance in terms of fitnesses, however underlying this are the mechanisms in which the species interact with their environment and neighbors. In a rough approximation, we may pose that linear and pairwise interactions dominate the inter/intraspecies connections (explore this later in another section). Lotka-Voltera (Armstrong-McGee) ~\cite{Lotka1950,Smale1976a,Armstrong1976}. Blythe and McKane~\cite{Baxter2005,Baxter2006,Blythe2007}. Haegeman and Loreau~\cite{Haegeman2011}. Capitan~\cite{Capitan2015,Capitan2017}. Sid's clonal population~\cite{Goyal2015}.  Bunin~\cite{Bunin2016}. General interest seems to be in understanding how we go from a neutral model to one with competitive overlap.
+
+\section{Stochastic Model}
+
+
+%\subsection{Deterministic Lotka-Volterra Model}
+%The first approach we consider, is the deterministic Lotka-Volterra (LV)  model. Here the number of individuals from species $i$ evolves via the following equation:
+%\begin{equation}
+%    \partial_t n_i = \mu_i+r n_i - \frac{r}{K}n_i \left( n_i + \sum_{j\neq i} \rho_{j,i} n_j\right).
+%    \label{generalLVimmi} 
+%\end{equation}
+%Here, $n_i$ is the number of individuals of the $i$ species (time dependent variable). $i\in \{1,\dots,S\}$ is the index of a species, where $S$ is the number of species (the indexing is arbitrary). $\mu$ represents the immigration rate, $K$ is the carrying capacity, and $\rho_{j,i}$ is the relative competition (i.e. the ratio between inter-species to intra-species competition), between species $i$ and $j$.   In this work we consider ecosystems with $\forall i,j: \rho_{i,j}=\rho$ and examine $0\leq \rho$ (i.e. different strength of inter-specific competition).% or $\exists {i,j,i',j'}:\rho_{j,i}\neq \rho _{j',i'}$ (generalization for different network)
+%[Negative $\rho$ is associated with cooperative ecosystems which are not in the scope of this document.   ]
+
+%Importantly, the ecological system is conventionally believed to have stochastic nature \cite{black2012stochastic}. Thus, the deterministic model does not predict its abundance distribution, richness, species composition, etc. That is why we need,  in addition, the  stochastic model.  
+
+%\subsection{Stochastic Master Equation}
+
+As was mentioned, the ecological system is conventionally believed to have stochastic nature \cite{black2012stochastic}. We assume the stochastic evolution of the system is described by the (Markovian-) Master equation as follows
+\begin{eqnarray}
+&& \partial_t  
+P(\vec{n};t)=
+\\ \nonumber
+&&\sum_{i}\left\{q^+_i (\vec{n}-\vec{e}_i)P(\vec{n}-\vec{e}_i,t)+ \right.
+q^-_i (\vec{n}+\vec{e}_i)P(\vec{n}+\vec{e}_i,t)- \\
+&& \left. \left[q^+_i(\vec{n})+q^-_i(\vec{n})\right]P(\vec{n},t)
+\right\}    \nonumber
+\end{eqnarray}
+Where $P(\vec{n},t)$ is the joint probability density function (PDF) to be at the species composition $\vec{n}=(n_1,\dots n_S)$ at time $t$ \cite{gardiner1985handbook}. The birth rate $q^+_i$ and death rate $q^-_i$ of species $i$ are given by 
+\begin{eqnarray}
+q_i^+(\vec{n})&=&r^+ n_i +\mu,  \\
+q_i^-(\vec{n})&=&r^- n_i + \frac{r}{K} n_i \left(n_i +\sum_{j\neq i} \rho _{j,i} n_j\right). \nonumber
+\end{eqnarray}
+Here, $n_i$ is the number of individuals of the $i$ species (time dependent variable). $i\in \{1,\dots,S\}$ is the index of a species, where $S$ is the number of species (the indexing is arbitrary). $\mu$ represents the immigration rate, $K$ is the carrying capacity, and $\rho_{j,i}$ is the relative competition (i.e. the ratio between inter-species to intra-species competition), between species $i$ and $j$. $r^+$ and $r^-$ are birth and death rate per capita, where $r=r^+-r^-$.   
+%Another interesting characteristic property of a system, together with the joint probability $P(\vec{n};t)$, is the abundance distribution. The latter, marked as $P(n;t)$, is defined as the percentage number of species with $n$ individuals at time $t$.  
+Here we consider symmetric processes with  $\forall i,j\in \{1,\dots S\}:\rho_{i,j}=\rho$. Additionally, we concentrate in the long time limit, where stationarity is approached, i.e. $\partial_t P=0$
+Therefore, due to the symmetry in our system, the species abundance distribution (SAD) is equivalent to the stationary marginal distribution $P_1(n)$ of a single species. 
+
+\section{Phases} 
+
+\subsection{Modality}
+The species abundance distribution may roughly present one of the following modality phases; 
+\begin{enumerate}[label=(\Roman*)]
+    \item a unimodal phase with a peak at high abundance, 
+    \item a bimodal (multimodal?) distribution with two peaks at zero and high abundances,
+    \item a unimodality with a peak at zero abundance.
+\end{enumerate}
+The SAD may present unimodality or bimodality (multimodality?) nature, depends on the system's properties, such as the immigration rate, $\mu$, and the niche overlap $\rho$. %The sub-phase, marked with (II)* has some unique features since there almost only one species survive, see further discussion below.   %The abundance distribution may present unimodal behavior, where more abundant species are rarer. The bimodality behavior is found when some species' abundance, except extinction, is more probable than others. In other words, when the abundance distribution has more than one local maxima.     
+%
+%
+%For example, in Fig.~\ref{fig:ApproxPDF} we show that increasing the immigration rate  $\mu$ may change the modality of the SAD. In Fig.~\ref{fig:BimodalUnimodal} we present the behavior of the SAD $P(n)$, whether it has one or two maximal points, where changing both $\mu$ and $\rho$. These results obtained from the approximated abundance distribution. 
+For very strong immigration, all species are 'pushed' away from extinction, thus SAD presents uni-modality with a probable existence abundance.   For intermediate $\mu$ and high $\rho$ the uni-modality behavior is found, means that there is no favorable abundance except extinction. See Fig.~\ref{fig:phases} for  a qualitative description.  %Note that other parameters of the system might present different quantitatively results, i.e. the transition between the two behaviors appears in different values of $\rho$ or $\mu$, see details in SM.    
+
+%We note that a similar affect of immigration rate on transition between unimodal and bimodal abundance distribution was previously found in the neutral model, i.e. $\rho=1$, see  \cite{xu2018immigration}. 
+
+We note that even a single independent species, with no inter-specific competition, $\rho=0$, may present uni-modality or bi-modality regards to the level of immigration rate. Additionally, the appearance of uni-modality with peak at zero depends on the number of evolving species, see details below.  
+
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim=0 600 0 50,clip]{figures/Phases.png}
+%    \caption{Modalities of SAD}
+    
+    \hspace{1cm}
+    \includegraphics[width=1\columnwidth]{figures/Phases (2).png}
+    \caption{Description of the different behavioral phases of SAD.}
+    \label{fig:phases}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[trim=80 280 60 280,width=0.5\textwidth]{figures/multi-phases-splitted.pdf}
+    \caption{Phase diagram.  Colored regions represent data from simulation using Gillespie algorithm with $10^7$ time-steps. We use $r^+=2$, $r^-=1$, $S=30$ and $K=50$. Here, $\mu$ and $\rho$ vary, with logarithmic scale, between $[10^{-3}, 10]$ and $[10^{-3}, 1]$ respectively.  Boundaries from convolution and mean-filed approximations are represented by blue circles and solid black lines (respectively). Boundaries from rates and flux balance, given in table in Sec.~\ref{sec:Phase_transition}, are shown with pink stars. }
+    \label{fig:phases_sim}
+\end{figure}
+
+\subsection{Number of Dominant Species}
+In some cases, one can classify each species into two sub-sets. A dominant species, which appears on level close to some positive level $n^*$, and a nearly-extinct species which its abundance is close to zero.  Thus, we define the following phases;
+\begin{enumerate}[label=(\roman*)]
+    \item coexistence of all species,
+    \item extinction of some of species,
+    \item probably only one species is dominant. 
+\end{enumerate}
+We note that there is a difference between richness and the number of dominant species due to the immigration rate. However, in cases where all species coexist, or in a rare biosphere, the number of dominant species equal the richness. 
+
+%In principle, in a competitive environment, the richness $\tilde{S}$ might be smaller than the number of evolving species $S$; i.e. $\tilde{S}(\rho)\leq S$. This richness of a system is vastly changed whether a system is described by the deterministic or the stochastic model. Therefore we use $\tilde{S}_{\rm det}$ and $\tilde{S}_{\rm sto}$ to mark the deterministic and stochastic richness respectively.   
+
+%In the deterministic model with low immigration rate we obtain that when $0\leq \rho\leq 1$ all species survived.  For stronger competition $\rho> 1$ (in the zeroth order in $\mu$) only one species survives. This statement is express by the following $\tilde{S}_{\rm det}(\rho)=S\theta(1-\rho)+\theta(\rho-1)$. Therefore, in the LV model, we have found very sharp change between full coexistence to uni-existence of a species, with the threshold $\rho^*_{\rm det}=1$. 
+
+%However, in the stochastic model, such a sharp transition between full coexistence to uni-existence is not found, but rather what is called a ``cascade of extinctions'' \cite{capitan2017stochastic}.   It means that tuning the competition strength $\rho$ changes the richness in a more ``smooth'' fashion. In this case we can define the threshold $\rho^*_{\rm sto}$ as the first value when the richness is less than the total number of species, i.e. $\rho^*_{\rm sto}\equiv\underset{\rho}{\rm arg\ min}\left[\tilde{S}_{\rm sto}(\rho)< S\right].$ 
+
+%The approximated analytical richness of the stochastic system is given by $\tilde{S}(\rho)= \sum_J P_J(J)/{_1F_1}[a,\tilde{b},\tilde{c}]$. We compare our approximated analytical richness with the simulation results, see Fig.~\ref{fig:Ricness}. We found that our approximations capture the behavior of the simulation results.  Both analytical approximations and the simulation results show that increasing the immigration rate $\mu$, cause an increasing of the threshold value $\rho_{\rm sto}^*$, see~\ref{fig:Ricness}. This is in agreement with previous results, e.g. see \cite{loreau1999immigration}, where the richness in a competitive environment is expected to increase when immigration intensity
+%increases. Moreover, increasing the total number of evolved species $S$ results in decreasing the threshold $\rho_{\rm sto}^*$, see Fig.~\ref{fig:Ricness}. Similar simulation results are given in \cite{Haegeman2011a}. Here, we add the approximated analytical results, and show its regions of agreements with simulation.   
+
+\subsection{Superimposed Phase Diagram}
+
+We define the complete behavioral phases diagram using a combination between richness and modality phases, see  Fig.~\ref{fig:phases}.
+
+We note that although we define three richness phases and three modality phases, our superimposed phase diagram may present six phases at most.  
+
+ \section{Phase Transition}
+ \label{sec:Phase_transition}
+The transition between the different phases depends on two key features; the richness $S^*$ and the characteristic level of the averaged population size $J^*$. 
+
+To understand the transitions' curves between the different phases we use approximations, see below.  The boundaries are approximately following the curves:
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+\multirow{2}{4em}{modality:} & &
+      $\mu(S-S^*)=r^-+r(1-\rho+\rho J^*)/K$   \textcolor{red}{?} \\ &
+     & $\mu=r^-+r(1-\rho+\rho J^*)/K$   \\
+    \hline 
+    \multirow{2}{4em}{richness:}  & & $(S-1){\langle T_0(1) \rangle }={\langle T_1(0) \rangle}$ \\ &
+    & ${\langle T_0(1) \rangle }=(S-1){\langle T_1(0) \rangle}$
+\\
+\hline
+& & \textcolor{red}{number of dominant species? } \\
+\hline
+\textcolor{red}{modality:}& & \textcolor{red}{$P(n^*)=P(n^*+1)$}  \\ & & \textcolor{red}{$P(0)=P(1)$}  \\
+\textcolor{red}{richness (approx):}& & \textcolor{red}{${\rm Rich}(0)={\rm Rich}(1)$}  \\
+& & \textcolor{red}{${\rm Rich}(S)={\rm Rich}(S-1)$} \\
+\hline
+\end{tabular}    
+\end{center}
+%
+%\begin{center}
+%\begin{tabular}{lccc}
+%\hline
+%\multirow{2}{3em}{$\rho=1$} & 
+%     (I)$\leftrightarrow$ (II)* & $\mu_1^*=\frac{r^-(1+J^*/K)}{S-1}$  \cite{xu2018immigration}  \\
+%    & (I)$\leftrightarrow$ (III) & $\mu_2^*=r^-(1+J^*/K)$  \cite{xu2018immigration} \\
+%    \hline 
+%    $\rho=0$ & (II)$\leftrightarrow$ (III) & $\ln(c)+\gamma+\psi_0\left(\frac{\mu_3^*}{r^+}\right)-\psi_0(b)=0$ 
+%\\
+%\hline
+%\end{tabular}    
+%\end{center}
+where $\langle T_{a}(b)\rangle $ is the mean-first-passage time from $b$ to $a$ is a uni-dimensional system.
+
+An immediate consequence from the above boundaries' curves is that $S>2$ is necessary to find all phases. A similar limitation on $S$ is concluded for $\rho=1$ in \cite{xu2018immigration}, where the continuum limit is taken.  Additionally, we also recover the modality transition given in $\cite{xu2018immigration}$ for $\rho=1$.  
+
+%An attempt to present a close expression for the phases boundaries:
+%\begin{equation}
+%    F_{a,b,c}(n)=\ln(c)+\psi_0(a+n)-\psi_0(1+n)-\psi_0(b+n)
+%\end{equation}
+%with $a=\frac{\mu}{r^+}$, ${b}= \frac{r^-K+r\rho J}{r(1-\rho)}$, and ${c}=\frac{r^+ K}{r(1-\rho)}$.
+%If $F_{a,b,c}(0)>0$ we found uni-modal with maximum at $n^*>0$. If $\forall n:F_{a,b,c}(n)<0$ we are in unimodal (yellow) regime. In cases where $\exists
+% n:F_{a,b,c}(n)>0$ we found mulitmodality.  $b(J)$ and $c(J)$ is given with $J$ from simulation.
+ 
+ %When $\rho\rightarrow1$:
+ %\begin{equation}
+ %   F_{a,b,c}(n)\approx\ln\left[\frac{r^+K}{r^-K+rJ+n}\right]+\psi_0(a+n)-\psi_0(1+n)
+%\end{equation}
+
+%Numerically, for the parameters used in the figures, for $\rho=0$ we obtain $\mu_3^*\approx 1.57$ with agreement with the approximations (the equation for $\mu_3^*$ is exact). In the simulation we did not find this threshold, probably due to too-short realization (=too small ensemble) . 
+
+%In addition, from the continuum limit of \cite{xu2018immigration}: $\mu_1^*\approx 0.06$, and $\mu_2^*\approx 4$, which gives narrower interval than found in simulation. 
+
+
+%\begin{equation}
+%    \mu P(0)= \left[r^- +\frac{r}{K}(1-\rho+\rho J)\right] P(1)
+%\end{equation}
+
+%uni-modal $P(0)<P(1)$, bi-modal  $P(0)>P(1)$. Thus, the transition is where 
+%\begin{equation}
+%     \mu= r^- +\frac{r}{K}[1-\rho+\rho J] 
+%\end{equation}
+%It gives nice agreement to predict the transition between (I) and (II). 
+
+
+
+\section{Numerical Illustration}
+
+In Fig.~\ref{fig:phases_sim} we show the different phases given from simulations, presented as colored regions, using Gillespie algorithm. The phases boundaries given from approximations are shown for comparison, where the approximations' details are given below. Clearly, our approximations nicely agree with 
+the simulation result. 
+
+\section{Dynamics of the Phases}
+
+So far we presented the different phases using modality and number of dominant species. In this section we discuss some behavioral characteristics of the different phases. These features, implement as a the `impelling cause' to construct the phase diagram.     
+ 
+
+\begin{tabular}{c|c c}
+\hline
+     & probable abundance $n*$ & \hspace{0.1cm} turnover   \\ \hline
+    Chou (green) & $n*\sim K$ & slow \\
+    Hubble (yellow) & extinction & fast \\
+    (red) & $0<n*$ & fast \\
+    multi/bi-modal &  $0<n*<K$ & slow \\
+    purple+blue & $0<n*$ & very slow \\ \hline
+\end{tabular} 
+ 
+\subsection{Probable Level of Dominant Species}
+
+In cases where the SAD exhibits bi-modality, the exist species are present in the vicinity of some characteristic level $n^*$. We find that
+\begin{equation}
+    n^*\approx \frac{K}{1-\rho+\rho S^*}
+\end{equation}
+where in our considered stochastic approach, the richness $S^*$ replace the number of species $S$ in the deterministic model, see further discussion in appendix. 
+%As was mentioned, in the deterministic LV model, the level of the coexisting species when $\rho<1$ (where all species survive) is approximately  $\frac{K}{1-\rho+S\rho}$ (for small immigration rate). In addition, for the single existing species regime, when $\rho\geq 1$, the level of the existing species is $K$. 
+
+%In the stochastic approach, let's consider a bi-modal abundance distribution. In that case, some species are considered rare, while other are dominant. A rare species, is the ones where their number of individuals is close to zero. However, due to the bi-modality nature of the consider abundance distribution, one or more species are dominant, i.e. their level appears in the other probable abundance. ( Note that in the unimodal case, where all species are rare, such definition of dominant species is somewhat unnatural).
+%Interestingly, the probable dominate species abundance is similar to the deterministic fixed point, where $\tilde{S}_{\rm sto}(\rho)$ replaces $S$. i.e. $\frac{K}{1-\rho+\tilde{S}_{\rm sto}(\rho)\rho}$ where $\tilde{S}$ is the number of survived species. 
+
+%For example,  in Fig.~\ref{fig:DeterminsticVsStochastic} we present the approximated $P(n_1)$ (present with color scale, where the most probable values of $n_1$ are shown in yellow). The pink curve follows the deterministic fixed level of $n_1$ given that $S P(0)$ species are extinct. The number of extinct species is obtained from the stochastic representation of the system. 
+
+\iffalse
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 130 300,clip]{figures/DifferentAlpha_DeterminsticVsStochastic.pdf}
+    \caption{The abundance distribution $P(n_1)$ for $\rho=0,0.1,0.2,\dots 0.9$, where the colors scale between yellow and blue represent high  and low values of $P(n_1)$. The pink curve is given by $K/[1-\rho+\rho S (1-P(0))]$. Here $K=200, S=20, r^+=2, r^-=1$ and $\mu=0.01$.    }
+    \label{fig:DeterminsticVsStochastic}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 130 300,clip]{figures/DominantSpecie_differentS.pdf}
+    \caption{The level of local maxima of the abundance distribution $P(n)$ for different $\rho$. The colors shapes represent the (numeric) local maxima of $P(n)$.   The curves are given by $K/[1-\rho+\rho S (1-P(0))]$. Here, $K=100, r^+=2, r^-=1$ and $\mu=0.01$. The number of species varies between $S=10$ (blue circles), $S=50$ (green rectangles), $S=100$ (pink crosses) and $S=200$ (yellow starts).    }
+\end{figure}
+\fi
+%Furthermore, Fig.~\ref{fig:DeterminsticVsStochastic} shows an interesting behavior of  the probable level of the dominant species. In the no-competition case the species level approaches to the capacity level. Then, by slightly increasing $\rho$, the level of the dominant species decreases due to the suppression by its competitors. For relatively strong competition, significant percentage of species are extinct, thus less affect the dominant species, thus the number of individuals from the dominant species is high. To emphasize, the regions of $\rho$ for very low, intermediate and high competition   (in Fig.~\ref{fig:DeterminsticVsStochastic} $\rho=0$, $0.1\leq \rho \leq 0.5$ and $\rho\geq 0.6$ respectively) are estimated from simulation with parameters $K=200, S=20, \mu=0.01$, and might vary when these parameters change). 
+
+\subsection{Species Turnover Rate}
+
+An interesting feature of a process is given by a species-turnover rate. The latter is inversely related to the mean time it takes a species, initially extincted, to become re-extincted.   
+Species turn over rate is given by
+\begin{equation}
+    \frac{1}{\langle T_0 (0) \rangle} = \mu P(0)
+\end{equation}
+where $\langle T_0 (0) \rangle$ is the mean first return time to zero. 
+The turnover rate is closely related to the stability of the species composition. The latter refer to how often the set of existing species is changed. Therefore, we conclude that in the Hubble regime [and the 'red' one, which still does not have a name :( ] the identity of the existing species is frequently changed. 
+
+\textcolor{red}{MFPT to zero and to dominate level}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth, trim= 120 280 120 230]{figures/TurnOverRate_K50_S30.pdf}
+    \caption{Turnover rate. The values correspond to $\mu P(0)$ where $P(0)$ is given from simulation is represented with the logarithmic color scale. The black lines show the phase boundaries obtained from mean-filed approximation. Due to the finite time simulation, the abundance at zero is not samples  hence the missing data for low $\rho$.}
+    \label{fig:turnover}
+\end{figure}
+
+
+
+
+
+\section{Steady-State Approximations }
+
+%\subsection{Deterministic Fixed Points}
+%Both deterministic and stochastic models might approach time-independent solutions. The stationary results given in this section, both in the deterministic and stochastic approaches are known, see e.g. \cite{}. Deterministically, these solutions, refer as 'fixed points', are given where $\forall i: \partial _t n_i=0$. It means that for every species $i\in\{1,S\}$, the number of individuals of the i-th species do not change in time. For the LV model presented above with $0\leq \rho \leq 1$, we have found a single fixed point at $\vec{n}^*=(n^*,\dots,n^*)$ with
+%\begin{equation}
+%\label{eq:solstat}
+%n^{*} = \frac{K}{2[1+\rho(S-1)]}\left[1+\sqrt{1+\frac{4\mu[1 + \rho (S-1) ]}{r K}}\right].
+%\end{equation}
+%In the limit of small immigration rate we obtain
+%\begin{equation}
+%n^{*} \xrightarrow{\mu \ll  \frac{Kr}{1 + \rho (S-1) }} \frac{K}{1 + \rho (S-1) } +\frac{\mu }{r}+O\left(\mu
+%   ^2\right).  
+%\end{equation}
+%This fixed point is stable if $0\leq \rho\leq 1$. For $\rho=1$ the fixed point is stable only if $\mu>0$.  In means that under these conditions, when $\mu>0$ and $0\leq \rho\leq 1$, all species co-exist with the level $\vec{n}^*=(n^*,\dots,n^*)$.   
+
+%\subsection{Stochastic Steady State}
+
+%In stochastic process, there is no single number which describe the stationary state, but a joint distribution $P(n_1,n_2,\dots n_S)$ or a marginal distribution $P_i(n_1)$. 
+%The detailed balance holds only for $\rho=0$ or $\rho=1$. Thus, the exact SAD is known for $\rho\in \{0,1\}$ solely, see appendix. 
+The exact marginal distribution is given by
+\begin{eqnarray}
+     &&P(n_1)= P\left(n_1|\langle J|n_1\rangle \right) = \\ \nonumber
+     && = P(0)\frac{(r^+)^{n_1}(\mu/r^+)_{n_1}}{n_1!\prod_{n_1=1}^{n_1}(r^-+r(1-\rho)n_1/K+\rho \langle J |n_1 \rangle /K)}.
+\end{eqnarray}
+ Since we do not have access to the exact analytic solution for general $\rho$, we use approximation. To do so, we assume that the species' levels are mutually independent.
+
+%For general $\rho$ we should present approximated results. In this section, we present two approximations. Both approximations share similar basic assumptions; First, we assume that species are practically mutually independent. Second assumption is that the number of individuals (i.e. population size) is nearly a constant.    
+
+%The exact SAD  for $\rho=0$ is 
+%\begin{equation}
+%    P_1^{\rho=0}(n_1) =\frac{1}{{_1F_1}[a,b;c]} 
+%    \frac{(a)_{n_1} (c)^{n_1}}{n_1 ! (b)_{n_1} },
+%\end{equation}
+%with $a=\mu/r^+$, $b=r^-K/r+1$, $c=r^+K/r$, ${_1F_1}[a,b;c]$ is the confluent hypergeometric functions of the first kind, and  $(f)_n\equiv f\cdot (f+1) \cdot \dots \cdot(f+n-1)$ known as the Pocchammer symbol.
+
+%Clearly, since in this case species do not interact with each other, the joint distribution is clearly given by
+%\begin{eqnarray}
+%    P^{\rho=0}(n_1,\dots,n_S)&=&\prod_{i=1}^{S}P^{\rho=0}_i(n_i)=  \\ \nonumber &=&\frac{1}{\left({_1F_1}[a,b;c]\right)^{S}}\prod_{i=1}^{S} 
+%    \frac{(a)_{n_i} (c)^{n_i}}{n_i ! (b)_{n_i} }. 
+%\end{eqnarray}
+%where remind that $S$ is the number evolving species in the system.
+
+
+%The case $\rho=1$, known as the neutral model, is also solvable exactly using detailed balance (see SM). Thus, we obtain 
+%\begin{eqnarray}
+%    && P^{\rho=1}(n_1,\dots n_S)= \\ \nonumber  &&=P^{\rho=1}(0,0,\dots 0)\frac{c^{n_1+n_2+\dots n_s}}{(b)_{n_1+n_2+\dots n_S}}\prod_{i=1}^{S}\frac{(a)_{n_i}}{n_i!}
+%\end{eqnarray}
+%where $P^{\rho=1}(0,\dots, 0)=1/{_1F_1}[aS,b;c]$ is determined by normalization.
+%For $S=2$, {\em Mathematica } gives $\sum_{J=0}^{\infty}\sum_{x=0}^{\infty}\frac{(a)_{x}(a)_{J-x}c^{J}}{x!(J-x)!(b)_{J}}={_1F_1\left[2a,b,c\right]}$. 
+%\textcolor{red}{TO DO: retry to find the normalization for every $S$}
+%The marginal distribution is thus given by
+%\begin{eqnarray}
+%   &&P^{\rho=1}(n_1)= \\ \nonumber 
+%   &&=\frac{1}{{_1F_1[aS,b;c]}}\sum_{n_2=0}^{\infty}\dots \sum_{n_S=0}^{\infty}\frac{c^{n_1+n_2+\dots n_s}}{(b)_{n_1+n_2+\dots n_S}}\prod_{i=1}^{S}\frac{(a)_{n_i}}{n_i!} 
+%\end{eqnarray}
+%which, in principle, can be calculated numerically, see for example figure \ref{fig:ExactAbundenceDistributionAlpha1}.
+
+%\begin{figure}
+%    \centering
+%  \includegraphics[width=\columnwidth,trim= 130 300 150 350,clip]{figures/ExactAndSimulationPnForAlpha1NumberOfSpecies5.pdf}
+%    \caption{The abundance distribution for $\rho=1$, with $S=5, K=10, r^+=10, r^-=1, \mu=0.1$. Red circles represent the simulation data, while the black solid line the analytic results.   }
+%    \label{fig:ExactAbundenceDistributionAlpha1}
+%\end{figure}
+
+%\begin{figure}
+%    \centering
+%    \includegraphics[width=\columnwidth,trim= 130 270 150 290,clip]{figures/approxPDF_alpha05_K50_S30.pdf}
+%    \caption{The abundance distribution. The solid lines represent the approximation PDF, and the symbols show the simulation results. Here we choose $K=50, S=30, r^+=2, r^-=1$ and $\rho=0.5$. The immigration rate is $\mu=1$ (red stars), $\mu=0.1$ (green circles) and $\mu=1$ (blue rectangles). The solid curves represent the corresponding approximated abundance distributions, using 1st method. The simulated PDFs are generated from $10^7$ steps.   }
+%    \label{fig:ApproxPDF}
+%\end{figure}
+
+
+
+\subsection{'Mean-Field' Approximation, Estimating $J-n$}
+
+Assume  $\langle J-n_1 |n_1\rangle \rightarrow (S-1)\langle n_1 \rangle$. 
+Then, the 'optimal' mean value of $\langle n_1 \rangle$, represented by $\langle n_1^* \rangle $, is given by
+\begin{eqnarray}
+ \langle n_1^*\rangle=&& {\rm arg}\min_{\langle n_1 \rangle} \left\Bigg|\langle n_1\rangle - \right
+ \\ \nonumber && \left.\sum_{n_1} \frac{P(0) n_1 (r^+)^{n_1}(a)_{n_1}}{n_1!\prod_{n_1=1}^{n_1}\left(r^-+\frac{r}{K}\left[n_1+ \rho(S-1)\langle n_1\rangle \right] \right)}\right|. 
+\end{eqnarray}
+Hence, we obtain
+\begin{eqnarray}
+     &&P_{\rm MF}(n_1)=\\ \nonumber
+     && = P(0)\frac{(r^+)^{n_1}(\mu/r^+)_{n_1}}{n_1!\prod_{n_1=1}^{n_1}(r^-+r\left[n_1+\rho (S-1)\langle n_1^*\rangle \right] /K)}.
+\end{eqnarray}
+ 
+ \subsection{estimating $J$}
+\begin{equation} 
+   P\left(n_1 | \langle J|n_1\rangle \right)\approx P(n_1|J)=\frac{1}{_1F_1[a,\tilde{b};c]} 
+    \frac{(a)_{n_1} \Tilde{c}^{n_1}}{n_1 ! (\Tilde{b}+1)_{n_1} } 
+\end{equation}
+with $a=\frac{\mu}{r^+}$, $\tilde{b}= \frac{r^-K+r\rho J}{r(1-\rho)}$, and $\tilde{c}=\frac{r^+ K}{r(1-\rho)}$.
+
+
+The next step is to estimate the distribution of $\sum_i n_i$. Here we introduce the next approximation which is the separation of variables, which reads $P(n_1,\dots n_S)=\prod_i P(n_i)$. Thus, for every $J$ we compute 
+\begin{equation}
+    P\left(\left. N=\sum n_i \right| J\right) =\underbrace{P(n_1|J)*P(n_2|J)* \dots * P(n_s|J)}_{S {\rm \ times}}
+\end{equation}
+which is equivalent to 
+\begin{equation}
+     P(N|J)=\sum_{n_1} ... \sum_{n_s} P(n_1|J)...P_J(n_s|J)\delta(\sum n_i - N)
+\end{equation}
+where $A*B$ means the convolution of $A$ with $B$. $P(N|{J})$ is the `analytical' PDF to have $N$ individuals where we assume that a single species PDF is $P(n_1|J)$. We approximate
+\begin{equation}
+P(J)\approx {\cal N}^{-1} {\rm Prob}(\sum n_i=J|J)
+\end{equation}
+where ${\cal N}= \sum_J{\rm Prob}(\sum n_i=J|J)  $ is given such as $P(J)$ is normalized. Note that for large $S$, most probable values of $J$ satisfy $J\approx S\langle n|J\rangle $,   thus $J$ captures its true nature as the sum of all individuals. 
+Then
+\begin{equation}
+    P(n_1) = \sum_{J}P(n_1|J) P(J)
+\end{equation}
+is the approximated PDF.
+
+ 
+
+%In Fig.~\ref{fig:ApproxPDF} we present the simulation results (symbols) and the PDF approximations using 1st method (solid lines). It shows that changing the immigration rate $\mu$ affects the behavior of the PDF, from uni-modal (high $\mu$) to bi-modal (low $\mu$) behavior.  This can be explained by the following. For very low immigration rate and relatively large $\rho$, a species can be closely extinct (close to zero) or a dominant (i.e its level is far from zero).  This scenario is represented by the bi-modal abundance distribution. In the other case, where $\mu$ is relatively large, the immigration ``pushes''  the species away from extinction. 
+
+
+\section{Summary}
+
+ 
+ \iffalse
+\section{Deterministic Resilience}
+
+In this section we examine how fast the deterministic system approaches its fixed point. The time for an ecosystem to return to its steady-state, also known as the system resilience, is one of the properties associated with the system stability.   As was mentioned, when $0\leq \rho\leq 1$ the deterministic fixed point, given in Eq.~\eqref{eq:solstat}, is stable. The direction and pace/rate\textcolor{red}{/another term instead of pace/rate? } of the flow toward the fixed point are determined by the eigenvalues and eigenvectors of the considered system.  The eigenvalues are obtained as 
+\begin{equation}
+\lambda_i =
+\begin{cases}
+\frac{r}{K}\left( K - 2 n^*(1+\rho(S-1)) \right) & \text{, if } i=1 \\
+\frac{r}{K}\left( K - n^*(2+\rho(S-2)) \right) & \text{, otherwise}.
+\end{cases}
+\end{equation}
+and the eigenvectors are 
+\begin{equation}
+\vec{v}_i =
+\begin{cases}
+(1,1,\cdots,1,1)^T & \text{, if } i=1 \\
+(-1,\delta_{2,i},\delta_{3,i},\cdots,\delta_{S-1,i},\delta_{S,i})^T & \text{, otherwise}.
+\end{cases}
+\end{equation}
+For analyzing $\{\lambda_i,\vec{v}_i\}|_{n^*}$ we can deduce the following behavior of the flow toward the fixed point.  
+
+First, we found that $\lambda_1|_{n^*} \leq \lambda_{i\neq 1}|_{n^*}$ (the equality is for $\rho=0$), which means that the system approach faster to constant $J$. Then, in the vicinity of the circle $||\vec{n}||_1=J$ in $\ell_1$, it approaches slower toward its fixed point. 
+
+Second, $|\lambda_1|$ increases with $S$. It means that for highly diverse system, the process reaches faster to the vicinity of its stable community size. In addition, increasing the immigration rate $\mu$ increase the pace to approaching constant $J$.   
+
+Third, the other (degenerated) eigenvalues describe the behavior of the flow in the vicinity of constant $J$ (note that it is not necessarily on the {\em exact} constant J surface). Similarly to $|\lambda_1|$, the flow in the neighborhood of $||\vec{n}||_1=J$ toward the fixed point is faster for higher immigration rate. 
+
+Forth, we have found that $\lambda_{i\neq 1}|_{n^*}(\rho,S)$ is not a necessarily a monotone function. For example, when $\mu=0.01, K=100$ and $r=1$, we find that for $\rho=0.1$ higher $S$ gives slower approach on the direction of $\vec{v}_{i\neq 1}$. However, for $\rho=1$ an opposite effect is found; high diversity gives faster flow to the fixed point.   
+
+
+
+\section{Extinction and Invasion Rates}
+
+\subsection{Stochastic Stability}
+
+How to define stability? In stochastic models it is not well defined (depends on the paper you read). Note that the boundaries (or any other point) are not absorbing ($\mu>0$). Stability might mean: recurrence (with probability 1) for any point, $\rho$-stability, ergodicity, absorbing region, Lyapanov stability for the mean.   
+
+\textcolor{red}{Q:can we state something about, the bimodality of the abundance distribution,  the level of dominate species, and the mean time of extinction?  }
+
+\subsubsection{Mean First Passage Time}
+One of the properties associated with stability is the first passage time. One may ask how long would it take for a species with low abundance to become dominant (or vice versa). 
+
+Assume that a species almost surely reaches $x=a$. In addition, we assume that the species level is described by the one-dimensional probability. Then, the mean first passage time from point $x$ to $a$ (where $x>a$) is given by 
+\begin{equation}
+   \langle T_a(x) \rangle =   \sum_{y=a}^{x-1}\frac{1}{F_{\rm right}(y)}{\rm Prob}\left[z\geq y+1\right] \label{eq:MFPT}
+\end{equation}
+where $F_{\rm right}(y)\equiv q^+(y)P(y)$ is the flux right from point $y$ and ${\rm Prob}[z\geq y+1]\equiv \sum_{z=y+1}^{\infty}P(z)$ is the probability to be found on larger (or equal) level than $y+1$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 120 300,clip]{figures/MFPT_differentMu.pdf}
+    \caption{Mean first passage time from level $x_0$ to extinction. Here the total number of species is $S=20$. We choose $r^+=2$, $r^-=1$ and $\rho=0.5$. The immigration rate is $\mu=1$ (blue circles), $\mu=0.1$ (green rectangles) and $\mu=0.01$ (purple diamonds). The results are generated from $10^5$ statistically similar systems. The initial position is uniformly distributed in $[1,60]$, i.e. $x_0\in U[1,60]$.      }
+    \label{fig:MFPT_differentMu}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 120 300,clip]{figures/MFPT_rho.pdf}
+    \caption{Mean first passage time from level $x_0$ to extinction. Here the total number of species is $S=20$. We choose $r^+=2$, $r^-=1$,  $\mu=1$, and $\rho=1$ (blue circles), $\rho=0.5$ (green rectangles) and $\rho=0.1$ (purple diamonds). The results are generated from $10^5$ statistically similar systems. The initial position is uniformly distributed in $[1,60]$, i.e. $x_0\in U[1,60]$.  \textcolor{red}{no agreement with $\rho=1$}    }
+    \label{fig:MFPT_rho}
+\end{figure}
+
+\subsubsection{Mean Extinction Time from  Level $n_0$}
+
+In fig.~\ref{fig:MFPT_differentMu} we present the mean time to extinction (i.e. $a=0$) where the species has started at the level $x_0$. We find that higher immigration rate $\mu$ give lower time to extinction. This is due to the fact that the influx is proportional to $\mu$, and the process is stationary (i.e. inbound flux, from zero to positive numbers, is equal to outbound flux, from positive number to extinction). Moreover, In Fig.~\ref{fig:MFPT_rho} we fixed the immigration rate, and we have found that for small $\rho$ (weak mutual competition) the MFPT is higher than high $\rho$. 
+
+Importantly, is some cases, the abundance (one  dimension) distribution is not sufficient to evaluate the mean first passage time (see SM). 
+
+\subsubsection{Mean Extinction Time for the Core Species}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 280 130 300,clip]{figures/DominantSpecies_differentS1.pdf}
+    \caption{The mean extinction time of the core species \textcolor{red}{(approximated analytic solution, no simulation yet)} versus competition strength $\rho$.  The number of species varies between $S=10$ (blue circles), $S=50$ (green rectangles), $S=100$ (pink crosses) and $S=200$ (yellow starts).    }
+    \label{fig:DeterminsticVsStochastic}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 270 110 300]{figures/BimodalUnimodalRegionAnalytic_3regions_sim_K50_S30}
+    \includegraphics[trim= 150 270 130 300,width=\columnwidth]{figures/BimodalUnimodalRegionAnalytic_3regions_conv_K50_S30.pdf}
+\includegraphics[trim= 150 270 130 300,width=\columnwidth]{figures/BimodalUnimodalRegionAnalytic_3regions_MeanField_K50_S30.pdf}
+    \caption{Unimodality and bimidality of SAD depending in immigration rate $\mu$ and competition $\rho$. The upper panel is obtain from simulation, and the middle and button panels are given from the approximations. This results are obtained from the approximated abundance distribution given using \textcolor{red}{ 1st approximation (upper panel) and mean-field approximation (lower panel)}. Here we choose the following parameters $S=30$, $r^+=2$, $r^-=1$, $K=50$. The yellow, turquoise and blue regions represent the values of $(\mu, \rho)$ where $P(n)$ is a unimoal distribution with maximum at zero, a bimodal distribution with two maxima, or unimodal distribution with maximum at an existence level, respectively. \textcolor{red}{More or less all have similar map, accept $\rho=1$ where 1st approx cannot find bi-modality there.  }   }
+    \label{fig:BimodalUnimodal}
+\end{figure}
+
+ \begin{figure}
+    \centering
+    \includegraphics[trim=150 270 150 270,width=\columnwidth]{figures/14Oct2.pdf}
+    \caption{Simulation results for the location and height of the `most-right' peak (2nd peak in bimodality and the only peak at the unimodal phases) .  Upper:Location of the peak. Lower:Height of the peak. }
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 270 120 300,clip]{figures/Richness.pdf} 
+%    \includegraphics[width=\columnwidth,trim= 130 270 120 300,clip]{figures/Richness_DifferentMu.pdf}
+    \caption{Richness vs competition. %Upper panel: 
+    The total number of species change between $S=50$ (red stars), $S=30$ (green squares) and $S=10$ (blue circles). The lines correspond to the approximated analytic solution: 1st and 2nd methods are represented with black and pink curves (respectively). The immigrating rate is $\mu=1$, %Lower panel: Richness given for different immigration rates corresponding the legend. Here the number of species is $S=50$.   For both panels: 
+    $r^+=50$, $r^-=0.1$, and $K=50$.
+    \textcolor{red}{To run the same figures for $r^+=2$ and $r^-=1$. $K=50$
+    }
+    }
+    \label{fig:Ricness}
+\end{figure}
+
+   \begin{figure}
+        \centering
+        \includegraphics[width=\columnwidth,trim= 130 270 120 280,clip]{figures/Richness_10to7_mu.pdf}
+        \includegraphics[width=\columnwidth,trim= 130 270 120 280,clip]{figures/Richness_10to7_rho.pdf}
+        \caption{Upper: The richness versus $\rho$ for different $\mu$. Lower: The richness vs $\mu$ for different $\rho$.  Here $K=50$, $S=30$, $r^+=2$ and $r^-=1$. The simulation results are given from $10^7$ reactions.}
+        \label{fig:Richness_mu}
+    \end{figure}
+    
+    \begin{figure}
+        \centering
+        \includegraphics[width=\columnwidth,trim= 140 280 140 300,clip]{figures/Richness_10to7_sim.pdf}
+        \caption{Simulation results for the richness for different $\mu$ and $\rho$. The values of the richness are represented with colors corresponding the colorbar; from high richness (yellow) to low richness (dark blue).  Here $K=50$, $S=30$, $r^+=2$ and $r^-=1$. The simulation results are given from $10^7$ reactions.   }
+        \label{fig:Richness_heatMap_sim}
+    \end{figure}
+    
+    \fi
+    
+    
+
+\begin{widetext}
+
+\appendix
+
+\section*{Supplementary Material }
+
+
+\section{Deterministic Stability}
+
+\textcolor{red}{
+\begin{itemize}
+    \item global stability 
+    \item for some parameters: take very long time to approach steady state after perturbation.    
+\end{itemize}
+%
+{\bf Comment:} we have to be careful with the terminology: deterministic stability and PDF stability means very different things.
+}
+
+\textcolor{red}{{\bf Questions:}
+We have only one fixed point - an interior point (i.e. co-existence of species). Stability means to return to the steady state under some perturbation. Is this fixed point stable (under what condition)?   Will it return from any point (global stability) or some area (local)?  For a stable fixed point - How long does it take to approach the equilibrium? What is dependence of $\rho$ in resilience and resistance?}
+\textcolor{red}{Some of these question have already been answered, for example.... add citations. }
+
+The Lotka-Voltera with immigration, Eq.~\eqref{generalLVimmi}, differs from the standard Lotka-Voltera model given the immigration factor $\mu$ that appears.
+Consequently, the stationary solution of the immigration LV does not entertain the $n_i=0$ stationary solution of the classic LV.
+At true steady state, i.e.  $\forall i: \partial_t n_i=0$,  implies that the total population size, $\sum_j^S n_j=J$, is fixed.
+We can now solve Equation ~\ref{generalLVimmi} as a function of this $J$
+\begin{align}
+0 &= r n_i\left( 1 - \frac{n_i(1-\rho) + \rho \sum_{j}^S n_j}{K} \right) + \mu \\ \nonumber
+&= r( 1 - \rho ){n_i}^2 + (\rho J -K)n_i - K \mu / r,
+\end{align} 
+which has solutions
+\begin{equation}
+n_i^\pm = \frac{-(\rho J - K) \pm \sqrt{(\rho J - K)^2 + 4r(1-\rho)K \mu / r }}{2(1-\rho )}.
+\end{equation}
+An interior fixed point, which describes coexistence, is defined where $\vec{n}^*=(n^*,\dots,n^*)$, Remind that the system is symmetric, means all species have equal parameters values. Thus, we can go back to Equation~\eqref{generalLVimmi} and replace all $n_j$ by $n$ and solve to obtain
+\begin{equation}\label{solstat}
+n^{\pm} = \frac{K \pm \sqrt{K^2 + 4(1 + \rho (S-1) )K \mu / r }}{2(1 + \rho (S-1) )}=\frac{K}{2[1+\rho(S-1)]}\left[1\pm \sqrt{1+\frac{4\mu[1+\rho(S-1)]}{r K}}\right].
+\end{equation}
+For the fixed point to be meaningful, it must be real and positive.
+As such, in the $\rho \leq 1$ regime, the only true stationary solution that the system allows  for corresponds to each species having a number of individuals in their population equal to the positive solution of Equation ~\eqref{solstat}, namely $n^*=n^+$.
+We can find the total number of individuals in the system at steady state by solving $J=S n^*$.
+
+Is $\vec{n}^*=(n^*,\dots,n^*)$ a stable fixed point? We investigate the Jacobian of $dn_i/dt$ at $\vec{n}^*$ to answer this question:
+\begin{align*}
+\mathcal{J} &= \frac{r}{K} \begin{pmatrix}
+K - 2 n_1 - \rho \sum_{i\neq 1} n_i & - \rho n_1 & \cdots & -\rho n_1 \\
+- \rho n_2 & K - 2 n_2 - \rho \sum_{i\neq 2} n_i & \cdots & - \rho n_2 \\
+\vdots & \vdots & \ddots & \vdots \\
+- \rho n_S & - \rho n_S & \cdots & K - 2 n_S - \rho \sum_{i\neq S} n_i
+\end{pmatrix} \\
+&= \frac{r}{K} \begin{pmatrix}
+K - n^+ (2 - \rho (S-1)) & - \rho n^+ & \cdots & -\rho n^+ \\
+- \rho n^+ & K - n^+ (2 - \rho (S-1)) & \cdots & - \rho n^+ \\
+\vdots & \vdots & \ddots & \vdots \\
+- \rho n^+ & - \rho n^+ & \cdots & K - n^+ (2 - \rho (S-1)).
+\end{pmatrix} 
+\end{align*}
+The eigenvalues of this matrix are foudn using \textit{Wolfram Mathematica}:
+\begin{equation}
+\lambda_i =
+\begin{cases}
+\frac{r}{K}\left( K - 2 n^+(1+\rho(S-1)) \right) & \text{, if } i=1 \\
+\frac{r}{K}\left( K - n^+(2+\rho(S-2)) \right) & \text{, otherwise}.
+\end{cases}
+\end{equation}
+We see a degeneracy for all eigenvalues except for one ($\lambda_1$). 
+The eigenvectors are similarly found:
+\begin{align}
+\vec{v}_i =
+\begin{cases}
+(1,1,\cdots,1,1)^T & \text{, if } i=1 \\
+(-1,\delta_{2,i},\delta_{3,i},\cdots,\delta_{S-1,i},\delta_{S,i}) & \text{, otherwise}.
+\end{cases}
+\end{align}
+
+\begin{figure}
+    \centering
+  %  \includegraphics[trim=150 270 150 270,width=0.9\columnwidth]{figures/muli-phases.pdf}
+     \includegraphics[trim=150 270 150 270,width=0.4\columnwidth]{figures/multi-phases.pdf}
+    \caption{Phase diagram.  Colored regions represent data from simulation using Gillespie algorithm with $10^7$ time-steps. We use $r^+=2$, $r^-=1$, $S=30$ and $K=50$. Here, $\mu$ and $\rho$ vary, with logarithmic scale, between $[10^{-3}, 10]$ and $[10^{-3}, 1]$ respectively.  Boundaries from convolution and mean-filed approximations given in solid blue and dashed pink lines (respectively). Boundaries from rates and flux balance, given in table in Sec.~\ref{sec:Phase_transition}, are shown with black circles.  \textcolor{red}{the green area is defined where ${\rm richness}<2$}  }
+    \label{fig:Multi-phases_sim}
+\end{figure}
+\begin{figure}
+    \centering
+ {\bf S=10}
+     \includegraphics[trim=150 270 150 270,width=0.4\columnwidth]{figures/multi-phases_S10.pdf}
+    \caption{$S=10$.  \textcolor{red}{green area: $\#{\rm dominants}<2$}  }
+    \label{fig:Multi-phases_sim}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=0.49\textwidth]{figures/eigen_phase_diagram_10species_alpha0_1.pdf}
+\includegraphics[width=0.49\textwidth]{figures/eigen_phase_diagram_10species_alpha1_0.pdf}
+\caption{Phase diagram of our system of equations along 2 eigenvectors $\lambda_1$ and $\lambda_{i\neq 1}$. The blue points corresponds to the fixed point of the system. For these $S=10$, $\mu=0.25$, $r=10$ and $K=100$.}
+\label{det_eigvec}
+\end{figure}
+
+For the fixed point to be stable, we need all eigenvalues to be negative. 
+For every $\rho\geq 0$ we find $\lambda_1\leq \lambda_{i\neq 1}$. In addition, we find that $\lambda_1<0$ for every positive $\rho$. Therefore, we need only to check whether $\lambda_{i\neq 1} < 0 $, i.e. 
+\begin{eqnarray}
+&&\frac{1}{2[1+\rho(S-1)]}\left[1+ \sqrt{1+\frac{4\mu[1+\rho(S-1)]}{r K}}\right][2+\rho (S-2) ]>1. 
+\label{eq:NegativeLambdaDemand}
+\end{eqnarray}
+For $\rho=1$, we find the inequality holds. For $\rho<1$, the left-hand side of this inequality fulfils
+\begin{equation}
+    \frac{1+\rho (S-1) +1 -\rho }{2[1+\rho(S-1)]}\left[1+ \sqrt{1+\frac{4\mu[1+\rho(S-1)]}{r K}}\right] \geq 1+\frac{1-\rho}{1+\rho(S-1)}>1
+\end{equation} 
+Thus, for $\rho\leq 1$ we show that  $\lambda_{i\neq 1}$ are negative.  
+In principle, for general $\rho$, we can solve the inequality \eqref{eq:NegativeLambdaDemand} in \textit{Wolfram Mathametica} for a bound to $S$ as a function of $\rho$.
+
+%To gain an insight on the system, we approximate it for small immigration rate. There, we find 
+%\begin{equation}\label{solstat}
+%n^{*} = \frac{K}{[1+\rho(S-1)]}+\frac{\mu}{r} + o(\mu^2).
+%\end{equation}
+%The eigenvalues at the fixed point are
+%\begin{equation}
+%\lambda_i|_{n^*} \approx
+%\begin{cases}
+%-r  - 2 \mu K[1+\rho(S-1)]  & \text{, if } i=1 \\
+%-r\left[\frac{1-\rho}{1+\rho(S-1)}\right]-\frac{\mu \left[2+\rho(S-2)\right]}{K} & \text{, otherwise}.
+%\end{cases}
+%\end{equation}
+%Clearly, $\lambda_1$ is always negative (remind that $r,K,S$ are positive, and $\mu, \rho$ are non-negative parameters).  For $0\leq \rho\leq 1$ it is easy to see that $\lambda_{\i \neq 1}<0$ too.   
+\textcolor{red}{What about $\rho>1?$ the transition to instability depends on all other parameters}
+
+Consider $\rho^*_{\rm deterministic}$ as the transition point between stability and instability of the interior point $\vec{n^*}\equiv (n^*,\dots,n^*)$. Hence we conclude that   $\rho^*_{\rm deterministic}\geq 1$. The equality is obtained for a case with no immigration, namely $\rho^*_{\rm deterministic}(\mu=0)= 1$, and the positive immigration flow ``pushes'' this threshold  beyond 1.  
+
+\textcolor{red}{[FIGURE: $S=1+1/\rho$ and the Gillespie, $P_0$ from certain analytical models.]
+}
+
+Alternatively we might be able to come up with some heuristic argument that explains the fact that not all species are present when $S>1+1/\rho$.
+As we increase $\rho$ (see Figure ~\ref{det_vec}) the fixed point gets closer to $n_i=0$. This probably means that fluctuations are more likely to make the species extinct.
+
+\subsection{Long Time to Reach the Steady State}
+
+\textcolor{red}{As was written: fast to $\sum n_i$, slow on the surface of $\sum n_i$ toward the steady state. ANALYTICAL PROOF? }
+
+\section{Stochastic Approach - Results}
+
+
+\textcolor{red}{{\bf Questions:}
+How does the competition affect richness (= \#non-extinct species) - qualitatively and quantitatively? How does it influence the probability to invade? How does competition (among other parameters of the system) change the time it take for invaders to be dominant (or dominant species to extinct)?  Whether it affects the species composition (= the list of the survival species)? How does the competition strength Vary the shape of the abundance distribution - from unimodal distribution (no dominant species) to bimodal behavior (some species are dominant while other closely to (or already) extinct?      }
+
+\textcolor{red}{Some of these question have already been answered, for example.... add citations. }
+
+
+
+
+
+
+\section{Derivation of zero flux in $x$ - Global balance equation - derivation for $P(n_1)$}
+\label{App:ZeroFlux}
+
+
+Consider the multi-dimensional  master equation 
+\begin{eqnarray}
+    \partial_tP(n_1,n_2\dots,n_S) &=& \sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}^-(\vec{n}) \right]P(\vec{n}) \right\}
+\end{eqnarray}
+ where $q^+_{n_i}(\vec{n})$ and $q^-_{n_i}(\vec{n)}$ represents the birth and death rate of species $i$ (respectively), which are generally depends in $\vec{n}=(n_1,\dots, n_s)$. Here, $e_i=\{0, \dots, 1, \dots , 0\}$ (the one is located in the $i$-th component). 
+ To find Master equation for $n_1$ we sum over all other components; i.e. 
+\begin{eqnarray}
+\nonumber 
+  &&\sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty}  \partial_tP(n_1,n_2\dots,n_S) = \\ \nonumber  &&= \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} \left\{\sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}(\vec{n}) \right]P(\vec{n}) \right\}\right\} \\
+  &&\Longrightarrow \partial_t P(n_1) = \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} \left\{\sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}(\vec{n}) \right]P(\vec{n}) \right\}\right\}
+\end{eqnarray}
+ For every $n_i$ we can use the fact that
+ $
+ \sum_{n_i=0}^{\infty}  q_{n_i}^+(n_1, \dots n_i-1, \dots, n_S)P(n_1, \dots n_i-1, \dots, n_S)= \sum_{n_i=0}^{\infty}  q_{n_i}^+(n_1, \dots n_i, \dots, n_S)P(n_1, \dots n_i, \dots, n_S)
+$,  and $
+ \sum_{n_i=0}^{\infty}  q_{n_i}^-(n_1, \dots n_n+1, \dots, n_S)P(n_1, \dots n_i+1, \dots, n_S)= \sum_{n_i=0}^{\infty}  q_{n_i}^-(n_1, \dots n_i, \dots, n_S)P(n_1, \dots n_i, \dots, n_S)
+$  [to understand this statement note that   $q_{n_i}^+(n_1, \dots -1, \dots, n_S)P(n_1, \dots, -1, \dots, n_S)=q_{n_i}^-(n_1, \dots 0, \dots, n_S)P(n_1, \dots 0, \dots, n_S)=0$  ]. Thus, the above equation is given by
+\begin{eqnarray}
+  \partial_t P(n_1) &=& \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} \left\{ q_{n_1}^+(\vec{n}-\vec{e_1})P(\vec{n}-\vec{e_1})+q^-_{n_1}(\vec{n}+\vec{e_1}) P(\vec{n}+\vec{e_1})-\left[q_{n_1}^+(\vec{n})+q_{n_1}(\vec{n}) \right]P(\vec{n})\right\}
+\end{eqnarray}
+and
+can be written using the following terms 
+\begin{eqnarray}
+    \partial_t P(n_1) =&& \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} \left\{ F_{\rm right}(n_1-1,n_2,\dots)-F_{\rm right}(n_1,n_2,\dots)
+     +F_{\rm left}(n_1+1,n_2,\dots)-F_{\rm left}(n_1,n_2,\dots) \right\}.
+\end{eqnarray}
+Using z-transform ($n_1\rightarrow z$), which is defined for a function $k(n_1)$ as $K(z)=\sum_{n_1=0}^{\infty} k(n_1) z^{-n_1} $, and obtain
+\begin{eqnarray}
+    \partial_t P(z) = \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} F_{\rm right}(z,n_2,\dots)(1-z^{-1})+F_{\rm left}(z,n_2,n_3\dots)(1-z) 
+\end{eqnarray}
+\{used ${\cal Z}[g(n)-g(n-1)]=[1-z^{-1}]\hat{G}(z)$, and ${\cal Z}[g(n+1)-g(n)]]=[1-z]\hat{G}(z)-zg(0)$ \}. Stationary solution; $\partial_t P(z)=0 $ and re-organize the equation 
+\begin{eqnarray}
+     \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty}F_{\rm right}(z,n_2,n_3,\dots)=\sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty} F_{\rm left}(z,n_2,n_3,\dots)\frac{1-z}{z^{-1}-1}=\sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty}F_{\rm left}(z,n_2,n_3\dots)z 
+\end{eqnarray}
+and using the inverse z-transform ($z\rightarrow n_1$), and find
+\begin{eqnarray}
+      \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty}q^+_{n_1}(\vec{n})P(\vec{n})= \sum_{n_2=0}^{\infty}\dots \sum_{n_s=0}^{\infty}q^-_{n_1}(\vec{n}+\vec{e_1})P(\vec{n}+\vec{e_1}). 
+\end{eqnarray}
+We use Bayes formula; $P(n_1,n_2,n_3,\dots,n_S)=P(n_2,n_3,\dots, n_S|n_1)P(n_1)$ and obtain
+\begin{eqnarray}
+     \langle q_{n_1}^+(\vec{n})|n_1\rangle_{n_2,n_3,\dots,n_S}P(n_1) = \langle q_{n_1}^-(\vec{n}+\vec{e_1}) |n_1+1\rangle_{n_2,\dots n_S} P(n_1+1). 
+\end{eqnarray}
+Up to now there are no assumption in the derivation, and the above is exact. Assumption: for our case $\langle q_{n_1}^+(\vec{n})|n_1\rangle_{n_2,\dots,n_S}=\mu + r^+ n_1$ (since $q^+_{n_1}$ depends solely on $n_1$) and $\langle q_{n_1}^-(\vec{n})|n_1\rangle_{n_2\dots,n_S}=n_1\left(r^-+r \langle J|n_1 \rangle_{n_2,\dots,n_S}/K\right)$.
+Solving the recursive equation and obtain
+\begin{equation}
+    P(n_1)=P(0)\prod_{n=1}^{n_1}\frac{q_{n_1}^{+}(n-1)}{\langle q_{n_1}^-(\vec{n})|n_1\rangle_{n_2\dots,n_S}}=P(0)\prod_{n_1=1}^{n_1}\frac{r^+(n_1+a)}{n_1(r^-+r\langle J|n_1\rangle/K)}= P(0)\frac{(r^+)^{n_1}(a)_{n_1}}{n_1!\prod_{n_1=1}^{n_1}(r^-+r\langle J |n_1 \rangle /K)}.
+    \label{eq:exact_appendix}
+\end{equation}
+where
+$\langle J |n_1 \rangle =\langle J |n_1 \rangle_{n_2,\dots,n_S}=\sum_{n_2=0}^{\infty}\dots \sum_{n_S=0}^{\infty} J P(n_2,\dots,n_S |n_1) $, $a=\mu/r^+$ and $(a)_{n_1}=a(a+1)\dots (a+n-1)$.
+We emphasize that the above abundance distribution $P(n_1)$ in Eq.~\eqref{eq:exact_appendix} is exact, means no approximations have been taken so far.
+
+\vspace{0.5 cm}
+
+
+{\bf Comment:} In the Moran model; $P(n_1)\sim n_1^{a-1}\exp(-an_1)$. 
+This is obtained in the above exact solution if 
+\begin{equation}
+    r^+=r_-+r\langle J|n_1 \rangle /K \Longleftrightarrow \forall n_1:  \langle J |n_1 \rangle =K {\rm \ and\ } n_1 \gg a
+\end{equation}
+
+
+
+
+In a case where $\langle J|n_1\rangle \approx\langle J \rangle $:  \begin{equation}
+    P(n_1)= \left(1-\frac{r^+}{r^-+r\langle J \rangle /K}\right)^{a}\left(\frac{r^+}{r^- + r \langle J \rangle /K}\right)^{n_1}\frac{ (a)_{n_1}}{n_1!} \approx  \left(1-\frac{r^+}{r^-+r\langle J \rangle /K}\right)^{a} \left(\frac{r^+}{r^- + r \langle J \rangle /K}\right)^{n_1}\frac{ n_1^{a-1}}{\Gamma[a]}
+\end{equation}
+(note that this is valid when $n \gg a)$
+
+\vspace{0.5cm}
+
+maybe replace 
+$\langle J|n_1\rangle \rightarrow J /(1+n_1/N)+n_1 $ thus $\langle J|n_1\rangle_{n_1 \ll N}= J$ and  $\langle J|n_1\rangle_{n_1 \gg N}= n_1$ 
+
+\section{$P(n_1)$ for $0<\rho<1$}
+
+Assumption: for our case $\langle q_{n_1}^+(\vec{n})|n_1\rangle_{n_2,\dots,n_S}=\mu + r^+ n_1$ and $\langle q_{n_1}^-(\vec{n})|n_1\rangle_{n_2\dots,n_S}=\left(r^+ n_1+r(1-\rho)n_1^{2}/K+r\rho n_1\langle J |n_1 \rangle/K \right)$.
+Solving the recursive equation and obtain
+\begin{equation}
+    P(n_1)=P(0)\prod_{n=1}^{n_1}\frac{q_{n_1}^{+}(n-1)}{\langle q_{n_1}^-(\vec{n})|n_1\rangle_{n_2\dots,n_S}}= P(0)\frac{(r^+)^{n_1}(a)_{n_1}}{n_1!\prod_{n_1=1}^{n_1}(r^-+r(1-\rho)n_1/K+\rho \langle J |n_1 \rangle /K)}.
+\end{equation}
+where
+$\langle J |n_1 \rangle =\langle J |n_1 \rangle_{n_2,\dots,n_S}=\sum_{n_2=0}^{\infty}\dots \sum_{n_S=0}^{\infty} J P(n_2,\dots,n_S |n_1) $, $a=mu/r^+$ and $(a)_{n_1}=a(a+1)\dots (a+n-1)$.
+
+
+\subsection{$J\sim {\rm const.}$}
+\begin{equation}
+    P_1(n_1)=P(0) 
+    \frac{(a)_{n_1} \Tilde{c}^{n_1}}{n_1 ! (\Tilde{b}+1)_{n_1} } \xrightarrow{n_1 \rightarrow \infty} \sim  n_1 ^{-\tilde{b}-\frac{1}{2}+a}(c/n_1)^{n_1}\exp(n)
+\end{equation}
+with $a=\frac{\mu}{r^+}$, $\tilde{b}= \frac{r^-K+r\rho J}{r(1-\rho)}$, and $\tilde{c}=\frac{r^+ K}{r(1-\rho)}$. 
+(note that this approximation holds when $n\gg a,b,c$. ) 
+
+\subsection{Limits of $\rho \rightarrow 0$ and $\rho \rightarrow 1$}
+
+For $\rho=0$ (easy)
+\begin{equation}
+    P_1(n_1) \xrightarrow{\rho\rightarrow 0}P(0) 
+    \frac{(\mu/r^+)_{n_1} (r^+ K/r)^{n_1}}{n_1 ! (r^-K/r+1)_{n_1} } 
+\end{equation}
+which is exactly what is found in the case $\rho=0$ (no competition).
+For $\rho \rightarrow 1$ we use
+$\frac{1}{(b+1)_{n}}\xrightarrow{ b \rightarrow\infty} b^{-n}$, thus
+\begin{equation}
+     P_1(n_1) \xrightarrow{\rho\rightarrow 1}P(0) 
+    \frac{(a)_{n_1} \{r^+ K/[r(1-\rho)]\}^{n_1}}{n_1 ! \{(r^-K+rJ)/[r(1-\rho)]\}^{n_1} }= P(0) 
+    \frac{(a)_{n_1} (r^+ K)^{n_1}}{n_1 ! (r^-K+rJ)^{n_1} }, 
+\end{equation}
+with agreement with what we found for $\rho=1$ and constant $J$. Note that $\lim_{n\rightarrow \infty} \lim_{\rho=1} P(n_1) \neq \lim_{\rho=1}\lim_{n\rightarrow \infty}  P(n_1)$
+
+
+\iffalse
+\section{Master Equation for the Abundance Distribution}
+ 
+ From master equation after multiplying by $\sum_{i}\delta (n_i-k)$ and summing over $\sum_{n_i=0}^{\infty}$
+ 
+\begin{eqnarray}
+   \sum_{i=1}^{S}\sum_{n_i=0}^{\infty}\delta (n_i-k) \partial_tP(n_1,n_2\dots,n_S) &=& \sum_{i=1}^{S}\sum_{n_i=0}^{\infty}\delta (n_i-k)\sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}^-(\vec{n}) \right]P(\vec{n}) \right\}
+\end{eqnarray}
+we find
+
+
+
+\section{Master equation for $P(n_1,J)$}
+
+Master equation for $S$ species:
+\begin{eqnarray}
+    \partial_tP(n_1,n_2\dots,n_S) &=& \sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}^-(\vec{n}) \right]P(\vec{n}) \right\}.
+\end{eqnarray}
+
+\begin{eqnarray}
+    \partial_tP(n_1,n_2\dots,n_S) &=& \sum_{i}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}^-(\vec{n}) \right]P(\vec{n}) \right\}.
+\end{eqnarray}
+Changing variables
+\begin{eqnarray}
+    \partial_tP\left(n_1,n_2\dots,J-\sum_{i=1}^{S-1}n_i\right) &=& \sum_{i=1}^{S}\left\{ q_{n_i}^+(\vec{n}-\vec{e_i})P(\vec{n}-\vec{e_i})+q^-_{n_i}(\vec{n_i}+\vec{e_i}) P(\vec{n}+\vec{e_i})-\left[q_{n_i}^+(\vec{n})+q_{n_i}^-(\vec{n}) \right]P(\vec{n}) \right\}
+\end{eqnarray}
+
+
+\fi
+
+
+\section{Joint Distribution $P(n_1,n_2,\dots, n_s)$ for $\rho=1$}
+
+From the detailed balance for $n_s$ we can write
+\begin{equation}
+    P(n_1,\dots,n_S)=\prod_{n'_S=1}^{n_S}\frac{[r^+(n'_S-1)+\mu]}{n_S'[r^- + r(n_1+n_2+\dots n'_S)/K]}P(n_1,\dots n_{S-1},0)
+\end{equation}
+then using the detailed balance equation for $n_{S-1}$ gives
+\begin{eqnarray}
+       P(n_1,\dots,n_S) =&&\prod_{n'_S=1}^{n_S}\frac{[r^+(n'_S-1)+\mu]}{n'_S[r^- + r(n_1+\dots+n_{S-1}+ n'_S)/K]} \cdots \\ \nonumber
+      && \cdot \prod_{n'_{S-1}=1}^{n_{S-1}}\frac{[r^+(n'_{S-1}-1)+\mu]}{n'_{S-1}[r^- + r(n_1+n_2+\dots+n'_{S-1})/K]}P(n_1,\dots, n_{S-2}, 0,0) = \dots =  \\ \nonumber 
+        = && \prod_{n'_S=1}^{n_S}\frac{[r^+(n'_S-1)+\mu]}{n'_S}\dots \prod_{n'_1=1}^{n_1}\frac{[r^+(n'_1-1)+\mu]}{n'_1} \cdot \\ \nonumber && \cdot \underbrace{\left\{\frac{1}{[r^- + r(n_1+\dots+ n'_S)/K][r^- + r(n_1+\dots+n_{S-1}')/K]\dots [r^- + r(n'_1)/K]}\right\}}_{(*)} P(0,\dots, 0)
+\end{eqnarray}
+We examine $(*)$:
+\begin{eqnarray}
+(*)&=&  \prod_{n'_S=1}^{n_S} \frac{1}{[r^- + r(n_1+\dots+ n'_S)/K]}  \prod_{n'_{S-1}=1}^{n_{S-1}}\frac{1}{[r^- + r(n_1+\dots+n_{S-1}')/K]}\dots \prod_{n'_{1}=1}^{n_{1}} \frac{1}{ [r^- + r(n'_1)/K]} = \\ \nonumber 
+  &=&  \prod_{J=n_1+\dots n_{S-1}+1 }^{n_1+\dots n_{S} } \frac{1}{[r^- + rJ/K]}  \prod_{J=n_1+ \dots n_{S-2}+1}^{n_1+ \dots n_{S-1}}\frac{1}{[r^- + rJ/K]}\dots \prod_{J=1}^{n_{1}} \frac{1}{ [r^- + rJ/K]} = \\ \nonumber
+  &=& \prod_{J=1}^{n_1+n_2+\dots n_S}\frac{1}{r^-+rJ/K}=\frac{c^{n_1+n_2+\dots n_s}}{(b)_{n_1+n_2+\dots n_S}}
+\end{eqnarray}
+[this is equivalent to use the identity $(x)_{n+m}=(x)_{m}(x+m)_{n}$].  Therefore; 
+\begin{equation}
+    P(n_1,\dots n_S)=P(0,0,\dots 0)\frac{c^{n_1+n_2+\dots n_s}}{(b)_{n_1+n_2+\dots n_S}}\prod_{i=1}^{S}\frac{(a)_{n_i}}{n_i!}
+\end{equation}
+where $P(0,\dots, 0)$ is determined by normalization.
+For $S=2$, Mathematica gives $\sum_{J=0}^{\infty}\sum_{x=0}^{\infty}\frac{(a)_{x}(a)_{J-x}c^{J}}{x!(J-x)!(b)_{J}}={_1F_1\left[2a,b,c\right]}$.
+
+Therefore, by definition, the marginal distribution for $\rho=1$ is 
+\begin{equation}
+   P(n_1)=\sum_{n_2=0}^{\infty}\dots \sum_{n_S=0}^{\infty}P(0,0,\dots 0)\frac{c^{n_1+n_2+\dots n_s}}{(b)_{n_1+n_2+\dots n_S}}\prod_{i=1}^{S}\frac{(a)_{n_i}}{n_i!} 
+\end{equation}
+which, in principle, can be calculated numerically. 
+When $\rho=1$ also the distribution of the total number of individuals is known
+\begin{equation}
+    P(J)=\frac{1}{{_1F_1[aS,b,c]}}\frac{c^J(a S)_{J}}{J!(b)_J}
+\end{equation}
+\begin{equation}
+    {\rm Richness=1} {\Longleftrightarrow} \binom{S}{1}P(n1,0,\dots,0) = P(J) \Longleftrightarrow (aS)_J\sim S(a)_J \Longleftrightarrow aS \ll 1 {\rm \ on\ 1st\ order\ in\ a } 
+ \end{equation}
+     
+\section{Joint Distribution $P(n_1,n_2,\dots, n_s)$ for $0<\rho<1$}
+
+Let's assume $S=2$, and assume detailed balance holds for every species (separately), then the following should hold
+\begin{equation}
+    q_x^+(x-1)q_y^+(y-1)q_{y}^{-}(x,y)q_{x}^-(x,y-1)= q^+_{x}(x-1)q^+_{y}(y-1)q_x^{-}(x,y) q_{y}^- (x-1,y)
+\end{equation}
+which is equivalent (after substitute the birth and death rate) to 
+\begin{equation}
+    0=(1-\rho)\rho\frac{r^2}{K^2}(x-y)
+\end{equation}
+$\Longrightarrow$ detailed balance holds iff $\rho\in \{0, 1\}$ or $x=y$.
+
+\subsection{1st Approximation; Estimating $J$}
+Since we do not have access to the exact analytic solution, we use approximation. To do so, we use the assumption that the total number of individuals in the system, $J$, is roughly independent on $n_1$. Thus
+\begin{equation} 
+    P(n_1)=P(n_1|\langle J |n_1 \rangle ) \approx P(n_1|J)=\frac{1}{_1F_1[a,b;c]} 
+    \frac{(a)_{n_1} \Tilde{c}^{n_1}}{n_1 ! (\Tilde{b}+1)_{n_1} } 
+\end{equation}
+with $a=\frac{\mu}{r^+}$, $\tilde{b}= \frac{r^-K+r\rho J}{r(1-\rho)}$, and $\tilde{c}=\frac{r^+ K}{r(1-\rho)}$.
+
+We assume that $P(n_1,\dots n_S) \approx \prod_i P(n_i)$. Thus, the PDF of $\sum_i n_i$ reads 
+\begin{equation}
+    P\left(\left.\sum_i n_i\right|J\right)=\underbrace{P(n_1|J)*P_J(n_2|J)* \dots * P_J(n_S|J)}_{S {\rm \ times}}
+\end{equation}
+where $A*B$ means the convolution of $A$ with $B$. $P\left(\sum_i n_i|J\right)$ is the `analytical' PDF to have $\sum_i n_i$ individuals where we assume that a single species PDF is $P(n_1|J)$ with a given $J$. 
+To capture the fact that $J$ has a meaning of number of individuals as well, we consider
+\begin{equation}
+    P(J)\approx \frac{{\rm Prob}\left(\left.\sum_i n_1=J\right|J\right)}{\sum_J {\rm Prob}\left(\left.\sum_i n_1=J\right|J\right)},
+\end{equation}
+where $P(J)$ is the approximated distribution of $J$. 
+Then
+\begin{equation}
+    P(n_1) = \sum_{J}P(n_1|J) P(J)
+\end{equation}
+is the approximated PDF. 
+
+Note that when $S$ is large, we find
+\begin{equation}
+    P\left(\left.\sum_i n_i\right|J\right) \sim  {\cal N}\left(S\langle n_1 |J \rangle, S \cdot Var(n_i) \right),
+\end{equation}
+thus $P(J)\approx {\rm Prob}(\sum_i n_i =J|J)$ reaches its maximum in the vicinity of $J$ which satisfies $J\approx S \langle n_i |J \rangle = \left\langle \sum_i n_i |J \right\rangle $. Furthermore, for the approximation $P(J)\approx {\rm Prob}(\sum_i n_i =J|J)$, the values of $J$ where $J\ll S\langle n_i |J \rangle  $ or $J\gg S\langle n_i |J \rangle $ are highly improbable, due to the Gaussian nature of $P(\sum_i n_i|J)$ for large $S$.
+
+
+\textcolor{red}{{\bf Q:}when does $P_J(n_1)$ fail? when does $P_J(J)$ fail? {\bf Comment:} In the Haegeman- Loreau paper \cite{Haegeman2011} there are more steps than that. But, my numerical computation did not find it helpful..... }
+
+
+
+
+
+\section{Survival Probability and First Passage Time }
+
+For simplicity, we assume the system is undimnesional. Consider the backward Master equation from $(x',t')$ to $(x,t)$:
+\begin{equation}
+    \partial_{t'} P(x,t|x',t')=q^{+}(x')\left[P(x,t|x'+1,t')-P(x,t|x',t')\right]+q^-(x')\left[P(x,t|x'-1)-P(x,t|x',t')\right]
+\end{equation}
+with $a$ is and absorbing state and $b$ is reflective. 
+Let's assume that the initial position is in the interval $I=[a,b]$. We want to check what is the survival probability; , the probability that the species has remained at a level $a<x<b$ is
+\begin{equation}
+    S_I(x',t) \equiv \int_{a}^{b}dx P(x,t|x',t'=0). 
+\end{equation}
+[from here on $S_I(x;,t)=S(x',t)$].
+We integrate the backward Master equation $\int_a^{b}dx$ and obtain
+\begin{equation}
+    \partial_{t} S(x',t)=q^{+}(x')\left[S(x'+1,t)-S(x',t)\right]+q^-(x')\left[S(x'-1,t)-S(x',t)\right]
+\end{equation}
+Under the assumption that the probability to be absorbed is 1, we find (by integrating the above equation $\langle T(x) \rangle = \int_0^{\infty}dt t (-\partial t S(x',t))=\int_0^{\infty} dt S(x',t)$),
+\begin{equation}
+    -1=q^+(x)\{\langle T(x+1)\rangle- \langle T(x)\rangle \} + q^- (x) \{\langle T(x-1)\rangle - \langle T(x)\rangle \}  
+\end{equation}
+where $\langle T(x)\rangle $ is the mean absorbing time, from $x$ to a.  
+To solve the above equation we define $U(x)=\langle T(x+1)-\rangle -\rangke T(x)\rangle$, thus
+\begin{equation}
+    -1=q^+(x)U(x)-q^-(x)U(x-1)
+\end{equation}
+reorganize the equation gives
+\begin{equation}
+        -1=q^+(x)\phi(x)[S(x)-S(x-1)] {\rm \ with \  } S(x)=\frac{U(x)}{\phi(x)} {\rm \ and \ } \phi(x)\equiv \prod_{z={a+1}}^{x}\frac{q^-(z)}{q^+(z)}.
+\end{equation}
+Hence,
+\begin{eqnarray}
+&&    \frac{1}{q^+(x)\phi(x)}=S(x)-S(x-1)
+\\
+&& {\Longrightarrow } S(x) = -\sum_{z=x+1}^{b}\frac{1}{q^+(z)\phi(z)} \nonumber
+\\  && \Longrightarrow U(x) = \phi(x) S(x) =- \phi(x)\sum_{z=x+1}^{b}\frac{1}{q^+(z)\phi(z)} = \langle T(x+1)\rangle - \langle T(x) \rangle \nonumber
+\end{eqnarray}
+Thus, the solution is given with 
+\begin{equation}
+   \langle T_a(x) \rangle =   \sum_{y=a}^{x-1}\phi(y)\sum_{z=y+1}^{b}\frac{1}{q^+(z)\phi(z)} 
+\end{equation}
+For example, we look at the interval $[0,\infty)$ and we examine the extinction time. Then the mean crossing time between $x=1$ to $x=0$ is
+\begin{equation}
+   \langle T_0(1) \rangle =   \frac{1}{q^+(0)P(0)}{\rm Prob}\left[y\geq 1\right]\Rightarrow \langle T_0(1)
+   \rangle F(0)= {\rm Prob}[y\geq 1]\Rightarrow \langle T_0(1)\rangle = \frac{1-P(0)}{\mu P(0)} .
+\end{equation}
+In general we can write
+\begin{equation}
+   \langle T_0(x) \rangle =   \sum_{y=0}^{x-1}\frac{1}{q^+(y)P(y)}\sum_{z=y+1}^{\infty}{P(z)} =  \sum_{y=0}^{x-1}\frac{1}{F(y)}{\rm Prob}\left[z\geq y+1\right]
+\end{equation}
+where  $\phi(x)=\prod_{z=1}^{x}\frac{q^-(z)}{q^+(z)}= \frac{P(0)q^+(0)}{P(x)q^+(x)}$ and $F(x)=F_{\rm in}^{\rm right}(x)=q^+(x)P(x)$ is the flux right from point $x$. 
+
+In some cases, using the one-dimensional abundance distribution is sufficient to find the mean first passage time in the multi-dimensional scenario. 
+However, in many other cases, the abundance distribution fails to estimate the MFPT. For example, in Fig.~\ref{}  we present the simulation results of the MFPT. 
+The distribution $P(n_1)$ is the same for true 1D system, and the abundance distribution for the 20 dimensional system (see lower panel). 
+However, the MFPT measured in the real 20 dimensional system is significantly different from the one estimated from the 1D distribution. 
+
+What is the mean first time that an invader will become a core species? 
+
+\textcolor{red}{recheck the following expression}
+\begin{equation}
+   \langle T_x(0) \rangle =   \sum_{y=0}^{x-1}\frac{1}{q^+(y)P(y)}\sum_{z=0}^{y}{P(z)} =  \sum_{y=0}^{x-1}\frac{1}{F(y)}{\rm Prob}\left[z\leq y\right] \Rightarrow \langle T_1(0) \rangle = \frac{1}{q^+(0)}=\frac{1}{\mu}
+\end{equation}
+
+\begin{equation}
+   \frac{\langle T_1(0) \rangle}{\langle T_0(1) \rangle} = \frac{\mu P(0)}{\mu(1-P(0))} = \frac{S-S^*}{S^*} \rightarrow q^-(1)P(1) S^* = \mu (S-S^*)[1-P(0)]
+\end{equation}
+
+Return time to $x$:
+\begin{eqnarray}
+\langle T_x(x)\rangle &=& \frac{q^+(x)}{q^-(x)+q^+(x)}\left( \langle T_x(x+1) \rangle + \frac{1}{q^+(x)} \right) + \frac{q^-(x)}{q^-(x)+q^+(x)}\left( \langle T_x(x-1) \rangle + \frac{1}{q^-(x)} \rangle \right)
+\nonumber
+\\ && \qquad \longrightarrow \langle T_x(x+1) \rangle = \frac{{\rm Prob}[z \geq x+1]}{q^+(x)P(x)}
+\nonumber
+\\ && \qquad \longrightarrow \langle T_x(x-1) \rangle = \frac{{\rm Prob}[z \leq x-1]}{q^+(x-1)P(x-1)}= \frac{{\rm Prob}[z \leq x-1]}{q^-(x)P(x)}
+\nonumber
+\\ &=& \frac{{\rm Prob}[z \leq x-1] + {\rm Prob}[z \geq x+1] + 2P(x)}{ P(x)\left( q^-(x)+q^+(x) \right)}
+\nonumber
+\\ &=& \frac{1+P(x)}{ P(x)\left( q^-(x)+q^+(x) \right)}
+\end{eqnarray}
+\begin{equation}
+\langle T_x(x)\rangle = \frac{1}{P(x)[q^+(x)+q^-(x)]} \Rightarrow P(0)=\frac{1}{\langle T_0(0)\rangle \mu}
+\end{equation}
+
+Assume that $X={\rm ArgMin}[q^+(n)P(n)]\in [0,n^*]$, (i.e sharp minimum flux at $X$) then 
+\begin{equation}
+\frac{\langle T_0(n^*)\rangle }{\langle T_{n^*}(0)\rangle }\approx \frac{{\rm Prob}[z\geq X+1 ]}{q^+(X)P(x)}\frac{q^+(X)P(x)}{{\rm Prob}[z\leq X ]} =  \frac{{\rm Prob}[z\geq X+1 ]}{{\rm Prob}[z\leq X ]}
+\end{equation}
+
+\section{Richness distribution from First Passage Times}
+Our first passage times may be interpretable as the inverse of rates of species being excluded or successfully invading the system. 
+In this case, we could use these to define the rates in our richness transitions going from species richness $R \rightarrow R+1$ (invasion) or $R \rightarrow R-1$ (exclusion).
+Writing out the detailed balance condition for the richness distribution $P_S(R)$
+\begin{equation}
+    Q_S(R\rightarrow R+1)P_S(R) = Q_S(R+1\rightarrow R)P_S(R+1)
+\end{equation}
+we define the rates
+\begin{eqnarray}
+    Q_S(R\rightarrow R+1) && = \frac{S-R}{\langle T_{n^{*}(R+1)}(0)\rangle}\\
+    \label{eq:richness-rates1}
+    Q_S(R+1\rightarrow R)&& = \frac{R+1}{\langle T_{0}(n^{*}(R+1))\rangle}.
+    \label{eq:richness-rates2}
+\end{eqnarray}
+A solution to these equations is simply
+\begin{equation}
+    P_S(R) = P_S(0) \prod_{i=1}^R \frac{S-i+1}{i}\frac{\langle T_{0}(n^{*}(i))\rangle}{\langle T_{n^{*}(i)}(0)\rangle}.
+    \label{eq:richness-approx}
+\end{equation}
+Using this approximation for the richness distribution, we can find the mean richness.
+However this does worse than the much simpler approximation wherein we simply compare the rates at which the species invade the system and equate it to the rate at which the become excluded
+\begin{equation}
+    \frac{R}{\langle T_0(n^*) \rangle} = \frac{S-R}{\langle T_{n^*}(0) \rangle} \Rightarrow R = \frac{S}{1+\langle T_{n^*}(0) \rangle/\langle T_0(n^*) \rangle}.
+    \label{eq:equal-rates}
+\end{equation}
+Since $\langle T_1(0) \rangle=1/\mu$ and $\langle T_0(1) \rangle=(1-P(0))/\mu P(0)$, replacing $n^*$ by 1 in Equation~\ref{eq:equal-rates} recovers our earlier relation for the mean richness $R=S(1-P(0))$.
+This same replacement in~\ref{eq:richness-rates1}-\ref{eq:richness-rates1} gives a richness distribution that is binomial distributed, which recovers the correct mean but not variance of the distribution.
+\begin{figure}[h]
+\includegraphics[width=0.49\textwidth]{figures/richnes_dist_mfpt.pdf}
+\includegraphics[width=0.49\textwidth]{figures/richnes_mfpt.pdf}
+\caption{Left: results of \ref{eq:richness-approx}. Right: results of \ref{eq:equal-rates}}
+\label{det_eigvec}
+\end{figure}
+
+The richness distribution fulfills
+\begin{eqnarray}
+    \mu R(0)=q_1^-(1,0,\dots,0)P(1,0,\dots , 0)&=& \left(\frac{q_1^-(1,0,\dots,0)P(1,0,\dots , 0)}{R(1)}\right)R(1)\\ \nonumber &\approx& \left(\frac{q_x^-(1,0,\dots,0)P(1)P(0)^{S-1}}{S(1-P(0))P(0)^{S-1}}\right)R(1) = \left(\frac{q_x^-(1,0,0...)P(1)}{S(1-P(0))}\right)R(1)
+\end{eqnarray}
+and 
+\begin{eqnarray}
+    \mu R(S-1)=\sum_{n_2=1}^{\infty}...\sum_{n_S=1}^{\infty}q_1^-(1,n_2,...)P(1,n_2,.., n_S)&=& \left(\frac{\sum_{n_2=1}^{\infty}...\sum_{n_S=1}^{\infty}q_1^-(1,n_2,...)P(1,n_2,.., n_S)}{R(S)}\right)R(S) \nonumber \\ 
+    &\approx&  \left(\frac{\langle  q_1^-(1,n_2,...) \rangle_{2,..,S} P(1) }{1-P(0)}\right)R(S)
+\end{eqnarray}
+then since $q_-(1,n_2,...,n_S)=r^-+\frac{r}{K}\left(1+\rho (n_2 + ...+ n_S)\right)$ maybe we can write
+\begin{eqnarray}
+    S^* &\rightarrow& S^*+1:  (S-S^*)\mu \\ \nonumber
+     S^* &\rightarrow& S^*-1: \approx \left(\frac{\left[r^-+\frac{r}{K}(1+\rho (S^*-1)\langle n \rangle ) \right]P(1)}{1-P(0)}\right)\theta(S^*>0) 
+\end{eqnarray}
+
+\begin{figure}[h]
+\includegraphics[width=0.49\textwidth]{figures/mu_times_mfpt.pdf}
+\includegraphics[width=0.49\textwidth]{figures/rates_mu_R_mfpt.pdf}
+\caption{Left: Levels $\mu \langle T_0(n^*) \rangle$. Right: \ref{eq:equal-rates} except= $\langle T_{n^*}(0) \rangle=1/\mu$.}
+\label{det_eigvec}
+\end{figure}
+
+
+
+
+\section{Flux}
+
+\begin{eqnarray}
+    \partial_t N &=& - \oint  {\vec{F}}\cdot dV
+\end{eqnarray}
+
+\begin{eqnarray}
+    \partial_t N &=& \sum_{y=1}^{\infty}\left[F_{\rm right}^x(0,y)-F_{\rm left}^{\rm x}(1,y)\right]+ \sum_{x=1}^{\infty}\left[F_{\rm up}^y(x,0)-F_{\rm down}^{\rm y}(x,1)\right] = \\ \nonumber &=& \sum_{y=1}^{\infty}\left[q_x^+(0) P(0,y)-q_x^-[1,y]P(1,y)\right] + \sum_{x=1}^{\infty}\left[q_y^+(0) P(x,0)-q_y^-[x,1]P(x,1)\right] = \\ 
+    {\Longrightarrow} \mu \left[\sum_{x=1}^{\infty}P(x,0)+\sum_{y=1}^{\infty}P(0,y)\right] &=&  \sum_{y=1}^{\infty}\left[q_x^-[1,y]P(1,y)\right] + \sum_{x=1}^{\infty}\left[q_y^-[x,1]P(x,1)\right]\\ \nonumber
+    {\Longrightarrow} \mu \cdot\left\{ {\rm Prob}[x\geq 1;y=0]+{\rm Prob}[y\geq 1;x=0]  \right\} &=&  
+    \sum_{y=1}^{\infty}F^x_{\rm left}(1,y) + \sum_{x=1}^{\infty}F^y_{\rm down}(x,1) = \\ \nonumber
+    2 \sum_{y=1}^{\infty} q_x^+(x=0) P(y|x=0)  P(x=0)   &=&  2 \sum_{y=1}^{\infty} q_x^-(x=1,y) P(y|x=1)P(x=1) 
+\end{eqnarray}
+
+
+if we have three species, then
+
+\begin{equation}
+    3 \sum_{z=1}^{\infty}\sum_{y=1}^{\infty} q_x^+(x=0) P(y,z|x=0)  P(x=0)   &=&  3 \sum_{z=1}^{\infty} \sum_{y=1}^{\infty} q_x^-(x=1,y,z) P(y,z|x=1)P(x=1)
+\end{equation}
+
+Thus, where we have $S$ species, we obtain
+
+\begin{equation}
+        \mu \sum_{i=1}^{S}{\rm Prob}\left[n_{j\neq i}\geq 1;n_i=0\right]  = 
+    \sum_{i=1}^{S}\sum_{n_j=1}^{\infty}F^i_{\rm out}(n_i=1,n_{j\neq i}) \approx S q_x^- (1, \langle J \rangle ) P(n_{i,j}\geq 1, n_i=1) 
+\end{equation}
+
+\begin{equation}
+  \mu \cdot S \cdot {\rm Prob}\left[{\rm all \pecies}\geq 1; {\rm one \ species\ } =  0\right]] \approx \mu \cdot S  P(0)\left[1-P(0)\right]^{S-1} = 
+    {\rm total\ flux \ out}
+    \end{equation}
+    
+    
+\begin{equation}
+    \mu \cdot S  P(0)\left[1-P(0)\right]^{S-1} = S [r^- + \frac{r}{K}(1-\rho+\rho \langle J\rangle )] [1-P(0)]^{S-1}P(1)
+\end{equation}
+
+
+\iffalse
+\newpage
+
+
+\section{nice to read, not necessary for a manuscript}
+An invasive, or exotic, species is a species that establishes a population in a location in which it is not native. Because of the increase in travel throughout the world, not only humans, but seeds, larvae, plants, and animals are quickly transported long distances. In aquatic systems, cargo ships carry ballast water in their holds. They fill up in ports of departure and then release the water in destination ports. The ballast water contains many species of microorganisms, clams, crab, and even fish, which are released into new locations. In 1982 a gelatinous animal called a ctenophore, similar to a jellyfish, was released in ballast water from the waters off the United States into the Black Sea. The ctenophore competed for food in the form of microscopic plankton with the native species of fish. Because the ctenophore had no natural predators in the Black Sea, its population exploded. Following Gause’s law of completive exclusion, the fish populations plummeted. This not only disrupted the structure of the ecosystem and the species diversity in the Black Sea, but it also devastated the commercial fisheries in the region.
+
+Invasive species and their ability to put severe competitive pressure on local ecosystems is not an isolated event. The zebra mussel is an exotic species to the Great Lakes. It grows in high densities and causes severe damage to aquatic structures such as pipes, docks, and the bottoms of boats. Because it voraciously filters microscopic algae out of the water, populations of native fish, clams, and mussels that compete for the same food resources have declined severely. In Florida, exotic brown anoles from Cuba replaced native green anoles in a large part of their habitat. The blue water hyacinth, native to South America, was planted in the United States as a decorative flower. It is now a nuisance plant throughout the waterways of Florida, competing for space and nutrients with local flora. There are estimates
+
+that worldwide most ecosystems contain 10 to 30\% exotic species. Although not all of these species result in competitive interactions that affect community structure, when these interactions do occur they almost always result in a loss of community stability and decreased biological diversity.
+
+A second way in which human activity can influence competitive relationships within an ecosystem is by the removal of a competitor. For example, in the ocean off of Antarctica, the food chain is based on the small shrim-plike crustacean called krill. Prior to human involvement, baleen whales were the largest consumer of krill in the ecosystem. Beginning in the middle 1850s, whales were regularly hunted on Antarctic waters, decimating the baleen whale populations. During that time, the populations of other competitors for krill, seals, penguins, and smaller whales all grew enormously. In 1996 restrictions on hunting large baleen whales were put in place. However, because of the increased competitive pressure for food, baleen whales have not reestablished previous population sizes.
+
+The idea of ecological competition, specifically the principle of competitive exclusion, has been used to improve agricultural practices. Chicken farmers are concerned about the spread of the pathogen Salmonella. Not only does this pathogen threaten the health of the chickens, it can be passed on to humans and cause disease. Chickens are commonly given significant doses of antibiotics to prevent the growth of pathogentic bacteria in their guts. But this practice has been criticized because humans who eat chicken secondarily ingest the antibiotics. Using the idea of competitive exclusion, farmers have begun introducing a nonpathogenic bacterium into the guts of newborn chickens that attaches to the substrate on which Salmonella would normally grow. By competing for space with the pathogens, the harmless exotic bacteria populations exclude the growth of disease-causing bacteria. Competitive exclusion is also being assessed as a means to prevent the growth of other bacterial pathogens such as Campylobacter and Escherichia coli.
+
+\fi
+
+\section{Modality Phase Transition}
+ Transition between unimodal (positive probable abundance) to bimodal is given by $P(0)=P(1)$, thus from the zero-flux equation $q^+(0)=q^-(1)$ 
+  
+  For the transition between Hubbel to bimodal. In the Hubble regime $P(n)>P(n+1)$. In the bimodal regime, there is $n>0$ where $P(n)<P(n+1)$, thus the transition 
+  \begin{eqnarray}
+      P(n)&=&P(n+1) \\
+      P(0)\frac{(a)_n c^n}{n! (b+1)_n }&=&P(0) \frac{(a)_{n+1} c^{n+1}}{(n+1)! (b+1)_{n+1} } 
+      \\
+      \frac{(b+1)_{n+1}(n+1)!}{n! (b+1)_n }&=& \frac{(a)_{n+1} c^{n+1}}{(a)_n c^n } 
+      \\
+      n(b+n)&=& c (a+n-1) 
+      \\
+      n&=& \frac{(c-b)\pm \sqrt{(c-b)^2+4(a-1)c}}{2}
+  \end{eqnarray}
+Substitute $a=\frac{\mu}{r^+}$, $\tilde{b}= \frac{r^-K+r\rho J}{r(1-\rho)}$, and $\tilde{c}=\frac{r^+ K}{r(1-\rho)}$
+\begin{eqnarray}
+    n&=& \frac{1}{2}\left\{\frac{K-\rho J}{1-\rho} \pm \sqrt{\left(\frac{K-\rho J}{1-\rho}\right)^2+4\frac{(\mu-r^+) K}{r(1-\rho)}}\right\}=\frac{K-\rho J}{2(1-\rho)}\left\{1 \pm \sqrt{1+4\frac{(\mu-r^+) K(1-\rho)}{r(K-\rho J)^2}}\right\} \\
+   n^+ &\approx&\frac{K-\rho J }{(1-\rho)} + \frac{(\mu-r^+) K }{r(K-\rho J)}
+   \\
+   n^- &\approx&- \frac{(\mu-r^+) K }{r(K-\rho J)}
+\end{eqnarray}
+If we use $J=S^* n^+$ we find
+\begin{equation}
+    n^+=\frac{K}{2(1-\rho+\rho S^*)}\left\{1+ \sqrt{1+\frac{4(\mu-r^+)(1-\rho+\rho S^*)}{rK}}\right\} \approx \frac{K}{1-\rho+\rho S^*}- \frac{\mu-r^+}{r}
+\end{equation}
+\textcolor{red}{ compare to the deterministic result, we have here an additional term of $\frac{r^+}{r}$}
+\\
+When the sqrt expression is negative? 
+\begin{eqnarray}
+    0>1+4(\mu-r^+) (1-\rho+\rho S^*)/(rK)
+\end{eqnarray}
+
+\end{widetext}
+
+%\nocite{*}
+\bibliography{bibliography}% Produces the bibliography via BibTeX.
+
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.75\textwidth]{figures/fig1.pdf}
+%\includegraphics[width=0.49\textwidth]{figures/richnes_mfpt.pdf}
+\caption{TODO}
+\label{sample-fig1}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[]{figures/fig2.pdf}
+%\includegraphics[width=0.49\textwidth]{figures/richnes_mfpt.pdf}
+\caption{TODO}
+\label{sample-fig1}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[]{figures/fig3.pdf}
+%\includegraphics[width=0.49\textwidth]{figures/richnes_mfpt.pdf}
+\caption{TODO}
+\label{sample-fig1}
+\end{figure}
+
+\end{document}

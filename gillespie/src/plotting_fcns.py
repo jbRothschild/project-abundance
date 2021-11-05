@@ -5,6 +5,9 @@ from src.manual_revision import DICT_REVISION
 from src.settings import VAR_NAME_DICT
 import matplotlib.pyplot as plt; from matplotlib.colors import LogNorm
 
+from src.settings import VAR_NAME_DICT, COLOURS, IMSHOW_KW, NPZ_SHORT_FILE\
+                    , VAR_SYM_DICT, MANU_FIG_DIR
+
 def smooth(x,window_len=11,window='hanning'):
     """
     Code taken from Scipy Cookbook
@@ -56,6 +59,23 @@ def smooth(x,window_len=11,window='hanning'):
 
     y = np.convolve( w / w.sum(), s, mode='valid')
     return y
+
+def plot_prob(probability, i, j, colour):
+    DIST_DIR = MANU_FIG_DIR + os.sep + 'distributions'
+    os.makedirs(DIST_DIR, exist_ok=True)
+    f = plt.figure(figsize=(1.75,1.25)); fig = plt.gcf(); ax = plt.gca()
+    plt.plot(probability[:125], color=colour, linewidth=2, zorder=10)
+    plt.xticks([0,50,100])
+    size = 7; ax.axes.labelsize = size
+    plt.xlabel(r'n',fontsize=size, labelpad=2);
+    plt.ylabel(r'P(n)', fontsize=size, labelpad=2);
+    plt.xlim([0,125]); plt.yscale('log')
+    ax.tick_params(axis='both', which='major', labelsize=size)
+    #ax.tick_params(axis='both', which='minor', labelsize=6)
+    plt.savefig(DIST_DIR + os.sep + "dstbn_" + str(i) + '_' + str(j)+'.pdf')
+    plt.close()
+
+    return 0
 
 def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
     """
@@ -110,7 +130,8 @@ def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
     if plot:
         for i in np.arange(np.shape(arr)[0]):
             for j in np.arange(np.shape(arr)[1]):
-                plot_prob(arr[i,j,:],i, j, line_colours[int(modality_arr[i,j])])
+                plot_prob(arr[i,j,:], i, j, line_colours[int(modality_arr[i,j])])
+                #plot_prob(arr[i,j,:], i, j, 'red')
     return modality_arr, line_names, line_colours
 
 def determine_bimodality_mf( arr ):
@@ -145,11 +166,7 @@ def heatmap(xrange, yrange, arr, xlabel, ylabel, title, dir, pbtx=10, pbty=20
 
     #plt.xscale('log'); plt.yscale('log')
     plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap'])
-    if title == 'Local maxima':
-        cbar = plt.colorbar(im,ax=ax,cmap=imshow_kw['cmap']
-                        , boundaries=[-0.5,0.5,1.5,2.5]
-                        , ticks=[-0.5,0.5,1.5,2.5])
-        cbar.ax.set_yticklabels(['Max 0', 'Max n', '2 Maxs', ''])
+
     plt.title(title)
     if save:
         fname = ((title.replace(" ","")).replace('/','_')).replace("$","")
@@ -163,6 +180,16 @@ def heatmap(xrange, yrange, arr, xlabel, ylabel, title, dir, pbtx=10, pbty=20
 
     return 0
 
+def convert_npz_mat(filename):
+    data = np.load(filename)
+    data_dict = {}
+    for key in list(data.keys()):
+        data_dict[key] = data[key]
+
+    sio.savemat(filename[:-3] + 'mat', mdict=data_dict)
+    print('done', filename[:-3] + 'mat')
+
+    return 0
 
 def set_axis(ax, plt, POINTS_BETWEEN_X_TICKS, POINTS_BETWEEN_Y_TICKS, rangex
                 , rangey, xlog, ylog, xdatalim, ydatalim, xlabel, ylabel):

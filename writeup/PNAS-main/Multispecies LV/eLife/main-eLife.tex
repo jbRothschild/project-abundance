@@ -1,0 +1,728 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ELIFE ARTICLE TEMPLATE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% PREAMBLE 
+\documentclass[9pt,lineno]{elife}
+% Use the onehalfspacing option for 1.5 line spacing
+% Use the doublespacing option for 2.0 line spacing
+% Please note that these options may affect formatting.
+% Additionally, the use of the \newcommand function should be limited.
+
+\usepackage{lipsum} % Required to insert dummy text
+\usepackage[version=4]{mhchem}
+\usepackage{siunitx}
+\DeclareSIUnit\Molar{M}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ARTICLE SETUP
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{This is the title}
+
+\author[1*]{Firstname Middlename Surname}
+\author[1,2\authfn{1}\authfn{3}]{Firstname Middlename Familyname}
+\author[2\authfn{1}\authfn{4}]{Firstname Initials Surname}
+\author[2*]{Firstname Surname}
+\affil[1]{Institution 1}
+\affil[2]{Institution 2}
+
+\corr{email1@example.com}{FMS}
+\corr{email2@example.com}{FS}
+
+\contrib[\authfn{1}]{These authors contributed equally to this work}
+\contrib[\authfn{2}]{These authors also contributed equally to this work}
+
+\presentadd[\authfn{3}]{Department, Institute, Country}
+\presentadd[\authfn{4}]{Department, Institute, Country}
+% \presentadd[\authfn{5}]{eLife Sciences editorial Office, eLife Sciences, Cambridge, United Kingdom}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% ARTICLE START
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+\textcolor{red}{The following `abstract' is only for ourselves:} \\
+Known:
+\begin{itemize}
+    \item Both unimodality and multimidality SAD are measured in competitive ecosystems
+    \item Universal unimodality 
+    \item Many theoretical explanations for unimodality, Hubble 
+    \item Bimodality is explained using variations of LV eq.  (e.g. random environment/competition/growth/death ) 
+    \item behavioural phase transition for $\rho=1$ (Chou's paper) + also HL paper shows bi-uni-modal transition 
+\end{itemize}
+Novelty:
+\begin{itemize}
+    \item Using inherent stochastic model - Master equation 
+    \item Presenting complete phase space, for $\rho$ and $\mu$ (adding $S$ or $K$?)  
+    \item Phases boundaries (using approximation)  
+    \item Phase transition; location and height of 2nd peak.  
+\end{itemize}
+Next:
+\begin{itemize}
+    \item fig 1 introduction to competition of ecosystem
+    + graphical illustration of question
+    \item fig 2 - fig1 + data + illustration at every regime
+    \item fig 3 kinetics - extinction time + turnover
+    \item real data/examples?
+\end{itemize}
+\end{abstract}
+
+\keywords{Suggested keywords}%Use showkeys class option if keyword
+                              %display desired
+
+
+\section{Introduction}
+\label{sec:introduction}
+
+Models of competition are used in a vast array of disciplines to describe systems with components that engage in competitive behaviour directly or indirectly. 
+One of the most well known examples of such a competitive phenomenon, and which inspired the specific ecological competition paradigm, was the differentiation in beaks forms of finches in the Gal\'apagos islands \cite{lewin1983finches,lack1983darwin}. 
+Ecological competition models are also used to describe microbial dynamics, for example in human gut \cite{coyte2015ecology,gorter2020understanding}, the appearance of dominant clones during cells reprogramming \cite{shakiba2019cell}, the evolution of neoplasm and in particular cancer cells \cite{merlo2006cancer,kareva2015cancer}, as a partial list of examples.
+Borrowed from biology, certain models have even been used to describe competition  economics \cite{budzinski2007monoculture}, and social networks \cite{koura2017competitive}.
+
+Ecological competition is the struggle between organisms to remain in the system under the constraint of limited resources, e.g. food or sunlight, within the environment. 
+These resources are components of the environment that are required for the survival and reproduction of the organisms.
+The competition, either directly through these resources or indirectly through some other mechanism, among individuals from different species is commonly referred to as intraspecific competition, whilst competition among members of the same species is called interspecific competition \cite{grover1997resource,begon2006ecology,pocheville2015ecological}. 
+
+Deterministic competition models predict that stable coexisence is found only when the intraspecific competition is smaller than interspecific competition  \cite{hardin1960competitive,macarthur1967limiting,MacArthur1969species, gause2019struggle}.
+This statement, known as Gause's Law or the competitive exclusion principle, states that if a limiting resource exists in the environment and two species rely on that resource, only one of the species will survive. % CHange to N species coexist when at least N resources are present in the system
+The other will either become extinct in the environment or it will develop evolutionary adaptations that shift it toward a different ecological niche \cite{hardin1960competitive}. 
+Gause’s law is theoretically recovered in some particular Lotka-Volterra (LV) equations, e.g. \cite{macarthur1967limiting,MacArthur1969species}.
+
+%Ecological competition therefore can act as a mechanism to drive evolutionary adaptation. One of the most famous examples of evolutionary adaptation driven by competition for resources is that of Darwin’s finches. There are at least 13 species of finches on the Galapogos Islands. Scientists believe that all of the species evolved from one ancestral species. Because food resources on the islands are limited, competition between members of the ancestral species drove individuals to consume food that was not optimal. This competitive pressure favored individuals with bill shapes that could eat the food for which the competition was not as intense. These individuals eventually became entirely different species than the original ancestor. Over time, more than a dozen species of finches were established because of ecological competition.
+
+%In 1935 British ecologist Arthur Tansley (1871–1955) performed experiments with a plant called Gallium, also known as bedstraw. Tansley planted two species, one that was native to alkaline soil and one found in a more basic soil. When planted alone, both species could grow in either the alkaline or basic soil type. However, when planted together, the plant in its native soil always grew much larger than the plant in non-native soil. Tansley realized that the native plant was able to more effectively obtain resources than the plant grown in non-native conditions. Tansley surmised that competition has broad effects on community structure. In particular, the presence or absence of a competitor can play a large role in determining the size, population size, and health of other organisms in the environment.
+
+Interestingly, data suggest that the competitive exclusion principle seems to be violated, since a vast diversity of species that we see in nature persist despite differences between species in competitive ability \cite{hutchinson1961paradox,chesson2000mechanisms}. 
+The tremendous diversity of species in ecological communities has motivated decades of research into the mechanisms that maintain biodiversity, e.g. \cite{tilman1982resource,loreau1998biodiversity,verberk2011explaining,lynch2015ecology,fowler2013colonization,barabas2016effect,kalmykov2012mechanistic,kalmykov2013verification}. 
+Notably, the focus of many such studies has been on understanding the dynamics of the abundances of species in these communities, e.g. see \cite{leidinger2017biodiversity}.
+%For example, it was found that by changing some parameters of a system, a biosphere may present significant dominant (core) species together with some low abundance species \cite{lynch2015ecology,verberk2011explaining}. In particular, the influence of competition (strength/network-topology/etc.) on properties of the system were examined \cite{lynch2015ecology,verberk2011explaining}. For example, the niche overlap affects the richness of community, the size of the total population, and abundance distribution, see \cite{lynch2015ecology,verberk2011explaining}. 
+
+%Many organisms face a constant battle for resources. Vast numbers of microbes are present in all but the most rarified environments. 
+This species abundance distribution (SAD) is amongst the most studied descriptors of community structure in ecology since the shape of the distribution is conserved across multiple systems, see for example the review in \cite{leidinger2017biodiversity} and the references therein.
+It describes how abundance varies among species of a community. 
+For example, in many microbial communities only a few dominant (high-abundance) microbial species coexist alongside highly diverse populations of low-abundance species \cite{lynch2015ecology}. 
+This so called 'rare biosphere' or 'hollow curved' is described by a unimodal, monotonically decreasing,  SAD. 
+This unimodality behaviour is repeatedly empirically observed in various systems, and thus considered universal, see for example \cite{mcgill2007species,magurran2013measuring} and the references therein. 
+Various theoretical explanations for the hollow-curved SAD in the competitive ecosystem have been suggested \cite{mcgill2007species,magurran2013measuring}. 
+Nevertheless, it was also found that a biosphere may present significant dominant species together with some low abundance species, such that a multi-modal SAD is observed  \cite{hanski1982dynamics,scheiner1997placing,loreau1999immigration,segura2013competition,zhang2020lifting,vergnon2012emergent}.  
+%In particular, the influence of competition (e.g. its distribution, strength and network topology) on properties of the system were examined, e.g. \cite{case1991invasion,verberk2011explaining,lynch2015ecology}. %For example, the strength of competition affects the richness of community  \cite{}, the size of the total population \cite{}, and abundance distribution \cite{}, to name only few.
+
+Models of population dynamics are commonly based on variations of the (deterministic) LV approach where, for example, some randomness is considered for the interspecific interactions or additional environmental noise, see e.g \cite{fisher2014transition,lynch2015ecology,verberk2011explaining,fowler2013colonization,barabas2016effect,tilman1982resource,kessler2015generalized}. 
+In this framework, emergent neutrality model, which is based on LV equation, may lead to multimodal SAD \cite{vergnon2012emergent,scheffer2006self}. 
+This approach ignores the inherent discrete- stochastic nature of the process, i.e. the fact that increasing or decreasing the number of individuals of a given species is random.
+
+For a fixed population size, the well-known Wright–Fisher and Moran models account the stochasticity of the process  \cite{blythe2007stochastic}. 
+Nearly 20 years ago, a stochastic-based approach was suggested to investigate ecological drift  \cite{hubbell2001unified,alonso2006merits}. 
+However, as far as we know, the first attempt to present a common quantitative stochastic framework for niche and neutral theories was Haegeman and Loreau’s (HL) work \cite{haegeman2011mathematical}. %There, the authors assume symmetrical system (all species have the same parameters, namely identical species). 
+Recent studies, based on HL model, presented results for macroscopic properties, e.g. the richness, as a function of the niche overlap, see for example \cite{capitan2015similar,capitan2017stochastic,capitan2020competitive}. % far as we know, the emergence of unimodal or multi-modal SADs have never been assessed and analytically quantified using the stochastic-based approach.
+
+%Generally, species abundance distribution is subject to factors that influence growth and immigration versus those that influence death. 
+Recently, it was found that the neutral birth-death model with immigration presents both power-law and bimodal SADs, depending on the immigration rate \cite{xu2018immigration}. Importantly, this study breaks from the paradigm wherein neutrality relates to the rare biosphere SAD and niche to the dominant-suppressed SAD.
+As far as we know, the full behaviour of the SAD  has never been examined in the HL model, i.e. when niche overlap is taken into the account. 
+
+In this paper, we examine the role of immigration rate along with the competition strength (i.e. niche overlap coefficient), and the number of species on the behaviour of the population. 
+In particular, we complete the phase space and describe different dynamical behaviour, beyond the neutral-niche transition,  corresponding to different parameters, see Fig.~\ref{fig:fig1}, Panel A. 
+The outline of this paper is as follows: in section \ref{sec:model} the community model is formulated in a mathematical framework. 
+In section \ref{sec:Phases}, the different phases of the SAD are defined.
+In section \ref{sec:Phase_transition} the transition between the different phases are described and quantified. In Sec.~\ref{sec:Dom_species} we discuss the probable level of dominant species and the emergence of multi-modality.
+This is followed by section \ref{sec:Dynamics} which elaborates on the various dynamical behaviours of the species abundances in the different phases. 
+Finally, a discussion ...
+
+% Mathematically, there are two main approaches to model these kind of system, deterministic and stochastic models \cite{murray2007mathematical,Perthame2015parabolic}. Deterministic models have the clear advantage; the possibility to provide exact analytical predictions. Nevertheless, stochastic dynamics seems to play an important role in some properties of the system. Importantly, some properties of the system are essentially random and cannot be predicted with deterministic analysis. Here we use both deterministic and stochastic models. 
+
+%In biological communities the abundances may vary greatly and provide many complex specie distributions. We sometimes think of the abundance in terms of fitnesses, however underlying this are the mechanisms in which the species interact with their environment and neighbors. In a rough approximation, we may pose that linear and pairwise interactions dominate the inter/intraspecies connections (explore this later in another section). Lotka-Voltera (Armstrong-McGee) ~\cite{Lotka1950,Smale1976a,Armstrong1976}. Blythe and McKane~\cite{Baxter2005,Baxter2006,Blythe2007}. Haegeman and Loreau~\cite{Haegeman2011}. Capitan~\cite{Capitan2015,Capitan2017}. Sid's clonal population~\cite{Goyal2015}.  Bunin~\cite{Bunin2016}. General interest seems to be in understanding how we go from a neutral model to one with competitive overlap.
+
+\section{Stochastic Model}
+\label{sec:model}
+%\subsection{Deterministic Lotka-Volterra Model}
+%The first approach we consider, is the deterministic Lotka-Volterra (LV)  model. Here the number of individuals from species $i$ evolves via the following equation:
+%\begin{equation}
+%    \partial_t n_i = \mu_i+r n_i - \frac{r}{K}n_i \left( n_i + \sum_{j\neq i} \rho_{j,i} n_j\right).
+%    \label{generalLVimmi} 
+%\end{equation}
+%Here, $n_i$ is the number of individuals of the $i$ species (time dependent variable). $i\in \{1,\dots,S\}$ is the index of a species, where $S$ is the number of species (the indexing is arbitrary). $\mu$ represents the immigration rate, $K$ is the carrying capacity, and $\rho_{j,i}$ is the relative competition (i.e. the ratio between inter-species to intra-species competition), between species $i$ and $j$.   In this work we consider ecosystems with $\forall i,j: \rho_{i,j}=\rho$ and examine $0\leq \rho$ (i.e. different strength of inter-specific competition).% or $\exists {i,j,i',j'}:\rho_{j,i}\neq \rho _{j',i'}$ (generalization for different network)
+%[Negative $\rho$ is associated with cooperative ecosystems which are not in the scope of this document.   ]
+
+%Importantly, the ecological system is conventionally believed to have stochastic nature \cite{black2012stochastic}. Thus, the deterministic model does not predict its abundance distribution, richness, species composition, etc. That is why we need,  in addition, the  stochastic model.  
+
+%\subsection{Stochastic Master Equation}
+
+As mentioned above, ecological systems are conventionally believed to be of a stochastic nature \cite{black2012stochastic}. 
+We assume that the stochastic evolution of the system is described by the (Markovian-) Master equation as follows
+\begin{eqnarray}
+&& \partial_t  
+{\rm \mathcal{P}}(\vec{n};t)= \label{master-eq}
+\sum_{i}\left\{q^+_i (\vec{n}-\vec{e}_i){\rm \mathcal{P}}(\vec{n}-\vec{e}_i;t)+ \right.
+q^-_i (\vec{n}+\vec{e}_i){\rm \mathcal{P}}(\vec{n}+\vec{e}_i;t)-  \left. \left[q^+_i(\vec{n})+q^-_i(\vec{n})\right]{\rm \mathcal{P}}(\vec{n};t)
+\right\}    
+\end{eqnarray}
+where ${\rm \mathcal{P}}(\vec{n},t)$ is the joint probability density function (PDF) for the system to exhibit the species composition $\vec{n}=(n_1,\dots n_S)$ at time $t$ \cite{gardiner1985handbook}.
+Here, $n_i$ is the number of individuals of the $i$ species and is a time-dependent variable. 
+$i\in \{1,\dots,S\}$ is the index of a species, where $S$ is the number of species. 
+The transition rates for the birth $q^+_i$ and death $q^-_i$ of species $i$ are given by 
+\begin{eqnarray}
+q_i^+(\vec{n})&=&r^+ n_i +\mu,  \\
+q_i^-(\vec{n})&=&r^- n_i + \frac{r}{K} n_i \left(n_i +\sum_{j\neq i} \rho _{j,i} n_j\right). \nonumber
+\end{eqnarray}
+$\mu$ represents the immigration rate, $K$ is the carrying capacity, and $\rho_{j,i}$ is the relative competition (i.e. the ratio between inter-species to intra-species competition), between species $i$ and $j$. $r^+$ and $r^-$ are birth and death rate per capita, where $r=r^+-r^-$. 
+Clearly, $K$, $r^+$, $r^-\gneq
+0$ for physical reasons, and $\mu\gneq 0$ such that the extinction state is not an absorbing boundary.    
+%Another interesting characteristic property of a system, together with the joint probability $P(\vec{n};t)$, is the abundance distribution. The latter, marked as $P(n;t)$, is defined as the percentage number of species with $n$ individuals at time $t$.  
+Although in general this process need not have the following structure, we consider here symmetric processes such that $\forall i,j\in \{1,\dots S\}:\rho_{i,j}=\rho$.
+In other words the relative competition strength between any two species is identical for all species; only self/non-self recognition differentiates interactions. Additionally, we concentrate in the long-time limit where stationarity is observed, i.e. $\partial_t \mathcal{P}=0$.
+
+Here we focus on the SAD which is the marginal distribution, defined as
+\begin{equation}
+  P(n)= P_i(n)=\sum_{n_1=0}^{\infty}\cdots \sum_{n_{i-1}=0}^{\infty}\sum_{n_{i+1}=0}^{\infty}\cdots \sum_{n_S=0}^{\infty}{\rm \mathcal{P}}(\vec{n}).
+\end{equation}
+Note that from symmetry all marginal distributions at steady state are mutually equivalent, i.e  $P_i(n)=P_j(n)$ for every $i$ and $j$, thus we simply write the marginal distribution as $P(n)$. An illustration of the model is given in Fig.~\ref{fig:fig1}, Panel B.
+
+\iffalse
+The master equation for this marginal distribution is one dimensional with rates
+
+\begin{eqnarray}
+q^+(n)&=&r^+ n +\mu,  \\
+q^-(n)&=&r^- n + \frac{r}{K} n \left((1-\rho)n + \rho \langle J | n_i = n \rangle \right). \nonumber
+\end{eqnarray}
+\fi
+
+\begin{figure}
+   \begin{flushleft}
+        A
+   \end{flushleft}
+    \includegraphics[width=0.7\columnwidth]{figures/neutral-vs-niche.pdf}
+    \begin{flushleft}
+        B
+   \end{flushleft}
+    \includegraphics[width=0.7\columnwidth]{figures/island.pdf}
+    \caption{Panel A: Conventionally, weak competition is associated with 'niche-like' bimodal SAD, while strong competition is linked to 'neutral-like' monotone decreasing SAD. However, this paradigm is not complete, since the dependence of other parameters, such as immigration rate $\mu$ or diversity $S$, is not fully investigated. Thus, the entire phase space, e.g. $(\mu, \rho)$ or $(S, \rho)$,  remains unexplored. Panel B: The model illustration. An island with $J$ individuals from $S^*$ species.  Each individual may proliferate and die with some rates correspond to inter- and intra-specific interactions within the island. Here we consider deterministic, symmetric, fully-connected inter-specific interactions network, governed by single parameter; the competitive overlap $\rho$. Additionally, individuals may migrate from a cloud/mainland, contains $S$ species, into the island with a constant rate $\mu$.       }
+    \label{fig:fig1}
+\end{figure}
+
+\section{Phases} 
+\label{sec:Phases}
+Given that the stationary marginal distribution $P(n)$ derived from Eq.~\eqref{master-eq} is equivalent to the SAD, the dynamics of the system population sizes can be elucidated from different properties of this distribution.
+We find that these properties partition various phases which we parameterize by the competitive overlap $\rho$ and the immigration rate $\mu$.
+These phases are characterized by the modality of the SAD and richness distribution of the system.
+Although we mainly focus here on the role of immigration and competition strengths in shaping these phases, it is possible to investigate how other parameters of the model influence the behaviour of the SAD (such as the total number of species in the system $S$, see below).
+
+\subsection{Richness}
+
+In a competitive environment, the number of (co-)existing species $S^*$ is stochastic, and may be smaller than the number of immigrating species $S$ in the larger basin. 
+The richness refers to mean value $\langle S^*\rangle$ of this stochastic variable.
+%This stochastic process allows for varying richness such that at any instance there may be a different number of species present in the system, however a mean richness $\langle S^* \rangle$ is maintained at steady-state. This mean richness is proxy for the diversity found on average in the system at any time.
+%
+In some cases, each species can be classified into one of two sub-sets: existent species which appear at some high positive abundance, and extinct species with near-zero abundance.
+%
+Thus, we define the following phases, corresponding to the richness {$\langle S^* \rangle$};
+\begin{enumerate}[label=(\alph*)]
+    \item full coexistence of all species,
+    \item partial coexistence of some of species,
+    \item exclusion; presence of less than 2 species on average.
+\end{enumerate}
+
+%We note that there is a difference between mean richness and the number of dominant species due to the immigration rate maintaining species in the system at low abundances. 
+%However, in cases where all species coexist, or in a rare biosphere, the number of dominant species equals the mean richness \textcolor{red}{are there not more cases? Should mention before that that is how we define dominant species in rare biosphere}.
+
+Qualitatively, the dependence of the mean richness on the immigration rate and the competitive overlap is straightforward.
+At low competitive overlap and high immigration all species are present: competition is too weak for species to exclude others and large immigration rates ensure that no species go extinct indefinitely.
+However, as competitive overlap is increased the species begin competing for presence and forcing the extinction of others, reducing the mean richness.
+Similarly, decreasing immigration rates reduces the frequency of events that bring species back into the system which also reduces the average richness.
+This transition from different levels of mean richness is quantitatively discussed further in section \ref{sec:Phase_transition}.
+
+%In principle, in a competitive environment, the richness $S^*$ might be smaller than the number of evolving species $S$; i.e. $S^*(\rho)\leq S$. This richness of a system is vastly changed whether a system is described by the deterministic or the stochastic model. Therefore we use $S^*_{\rm det}$ and $S^*_{\rm sto}$ to mark the deterministic and stochastic richness respectively.   
+
+%In the deterministic model with low immigration rate we obtain that when $0\leq \rho\leq 1$ all species survived.  For stronger competition $\rho> 1$ (in the zeroth order in $\mu$) only one species survives. This statement is expressed by the following $S^*_{\rm det}(\rho)=S\theta(1-\rho)+\theta(\rho-1)$. Therefore, in the LV model, we have found very sharp change between full coexistence to uni-existence of a species, with the threshold $\rho^*_{\rm det}=1$. 
+
+%However, in the stochastic model, such a sharp transition between full coexistence to uni-existence is not found, but rather what is called a ``cascade of extinctions'' \cite{capitan2017stochastic}.   It means that tuning the competition strength $\rho$ changes the richness in a more ``smooth'' fashion. In this case we can define the threshold $\rho^*_{\rm sto}$ as the first value when the richness is less than the total number of species, i.e. $\rho^*_{\rm sto}\equiv\underset{\rho}{\rm arg\ min}\left[S^*_{\rm sto}(\rho)< S\right].$ 
+
+%The approximated analytical richness of the stochastic system is given by $S^*(\rho)= \sum_J P_J(J)/{_1F_1}[a,\tilde{b},\tilde{c}]$. We compare our approximated analytical richness with the simulation results, see Fig.~\ref{fig:Ricness}. We found that our approximations capture the behaviour of the simulation results.  Both analytical approximations and the simulation results show that increasing the immigration rate $\mu$, cause an increasing of the threshold value $\rho_{\rm sto}^*$, see~\ref{fig:Ricness}. This is in agreement with previous results, e.g. see \cite{loreau1999immigration}, where the richness in a competitive environment is expected to increase when immigration intensity
+%increases. Moreover, increasing the total number of evolved species $S$ results in decreasing the threshold $\rho_{\rm sto}^*$, see Fig.~\ref{fig:Ricness}. Similar simulation results are given in \cite{Haegeman2011a}. Here, we add the approximated analytical results, and show its regions of agreements with simulation.   
+
+\subsection{Modality}
+The species abundance distribution presents one of the following modalities; 
+\begin{enumerate}[label=(\Roman*)]
+    \item a unimodal distribution with a peak at high abundance, 
+    \item a bimodal distribution with a peak at zero and a peak at higher abundance,
+    \item a unimodal distribution with a peak at zero abundance; the classical Hubbell regime.
+    \item a multimodal distribution; with a peak at zero and other peaks at higher abundance,
+\end{enumerate}
+%The modality depends on the system's properties, such as the immigration rate, $\mu$, and the niche overlap $\rho$. The sub-phase, marked with (II)* has some unique features since there almost only one species survive, see further discussion below.   %The abundance distribution may present unimodal behaviour, where more abundant species are rarer. The bimodality behaviour is found when some species' abundance, except extinction, is more probable than others. In other words, when the abundance distribution has more than one local maxima.     
+%
+%
+%For example, in Fig.~\ref{fig:ApproxPDF} we show that increasing the immigration rate  $\mu$ may change the modality of the SAD. In Fig.~\ref{fig:BimodalUnimodal} we present the behaviour of the SAD $P(n)$, whether it has one or two maximal points, where changing both $\mu$ and $\rho$. These results obtained from the approximated abundance distribution. 
+For very strong immigration, all species are `pushed' away from extinction, thus the SAD is unimodal with a probable existence abundance.
+In this regime, existent species population sizes fluctuate about the same mean value $\tilde{n}$,  which corresponds to the fixed point found in the  deterministic Lotka-Volterra equations.
+%Here the immigration rate is large enough that new species immigrate into the system more quickly than die from even strong competitive interactions \textcolor{blue}{Is the last sentence true? JR: I think you're right that it isn't, there are some species that are excluded still.}.
+
+For intermediate $\mu$ and high $\rho$ a unimodal behaviour with a peak at zero is found; there is no favorable abundance except extinction from which species attempt to escape.
+Chance immigration and successive birth events cause surges in a particular species population size before other species competitively drive the population back down.
+This regime corresponds to what was previously described as the ``rare-biosphere": fewer number of species are found at higher abundances.
+
+Finally, outside of these two unimodal regimes, a multimodal phase exhibits a SAD composed of many low abundance species attempting to evade exclusion by invading and replacing species that are at stable higher abundances.
+Unlike the unimodal regime where the most probable abundance is positive due to the strong immigration rate, % all species were present, \textcolor{blue}{(we can find unimodality with partial richness - red phase)}
+here, the immigration rate is insufficiently strong to allow a stable point of coexistence for all species.
+However, as certain species are forced to abundances as low as temporary extinction from the system, the exclusion of certain species contributes to the emergence of a stable point of coexistence for the remaining subset of species.
+This subset of species dominate the total population about these stable population sizes until fluctuations cycle species between the low abundances and high abundances. Hence, the multimodal regime exhibits bimodality, and corresponds to suppressed and dominant sub-populations for most of the parameters sets we examine. 
+We discuss the emergence of multimodality beyond the bimodal regime in later sections.   
+
+%Interestingly, although most of the multi-modal regime exhibits bi-modality, additional modes surface as carrying capacity $K$ is increased \textcolor{red}{more conditions that we don't completely understand...}, see further discussion at Sec.
+%Fig.~\ref{fig:phases} shows a qualitative description of each phase.
+Note that even a single independent species, with no inter-specific competition, i.e. $\rho=0$, may present unimodality or bimodality depending on the immigration rate, see Fig.~\ref{fig:phases_sim}. 
+Additionally, the appearance of monotone-decreasing unimodality with peak at zero depends on the number of evolving species, see details below. 
+%Note that other parameters of the system might present different quantitatively results, i.e. the transition between the two behaviours appears in different values of $\rho$ or $\mu$, see details in SM.    
+
+%We note that a similar affect of immigration rate on transition between unimodal and bimodal abundance distribution was previously found in the neutral model, i.e. $\rho=1$, see  \cite{xu2018immigration}. 
+
+\subsection{Superimposed Phase Diagram}
+
+We define the complete behavioural phases diagram using a combination of richness and modality phases, see  Fig.~\ref{fig:phases_sim}. 
+There, we show simulation results, with the phases represented by different colors. 
+The black curves represent the boundaries given from the mean-field approximation (see Appendix for details). Moreover, an approximated-closed expression for these boundaries is presented in the next section. 
+We present the various regimes in both  ($\mu,\rho)$ space (Fig.~\ref{fig:phases_sim}, Panel B), and in ($S,\rho)$ space (Panel C). 
+The latter presentation [$(S,\rho)$ space] shares similarities with previously published results. 
+A further discussion about the $(S,\rho)$ space is given in Sec.~\ref{sec:Dependence_S_K}.
+
+Note that although we define three richness phases and four modality phases, our superimposed phase diagram may presents only seven phases at most. 
+For example, full coexistence (phase a) can be found with either I or II solely and never with III or IV.  
+Additionally, not all regimes are obtained for every set of parameters. 
+For example, partial coexistence cannot be defined where $S=2$. 
+Also, we did not detect multi-modal regimes for low carrying capacity $K$, see further discussion below and in the appendix. 
+
+%\vfill
+
+%\onecolumngrid
+
+\begin{figure*}[h!]
+   \begin{flushleft}
+        A
+   \end{flushleft}
+    \includegraphics[width=\textwidth]{figures/modality-richness.pdf}
+    \begin{minipage}{.45\linewidth}
+    \begin{flushleft}
+        B
+    \includegraphics[width=\linewidth]{figures/immi-comp-phase-space.pdf}
+    \end{flushleft}
+  \end{minipage}
+  \hfill
+  \begin{minipage}{.45\linewidth}
+    \begin{flushright}
+        \begin{flushleft}
+            C
+        \end{flushleft}
+    \includegraphics[width=\linewidth]{figures/spec-comp-phase-space.pdf}
+    \end{flushright} 
+  \end{minipage}
+    \caption{Panel \textbf{A}: Various modalities of the SAD: (I) unimodal at abundance larger than zero, (II) bimodal (III) unimodal at zero abundance and (IV) multimodal. Additionally, three richness phases, where (a) there is complete coexistence of the species, (b) partial coexistence and (c) a single species exists. Panel \textbf{B}: Phase diagram of the modality and richness. Colored regions represent data from simulation, whereas boundaries from the mean-field approximation are represented by solid black lines. $\mu$ and $\rho$ vary, with logarithmic scale, between $[10^{-3}, 10]$ and $[10^{-2}, 1]$. For all panels, simulation results are given by using Gillespie algorithm with $10^7$ time-steps. We use $r^+=2$, $r^-=1$,  $K=100$,  and $S=30$. Panel \textbf{C}: $\mu=10^{-1}$ \textcolor{red}{Explain what the patterned area is.} }
+    \label{fig:phases_sim}
+\end{figure*}
+%\twocolumngrid
+    
+\section{Regimes Boundaries}
+\label{sec:Phase_transition}
+
+ 
+%The transition between the different phases depends on two key features; the richness $S^*$ and the characteristic level of the averaged population size $J^*$. 
+%To understand the transitions' curves between the different phases we use approximations, see below.  The boundaries are approximately following the curves:
+Clear boundaries separate the phases into regions wherein a parameter pair $(\mu,\rho)$ [or $(S,\rho)$] discerns the characteristics (modality, richness) of the species abundance distribution.
+Given that these distributions are at steady state, these regime boundaries are determined by the balance of transition rates in the system.
+We find that rate balance equations for abundance transitions $n$ establish the boundaries for modality, whereas balance between invasion and exclusion rates of species richness $S^*$ sets the richness levels.
+%We shall refer to these transition rates using the notation $R_A(i\rightarrow j)$ which corresponds to the rate of the stochastic process $A\in \{n,S^*\}$ from state $i$ to state $j$.
+
+\iffalse
+\begin{center}
+\begin{tabular}{lccc}
+\hline
+\multirow{2}{4em}{\textcolor{black}{modality:}} & &
+      \textcolor{black}{$R_n(n^* \rightarrow n^* +1)=R_n(n^*+1 \rightarrow n^*)$} \\ &
+     & \textcolor{black}{$R_n(0 \rightarrow 1)=R_n(1 \rightarrow 0)$}   \\
+    \hline 
+    \multirow{2}{4em}{\textcolor{black}{richness:}}  & & \textcolor{black}{$R_{S^*}(1 \rightarrow 2)=R_{S^*}(2 \rightarrow 1)$} \\ &
+     & \textcolor{black}{$R_{S^*}(S \rightarrow S-1)=R_{S^*}(S-1 \rightarrow S)$}
+\\
+\hline
+\end{tabular}    
+\end{center}
+
+\fi
+
+The boundary between phase (I)  and all other phases is defined by the appearance of a peak at zero abundance, in other words $P(0)=P(1)$.
+As such, the global-balance equation corresponding to this boundary is reduced to
+%\begin{equation}
+%$R_n(0 \rightarrow 1)=R_n(1 \rightarrow 0),$
+%\end{equation}
+%is equivalent to 
+$\langle q_i^+(\vec{n})|n_i=0 \rangle=\langle q_i^-(\vec{n})|n_i=1 \rangle$.
+The approximated solution to this equation is
+\begin{equation}
+    \mu \approx r^- +\frac{r}{K}[1-\rho+\rho \langle J\rangle ],
+\end{equation}
+where $J=\sum_{i=1}^S n_i$ is the stochastic observable represents the number of individuals, thus $\langle J \rangle$ is the averaged total population size.  The above equation, with $\rho=1$, recovers one of the transitions given in  \cite{xu2018immigration}.
+
+Similarly, the boundary between the `neutral-like' phase and the bimodal phase is defined by whether exist $\tilde{n} \in {\mathbb R}^+ $ such that 
+$
+    P(\tilde{n})=P(\tilde{n}+1)
+$.
+%A peak appears at some $n^*$ such that $P(n^*)=P(n^*+1)$ at this boundary.
+This requirement yields
+\begin{equation}
+r(K-\rho \langle J\rangle )^2=4(r^+-\mu){K(1-\rho)} 
+\end{equation}
+see derivation in the appendix.
+
+In a similar fashion to the modalities phases, the richness distribution on the boundaries satisfies  ${\rm P}(S^*=2)={\rm P}(S^*=1)$, and ${\rm P}(S^*=S)={\rm P}(S^*=S-1)$. Thus, the boundary between $S^*$ and $S^*-1$ approximately fulfills
+\begin{eqnarray}
+%    \frac{\langle T(1\rightarrow 0)\rangle}{\langle T(0 \rightarrow 1)\rangle}&=&
+\frac{\langle S^* \rangle }{S-\langle S^* \rangle} 
+    &\approx&\frac{\mu[1-P(0)]}{ [r^-+\frac{r}{K}(1+\rho (\langle S^* \rangle-1)\langle n \rangle] P(1)},
+\end{eqnarray}
+see derivation in the appendix.
+Clearly, the partial co-existence regime, where $1<S^*<S$, vanished where $S=2$ and the two boundaries coincide. 
+
+%Using approximations (see appendix) we find that the richness boundaries are {\em approximately} given by 
+%\begin{eqnarray}
+%\mu &\approx & r^- +\frac{r}{K}[1-\rho+\rho J^*] \\
+%\mu (S-1) &\approx & \{r^- +\frac{r}{K}[1-\rho+\rho J^*]\}\frac{P(1)}{1-P(0)} \\ 
+%\mu  &\approx & (S^*-1) \{r^- +\frac{r}{K}[1-\rho+\rho J^*]\}\frac{P(1)}{1-P(0)} 
+%\end{eqnarray}
+%An immediate consequence from the above boundaries' curves is that $S>2$ is necessary to find all phases. 
+%A similar limitation on $S$ is concluded for $\rho=1$ in \cite{xu2018immigration}, where the continuum limit is taken. 
+
+%\begin{equation}
+%    \mu P(0)= \left[r^- +\frac{r}{K}(1-\rho+\rho J)\right] P(1)
+%\end{equation}
+
+%uni-modal $P(0)<P(1)$, bi-modal  $P(0)>P(1)$. Thus, the transition is where 
+%\begin{equation}
+%     \mu= r^- +\frac{r}{K}[1-\rho+\rho J] 
+%\end{equation}
+%It gives nice agreement to predict the transition between (I) and (II). 
+
+In Fig.~\ref{fig:phases_sim} we show the different phases given from simulations, presented as colored regions, using Gillespie algorithm. 
+The phases boundaries given from mean-field approximation are shown for comparison, where the approximations' details are given in the appendix. 
+We find that our approximations agree with the simulation results.
+
+%\section{Examination of the dominance species}
+
+\section{Probable Level of Dominant Species}
+
+\label{sec:Dom_species}
+
+In cases where the SAD exhibits bi-modality, some species are present in the vicinity of some characteristic level $\tilde{n}$, namely the level of the dominant species. We find that the dominant level, if it exists, is approximately
+\begin{equation}
+    \tilde{n}\approx \frac{K}{1-\rho+\rho \langle S^*\rangle }.
+    \label{eq:dom-level}
+\end{equation}
+for weak $\mu$. 
+This result is obtained  by both the approximation of the stochastic solution and by the deterministic LV approach. 
+In the latter, the mean richness $\langle S^*\rangle $ replaces the number of species $S$ in the deterministic model, see further discussion in appendix.
+
+Using the definition of dominant level in Eq.~\eqref{eq:dom-level} it becomes apparent how the multimodal phase forms. Although the system is often observed at some mean richness $\langle S^* \rangle$, chance transitions result in invasion or exclusion events that change the number of dominant species present.
+These transient richness levels permit different quasi-stable points, hence shifts in the dominant species population sizes depending on the $S^*$.
+This phenomenon of multiple peaks away from zero abundance is most apparent at low richness and high carrying capacity since the population size of the dominant species differs most between low richness, generating more distinct peaks; at higher richness the proximity of stable points for different richness levels produce indifferentiable, overlapping peaks.
+
+%{\subsection{Heterogeneity/Evenness/Shannon Entropy}}
+%Following the examination of the favorable level of the dominance species, here we also quantify and examine how similar are the levels of the species.    
+%For example, in the (ii)(I) phase, the coexisting species present in the vicinity of the same (low) level $n^*$. In the (ii)(II) regime, corresponding to the multi-modality shape of the SAD, the coexisting species may appear in the high (dominance) level, or in the low (suppressed) level.     
+
+
+\section{Kinetics of the Phases}
+\label{sec:Dynamics}
+
+So far we presented the different regimes using modality, richness, and examined the existing species levels. 
+In this section we discuss some dynamical characteristics of these different phases. 
+To do so, we use the  mean first passage times (MFPTs) for a particular species from initial level $i$ to  the final abundance $j$, which denoted as $\langle T(i \rightarrow f)\rangle$. 
+Generally, many dynamical features might be of interest, and we present additional ones in the supplimentary material.  
+Here, we concentrate on  the rates ratio, as the kinetic observables; $\langle T(\tilde{n}\rightarrow 0)\rangle /\langle T(\tilde{n}\rightarrow \tilde{n})\rangle $ (Fig.~\ref{fig:turnover}, panel A) and $\langle T(0\rightarrow \tilde{n})\rangle /\langle T(0\rightarrow 0)\rangle $ (panel B). 
+These observables qualitatively recover boundaries shown between the different regimes. 
+
+For example, the rates ratio $\langle T(\tilde{n}\rightarrow 0)\rangle /\langle T(\tilde{n}\rightarrow \tilde{n})\rangle $ captures the ratio between the number of dominants species returning events, i.e occurences from $\tilde{n}\rightarrow \tilde{n} $ in a given period of time, and the number of extinction events, i.e. incidents of species traveling from  $\tilde{n}\rightarrow 0 $, in the same period of time. 
+This is analogous to the ratio between the reflection and transmission coefficients over some effective-potential barrier. 
+Thus, high values imply that most species remain in the potential well associated with the dominant level close to $\tilde{n}$. 
+Correspondingly, as is expected in the neutral-like regime, this rates-ratio yields values close to 1 where there is a weak, or lack of, effective-potential barrier. Therefore, the rates ratio might be associated with the number of the dominant species; i.e. the species found in the potential-well of dominance. 
+Importantly, the number of dominant species does not equal the mean richness, since there are species who are exist in low level close to extinction.  
+Similarly, the rates ratio $\langle T(0\rightarrow \tilde{n})\rangle /\langle T(0\rightarrow 0)\rangle $ is related to the number of non-dominate species; the ones with extinction or very low level. 
+
+As a result, regimes I, II and IV are characterized by a somewhat stable behavior, with a long sojourn time in the effective-potential-well, with occasional crossing between dominance to nearly-extinct states and vice versa. 
+Correspondingly, the 'neutral-like' regime is featured by rapid dynamics; see Fig.~\ref{fig:turnover} panel C. Further discussion is given in the appendix. 
+
+%The rates for such transitions are given by $1/\langle T(i \rightarrow f)\rangle$. 
+% Here we concentrate on the following MFPTs
+% \begin{enumerate}
+%     \item invasion: $\langle T(0 \rightarrow n^*)\rangle$.
+%     \item exclusion: $\langle T(n^* \rightarrow 0)\rangle$.
+%     \item species turnover: $\langle T(0 \rightarrow 0)\rangle$
+%     \item dominance turnover: $\langle T(n^* \rightarrow n^*)\rangle$
+%     \item dominance cycling: $\langle T(0 \rightarrow n^*)\rangle$ + $\langle T(n^* \rightarrow 0)\rangle$ 
+% \end{enumerate}
+% where $n^*$ refers to the probable dominant species' level, as before. 
+ 
+
+
+%As was mentioned, in the deterministic LV model, the level of the coexisting species when $\rho<1$ (where all species survive) is approximately  $\frac{K}{1-\rho+S\rho}$ (for small immigration rate). In addition, for the single existing species regime, when $\rho\geq 1$, the level of the existing species is $K$. 
+
+%In the stochastic approach, let's consider a bi-modal abundance distribution. In that case, some species are considered rare, while other are dominant. A rare species, is the ones where their number of individuals is close to zero. However, due to the bi-modality nature of the consider abundance distribution, one or more species are dominant, i.e. their level appears in the other probable abundance. ( Note that in the unimodal case, where all species are rare, such definition of dominant species is somewhat unnatural).
+%Interestingly, the probable dominate species abundance is similar to the deterministic fixed point, where $S^*_{\rm sto}(\rho)$ replaces $S$. i.e. $\frac{K}{1-\rho+S^*_{\rm sto}(\rho)\rho}$ where $S^*$ is the number of survived species. 
+
+%For example,  in Fig.~\ref{fig:DeterminsticVsStochastic} we present the approximated $P(n_1)$ (present with color scale, where the most probable values of $n_1$ are shown in yellow). The pink curve follows the deterministic fixed level of $n_1$ given that $S P(0)$ species are extinct. The number of extinct species is obtained from the stochastic representation of the system. 
+
+\iffalse
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 130 300,clip]{figures/DifferentAlpha_DeterminsticVsStochastic.pdf}
+    \caption{The abundance distribution $P(n_1)$ for $\rho=0,0.1,0.2,\dots 0.9$, where the colors scale between yellow and blue represent high  and low values of $P(n_1)$. The pink curve is given by $K/[1-\rho+\rho S (1-P(0))]$. Here $K=200, S=20, r^+=2, r^-=1$ and $\mu=0.01$.    }
+    \label{fig:DeterminsticVsStochastic}
+\end{figure}
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 130 300,clip]{figures/DominantSpecie_differentS.pdf}
+    \caption{The level of local maxima of the abundance distribution $P(n)$ for different $\rho$. The colors shapes represent the (numeric) local maxima of $P(n)$.   The curves are given by $K/[1-\rho+\rho S (1-P(0))]$. Here, $K=100, r^+=2, r^-=1$ and $\mu=0.01$. The number of species varies between $S=10$ (blue circles), $S=50$ (green rectangles), $S=100$ (pink crosses) and $S=200$ (yellow starts).    }
+\end{figure}
+\fi
+%Furthermore, Fig.~\ref{fig:DeterminsticVsStochastic} shows an interesting behaviour of  the probable level of the dominant species. In the no-competition case the species level approaches to the capacity level. Then, by slightly increasing $\rho$, the level of the dominant species decreases due to the suppression by its competitors. For relatively strong competition, significant percentage of species are extinct, thus less affect the dominant species, thus the number of individuals from the dominant species is high. To emphasize, the regions of $\rho$ for very low, intermediate and high competition   (in Fig.~\ref{fig:DeterminsticVsStochastic} $\rho=0$, $0.1\leq \rho \leq 0.5$ and $\rho\geq 0.6$ respectively) are estimated from simulation with parameters $K=200, S=20, \mu=0.01$, and might vary when these parameters change). 
+
+% \subsection{Species Turnover Rate}
+
+% An interesting feature of a process is given by a species-turnover rate. The latter is inversely related to the mean time it takes a species, initially extincted, to become re-extincted.   
+% Species turn over rate is given by
+% \begin{equation}
+%     \frac{1}{\langle T_0 (0) \rangle} = \mu P(0)
+% \end{equation}
+% where $\langle T_0 (0) \rangle$ is the mean first return time to zero. 
+% The turnover rate is closely related to the stability of the species composition. The latter refer to how often the set of existing species is changed. Therefore, we conclude that in the Hubble regime [and the 'red' one, which still does not have a name :( ] the identity of the existing species is frequently changed. 
+
+\iffalse
+\begin{table}[b]
+\begin{tabular}{c|c c}
+\hline
+     & probable abundance $n*$ & \hspace{0.1cm} turnover   \\ \hline
+    Chou (green) & $n*\sim K$ & slow \\
+    Hubble (yellow) & extinction & fast \\
+    (red) & $0<n*$ & fast \\
+    multi/bi-modal &  $0<n*<K$ & slow \\
+    purple+blue & $0<n*$ & very slow \\ \hline
+\end{tabular} 
+    \caption{Summarize of the results}
+    \label{tab:my_label}
+\end{table}
+\fi
+
+
+
+
+
+
+\section{Discussion}
+
+\subsection{Dependence on S}
+\label{sec:Dependence_S_K}
+
+As was mentioned, in Fig.~\ref{fig:phases_sim} we present the behavior of the system in $(\mu,\rho)$ space, which presents rich behavior (panel B). Additionally, we present the behavioral regimes, for a given immigration rate, in the $(S,\rho)$ space (panel C). The latter presentation [$(S,\rho)$ space] share some similarities with previously published results, as is discussed in the following.
+
+We show that large $S$ and large $\rho$ yield 'neutral-like' behavior [Fig.~\ref{fig:phases_sim}, Panel C]. Moreover, following the last section, we conclude that this 'neutral-like' regime corresponds to erratic behavior. In low $\rho$ or low $S$ we find full coexistence, where the system is stable. 
+
+Interestingly, similar behavior has been found using deterministic LV equation, with random competition matrix, i.e. where $\rho_{ij}$ are drawn from a distribution. There,  for strong and highly-connected interspecies interactions and high diversity $S$, the dynamic is described as chaotic-like or unstable \cite{may1972will,allesina2008network,allesina2012stability}. Here we find such a behavior in a simpler, symmetric and deterministic, description of the species- interactions network.   
+
+
+TO CITE: J. Gore experiments. 
+
+
+
+\textcolor{red}{Describe here the tail and how it differs/similarity from the classical derivation.}
+
+
+\begin{figure}
+   \begin{flushleft}
+        A
+   \end{flushleft}
+    \includegraphics[width=0.7\columnwidth, trim= 10 350 0 220]{figures/SAD_K100_new.pdf}
+    \begin{flushleft}
+        B
+   \end{flushleft}
+    \includegraphics[width=0.7\columnwidth, trim= 120 280 120 290]{figures/n_star_K=100_new.pdf}
+    \caption{Panel A: Simulation results for species abundance distributions (SADs) for $\mu=10^{-3}$ (left) and $\mu=1$ (right). Various competitive overlap $\rho$ are represented with different color corresponding the color-bar. Panel B: The probable level of the dominant species. Markers and dotted lines represent simulation results, while solid lines are given from analytic analysis, see text.         }
+    \label{fig:my_label}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \begin{flushleft}
+        A
+   \end{flushleft}
+   \includegraphics[width=\columnwidth]{figures/mfpt-suppression.pdf}
+   \begin{flushleft}
+        B
+   \end{flushleft}
+    \includegraphics[width=\columnwidth]{figures/mfpt-dominance.pdf}
+    \begin{flushleft}
+        C
+   \end{flushleft}
+    \includegraphics[width=\columnwidth,trim= 130 270 130 270, clip]{figures/Stable_Unstable_Examples.pdf}
+    \caption{Rate Ratio. Panel (A):  $\langle T(\tilde{n}\rightarrow 0)\rangle/\langle T(\tilde{n}\rightarrow \tilde{n})\rangle $. Panel (B):  $\langle T(0\rightarrow \tilde{n})\rangle/\langle T(0\rightarrow 0)\rangle $. Both panels: the values, given from simulation, is represented with the logarithmic color scale. Panel (C): Examples of all species levels represented by gray curves.  We highlight five species' trajectories for visibility. The colors scheme is given through the standard deviation of each species where the scale between green to blue refers to more or less fluctuating species, see color bars. Upper panel presents stable dynamics, where species stay in the vicinity of $\tilde{n}$, while a transition between  dominance to nearly-extinct states is also presented. The red curve represents the corresponding bimodal SAD. Lower panel shows the erratic dynamics obtained in the 'neutral-like' regime, where all species are rapidly fluctuating, without typical probable level. The SAD is this case is unimodal monotone decreasing function.   }
+    \label{fig:turnover}
+\end{figure}
+
+
+\section{Summary}
+
+ 
+ \iffalse
+\section{Deterministic Resilience}
+
+In this section we examine how fast the deterministic system approaches its fixed point. The time for an ecosystem to return to its steady-state, also known as the system resilience, is one of the properties associated with the system stability.   As was mentioned, when $0\leq \rho\leq 1$ the deterministic fixed point, given in Eq.~\eqref{eq:solstat}, is stable. The direction and pace/rate\textcolor{red}{/another term instead of pace/rate? } of the flow toward the fixed point are determined by the eigenvalues and eigenvectors of the considered system.  The eigenvalues are obtained as 
+\begin{equation}
+\lambda_i =
+\begin{cases}
+\frac{r}{K}\left( K - 2 n^*(1+\rho(S-1)) \right) & \text{, if } i=1 \\
+\frac{r}{K}\left( K - n^*(2+\rho(S-2)) \right) & \text{, otherwise}.
+\end{cases}
+\end{equation}
+and the eigenvectors are 
+\begin{equation}
+\vec{v}_i =
+\begin{cases}
+(1,1,\cdots,1,1)^T & \text{, if } i=1 \\
+(-1,\delta_{2,i},\delta_{3,i},\cdots,\delta_{S-1,i},\delta_{S,i})^T & \text{, otherwise}.
+\end{cases}
+\end{equation}
+For analyzing $\{\lambda_i,\vec{v}_i\}|_{n^*}$ we can deduce the following behaviour of the flow toward the fixed point.  
+
+First, we found that $\lambda_1|_{n^*} \leq \lambda_{i\neq 1}|_{n^*}$ (the equality is for $\rho=0$), which means that the system approach faster to constant $J$. Then, in the vicinity of the circle $||\vec{n}||_1=J$ in $\ell_1$, it approaches slower toward its fixed point. 
+
+Second, $|\lambda_1|$ increases with $S$. It means that for highly diverse system, the process reaches faster to the vicinity of its stable community size. In addition, increasing the immigration rate $\mu$ increase the pace to approaching constant $J$.   
+
+Third, the other (degenerated) eigenvalues describe the behaviour of the flow in the vicinity of constant $J$ (note that it is not necessarily on the {\em exact} constant J surface). Similarly to $|\lambda_1|$, the flow in the neighborhood of $||\vec{n}||_1=J$ toward the fixed point is faster for higher immigration rate. 
+
+Forth, we have found that $\lambda_{i\neq 1}|_{n^*}(\rho,S)$ is not a necessarily a monotone function. For example, when $\mu=0.01, K=100$ and $r=1$, we find that for $\rho=0.1$ higher $S$ gives slower approach on the direction of $\vec{v}_{i\neq 1}$. However, for $\rho=1$ an opposite effect is found; high diversity gives faster flow to the fixed point.   
+
+
+
+\section{Extinction and Invasion Rates}
+
+\subsection{Stochastic Stability}
+
+How to define stability? In stochastic models it is not well defined (depends on the paper you read). Note that the boundaries (or any other point) are not absorbing ($\mu>0$). Stability might mean: recurrence (with probability 1) for any point, $\rho$-stability, ergodicity, absorbing region, Lyapanov stability for the mean.   
+
+\textcolor{red}{Q:can we state something about, the bimodality of the abundance distribution,  the level of dominate species, and the mean time of extinction?  }
+
+\subsubsection{Mean First Passage Time}
+One of the properties associated with stability is the first passage time. One may ask how long would it take for a species with low abundance to become dominant (or vice versa). 
+
+Assume that a species almost surely reaches $x=a$. In addition, we assume that the species level is described by the one-dimensional probability. Then, the mean first passage time from point $x$ to $a$ (where $x>a$) is given by 
+\begin{equation}
+   \langle T_a(x) \rangle =   \sum_{y=a}^{x-1}\frac{1}{F_{\rm right}(y)}{\rm Prob}\left[z\geq y+1\right] \label{eq:MFPT}
+\end{equation}
+where $F_{\rm right}(y)\equiv q^+(y)P(y)$ is the flux right from point $y$ and ${\rm Prob}[z\geq y+1]\equiv \sum_{z=y+1}^{\infty}P(z)$ is the probability to be found on larger (or equal) level than $y+1$.
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 120 300,clip]{figures/MFPT_differentMu.pdf}
+    \caption{Mean first passage time from level $x_0$ to extinction. Here the total number of species is $S=20$. We choose $r^+=2$, $r^-=1$ and $\rho=0.5$. The immigration rate is $\mu=1$ (blue circles), $\mu=0.1$ (green rectangles) and $\mu=0.01$ (purple diamonds). The results are generated from $10^5$ statistically similar systems. The initial position is uniformly distributed in $[1,60]$, i.e. $x_0\in U[1,60]$.      }
+    \label{fig:MFPT_differentMu}
+\end{figure}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 300 120 300,clip]{figures/MFPT_rho.pdf}
+    \caption{Mean first passage time from level $x_0$ to extinction. Here the total number of species is $S=20$. We choose $r^+=2$, $r^-=1$,  $\mu=1$, and $\rho=1$ (blue circles), $\rho=0.5$ (green rectangles) and $\rho=0.1$ (purple diamonds). The results are generated from $10^5$ statistically similar systems. The initial position is uniformly distributed in $[1,60]$, i.e. $x_0\in U[1,60]$.  \textcolor{red}{no agreement with $\rho=1$}    }
+    \label{fig:MFPT_rho}
+\end{figure}
+
+\subsubsection{Mean Extinction Time from  Level $n_0$}
+
+In fig.~\ref{fig:MFPT_differentMu} we present the mean time to extinction (i.e. $a=0$) where the species has started at the level $x_0$. We find that higher immigration rate $\mu$ give lower time to extinction. This is due to the fact that the influx is proportional to $\mu$, and the process is stationary (i.e. inbound flux, from zero to positive numbers, is equal to outbound flux, from positive number to extinction). Moreover, In Fig.~\ref{fig:MFPT_rho} we fixed the immigration rate, and we have found that for small $\rho$ (weak mutual competition) the MFPT is higher than high $\rho$. 
+
+Importantly, is some cases, the abundance (one  dimension) distribution is not sufficient to evaluate the mean first passage time (see SM). 
+
+\subsubsection{Mean Extinction Time for the Core Species}
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 280 130 300,clip]{figures/DominantSpecies_differentS1.pdf}
+    \caption{The mean extinction time of the core species \textcolor{red}{(approximated analytic solution, no simulation yet)} versus competition strength $\rho$.  The number of species varies between $S=10$ (blue circles), $S=50$ (green rectangles), $S=100$ (pink crosses) and $S=200$ (yellow starts).    }
+    \label{fig:DeterminsticVsStochastic}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=\columnwidth,trim= 130 270 110 300]{figures/BimodalUnimodalRegionAnalytic_3regions_sim_K50_S30}
+    \includegraphics[trim= 150 270 130 300,width=\columnwidth]{figures/BimodalUnimodalRegionAnalytic_3regions_conv_K50_S30.pdf}
+\includegraphics[trim= 150 270 130 300,width=\columnwidth]{figures/BimodalUnimodalRegionAnalytic_3regions_MeanField_K50_S30.pdf}
+    \caption{Unimodality and bimidality of SAD depending in immigration rate $\mu$ and competition $\rho$. The upper panel is obtain from simulation, and the middle and button panels are given from the approximations. This results are obtained from the approximated abundance distribution given using \textcolor{red}{ 1st approximation (upper panel) and mean-field approximation (lower panel)}. Here we choose the following parameters $S=30$, $r^+=2$, $r^-=1$, $K=50$. The yellow, turquoise and blue regions represent the values of $(\mu, \rho)$ where $P(n)$ is a unimoal distribution with maximum at zero, a bimodal distribution with two maxima, or unimodal distribution with maximum at an existence level, respectively. \textcolor{red}{More or less all have similar map, accept $\rho=1$ where 1st approx cannot find bi-modality there.  }   }
+    \label{fig:BimodalUnimodal}
+\end{figure}
+
+ \begin{figure}
+    \centering
+    \includegraphics[trim=150 270 150 270,width=\columnwidth]{figures/14Oct2.pdf}
+    \caption{Simulation results for the location and height of the `most-right' peak (2nd peak in bimodality and the only peak at the unimodal phases) .  Upper:Location of the peak. Lower:Height of the peak. }
+\end{figure}
+
+\begin{figure}
+    \centering
+        \includegraphics[width=\columnwidth,trim= 130 270 120 300,clip]{figures/Richness.pdf} 
+%    \includegraphics[width=\columnwidth,trim= 130 270 120 300,clip]{figures/Richness_DifferentMu.pdf}
+    \caption{Richness vs competition. %Upper panel: 
+    The total number of species change between $S=50$ (red stars), $S=30$ (green squares) and $S=10$ (blue circles). The lines correspond to the approximated analytic solution: 1st and 2nd methods are represented with black and pink curves (respectively). The immigrating rate is $\mu=1$, %Lower panel: Richness given for different immigration rates corresponding the legend. Here the number of species is $S=50$.   For both panels: 
+    $r^+=50$, $r^-=0.1$, and $K=50$.
+    \textcolor{red}{To run the same figures for $r^+=2$ and $r^-=1$. $K=50$
+    }
+    }
+    \label{fig:Ricness}
+\end{figure}
+
+   \begin{figure}
+        \centering
+        \includegraphics[width=\columnwidth,trim= 130 270 120 280,clip]{figures/Richness_10to7_mu.pdf}
+        \includegraphics[width=\columnwidth,trim= 130 270 120 280,clip]{figures/Richness_10to7_rho.pdf}
+        \caption{Upper: The richness versus $\rho$ for different $\mu$. Lower: The richness vs $\mu$ for different $\rho$.  Here $K=50$, $S=30$, $r^+=2$ and $r^-=1$. The simulation results are given from $10^7$ reactions.}
+        \label{fig:Richness_mu}
+    \end{figure}
+    
+    \begin{figure}
+        \centering
+        \includegraphics[width=\columnwidth,trim= 140 280 140 300,clip]{figures/Richness_10to7_sim.pdf}
+        \caption{Simulation results for the richness for different $\mu$ and $\rho$. The values of the richness are represented with colors corresponding the colorbar; from high richness (yellow) to low richness (dark blue).  Here $K=50$, $S=30$, $r^+=2$ and $r^-=1$. The simulation results are given from $10^7$ reactions.   }
+        \label{fig:Richness_heatMap_sim}
+    \end{figure}
+    
+    \fi
+    
+    
+
+
+%\nocite{*}
+\bibliography{bibliography}% Produces the bibliography via BibTeX.
+
+\appendix
+\begin{appendixbox}
+\label{first:app}
+\section{Firstly}
+\lipsum[1]
+
+%% Sadly, we can't use floats in the appendix boxes. So they don't "float", but use \captionof{figure}{...} and \captionof{table}{...} to get them properly caption.
+\begin{center}
+\includegraphics[width=\linewidth,height=7cm]{frog}
+\captionof{figure}{This is a figure in the appendix}
+\end{center}
+
+\section{Secondly}
+
+\lipsum[5-8]
+
+\begin{center}
+\includegraphics[width=\linewidth,height=7cm]{frog}
+\captionof{figure}{This is a figure in the appendix}
+\end{center}
+
+\end{appendixbox}
+
+\begin{appendixbox}
+\includegraphics[width=\linewidth,height=7cm]{frog}
+\captionof{figure}{This is a figure in the appendix}
+\end{appendixbox}
+\end{document}

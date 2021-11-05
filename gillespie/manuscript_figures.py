@@ -21,42 +21,39 @@ MANU_FIG_DIR = 'figures' + os.sep + 'manuscript' # FIX TO NOT BE GLOBAL
 
 #POINTS_BETWEEN_X_TICKS = 20; POINTS_BETWEEN_Y_TICKS = 20
 
-def plot_prob(probability, i, j, colour):
-    DIST_DIR = MANU_FIG_DIR + os.sep + 'distributions'
-    os.makedirs(DIST_DIR, exist_ok=True)
-    f = plt.figure(figsize=(1.75,1.25)); fig = plt.gcf(); ax = plt.gca()
-    plt.plot(probability[:125], color=colour, linewidth=2, zorder=10)
-    plt.xticks([0,50,100])
-    size = 7; ax.axes.labelsize = size
-    plt.xlabel(r'n',fontsize=size, labelpad=2);
-    plt.ylabel(r'P(n)', fontsize=size, labelpad=2);
-    plt.xlim([0,125]); plt.yscale('log')
-    ax.tick_params(axis='both', which='major', labelsize=size)
-    #ax.tick_params(axis='both', which='minor', labelsize=6)
-
-    if save:
-        plt.savefig(DIST_DIR + os.sep + "dstbn_" + str(i) + '_' + str(j)+'.pdf')
-    else:
-        plt.show()
-    plt.close()
-
-    return 0
-
-def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
-                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
-                    , revision=None, distplots=False, pbx=20, pby=20):
+def figure_richness_phases(filename, save=False, xlabel='immi_rate'
+                            , ylabel='comp_overlap', xlog=True, ylog=True
+                            , ydatalim=None, xdatalim=None, pbx=20, pby=20):
     """
-    Heatmap of richness, with
+    Heatmap of richness and richness plots for different simulations
+
+    Input
+        filename        : file used for data analyses
+        save            : True or False
+        xlabel, ylabel  : The name of the labels for the axes
+        xlog, ylog      : whether to use log axes in plots
+        ydatalim, xdatalim  : Change the cutoff for what to plot
+        pbx, pby        : number of points between tick labels
+
+    Output
+        sim_rich_cat    : Categories of richness from simulation
+        mf_rich_cat     : Categories of richness from mean-field
+        lines           : [-1,0,1]
+        mf_rich         : Mean-field richness as fraction of species present
+        sim_rich        : Simulation richness as fraction of species present
     """
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
 
     # species simulations didn't all work, erase the 0s
-    start = 0
-    if xlabel=='nbr_species':
+    # TODO : Change this code
+    if xlabel == 'nbr_species':
         start = 1
+    else:
+        start = 0
+    start = 1
 
-    # transform
+    # change the range depending on which type of simulation I was running.
     rangex = data[xlabel][start:]; rangey = data[ylabel][:]
 
     # simulation/mf results
@@ -80,11 +77,14 @@ def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='com
         mf_nbr_spec = data['nbr_species']*mf_rich
         sim_frac_spec_minus1_2 = (data['nbr_species']-0.5)/data['nbr_species']*arr
 
-    # _cat signifies categories (one of the richnesses)
+    # _cat signifies categories (one of the richnesses) either
+    # -1 : exclusion
+    #  0 : partial coexistence
+    # +1 : full coexistence
     sim_rich_cat = np.zeros( ( np.shape(sim_rich)[0], np.shape(sim_rich)[1] ) )
     mf_rich_cat = np.zeros( ( np.shape(mf_rich)[0], np.shape(mf_rich)[1] ) )
 
-    # richness determination
+    # richness categorically determined
     for i in np.arange(np.shape(sim_rich_cat)[0]):
         for j in np.arange(np.shape(sim_rich_cat)[1]):
             if sim_rich[i,j] >= sim_frac_spec_minus1_2[i,j]:
@@ -103,6 +103,7 @@ def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='com
     f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
 
     # boundaries and colours
+    # TODO : This is not good! Lines should be determined some other way
     lines = [-1,0,1]; bounds = [-1.5, -0.5, 0.5, 1.5];
     line_colours = ['royalblue','cornflowerblue','lightsteelblue']
     cmap = colors.ListedColormap( line_colours )
@@ -112,8 +113,8 @@ def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='com
 
     # contours
     mf_rich_cat = scipy.ndimage.filters.gaussian_filter(mf_rich_cat,1.0) #smooth
-    if start == 0:
-        MF = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
+
+    MF = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
                                     , linewidths = 2)
     MF2 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
                                 , linewidths = 2)
@@ -124,103 +125,55 @@ def figure_richness_phases(filename, save=False, xlabel='immi_rate', ylabel='com
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "richness_"+ xlabel + '.pdf');
         #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
+    else: plt.show()
+
     plt.close()
 
     # 2D heatmap of species present, show a couple example richness plots
-    if xlabel != 'nbr_species':
-        f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
-        R=np.shape(data['rich_dist'])[2]-1
-        plt.plot(data['rich_dist'][0,R], color=line_colours[0]
-                    ,marker='s', markeredgecolor='None', linewidth=2, zorder=10)
-        plt.plot(data['rich_dist'][int(5*(R)/10), int(8*(R)/10)]
-                    , color=line_colours[1], marker='o', markeredgecolor='None'
-                    ,linewidth=2, zorder=10)
-        plt.plot(data['rich_dist'][R,0], color=line_colours[2]
-                    , marker='D', markeredgecolor='None',linewidth=2, zorder=10)
-        plt.ylim([0,1.0])
-        plt.xlim([0,np.shape(data['rich_dist'])[2]-1])
-        plt.xlabel(r'species present, $\langle S^* \rangle$')
-        plt.ylabel(r'P($S^*$)')
+    f = plt.figure(figsize=(3.25,2.5)); fig = plt.gcf(); ax = plt.gca()
+    R = np.shape(data['rich_dist'])[2] - 1
+    plt.plot(data['rich_dist'][0,R], color=line_colours[0]
+                ,marker='s', markeredgecolor='None', linewidth=2, zorder=10)
+    plt.plot(data['rich_dist'][int(5*(R)/10), int(8*(R)/10)]
+                , color=line_colours[1], marker='o', markeredgecolor='None'
+                ,linewidth=2, zorder=10)
+    plt.plot(data['rich_dist'][R,0], color=line_colours[2]
+                , marker='D', markeredgecolor='None',linewidth=2, zorder=10)
+    plt.ylim([0,1.0])
+    plt.xlim([0,np.shape(data['rich_dist'])[2]-1])
+    plt.xlabel(r'species present, $\langle S^* \rangle$')
+    plt.ylabel(r'P($S^*$)')
 
-        if save:
-            plt.savefig(MANU_FIG_DIR + os.sep + "richness_dist_"+xlabel+'.pdf');
-            #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
-        plt.close()
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "richness_dist_"+xlabel+'.pdf');
+        #plt.savefig(MANU_FIG_DIR + os.sep + "richness" + '.png');
+    else: plt.show()
+
+    plt.close()
 
     return sim_rich_cat, mf_rich_cat, lines, mf_rich, sim_rich
 
-def compare_richness(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
-                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
-                    , revision=None, distplots=False, pbx=20, pby=20):
-    """
-    compare sim richness with the richness from the rates found in Appendix I
-    """
-    POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
-    data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
-
-    # transform
-    rangex = data[xlabel][:]; rangey = data[ylabel][:]
-
-    # simulation/mf results
-    K = data['carry_capacity']; rminus = data['death_rate'];
-    rplus = data['birth_rate'];
-    mu = data['immi_rate']; S = data['nbr_species']
-    sim_rich = 1 - data['sim_dist'][:,:,0]
-    rates_rich = np.zeros( ( np.shape(sim_rich)[0], np.shape(sim_rich)[1] ) )
-    for i in np.arange( np.shape(sim_rich)[0] ):
-        for j in np.arange(  np.shape(sim_rich)[1] ):
-            dstbn = data['sim_dist'][i,j]
-            rates_rich[i,j] = eq.richness_from_rates( dstbn, rplus, rminus, K
-                                                    , rangey[i], rangex[j], S )
-
-    # Fig SImualtion richness
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(( 0,0,0 ))
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None}
-    # heatmap
-    im = plt.imshow( sim_rich.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle S^* \rangle$ simulation')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "richness_simulation" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "richness_simulation" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    # Fig rates richness
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(( 0,0,0 ))
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None}
-    # heatmap
-    im = plt.imshow( sim_rich.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle S^* \rangle$ simulation')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "eq.richness_from_rates(" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "eq.richness_from_rates(" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    return 0
-
-
 def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
-                    , revision=None, distplots=False, pbx=20, pby=20):
+                    , revision=None, dstbnPlots=False, pbx=20, pby=20):
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     """
     Heatmap of modality
-    Need to smooth out simulation results. How to compare?
+
+    Input
+        filename        : file used for data analyses
+        save            : True or False
+        xlabel, ylabel  : The name of the labels for the axes
+        xlog, ylog      : whether to use log axes in plots
+        ydatalim, xdatalim  : Change the cutoff for what to plot
+        pbx, pby        : number of points between tick labels
+
+    Output
+        sim_rich_cat    : Categories of richness from simulation
+        mf_rich_cat     : Categories of richness from mean-field
+        lines           : [-1,0,1]
+        mf_rich         : Mean-field richness as fraction of species present
+        sim_rich        : Simulation richness as fraction of species present
     """
     data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
 
@@ -241,8 +194,7 @@ def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='com
 
     # calculating mean J
     #mf_meanJ = eq.meanJ_est(mf_dist, (np.shape(rich_dist)[2]-1))
-    mf_rich = np.shape(mf_dist)[2] * ( 1 - mf_dist[:,:,0] )
-    mf_meanJ = eq.meanJ_est(sim_dist, (np.shape(rich_dist)[2]-1))
+    mf_meanJ = eq.meanJ_est(sim_dist, (np.shape(rich_dist)[2]-1)) # THIS IS WHAT I USED BEFORE!
 
     # 2D rho-mu arrays
     rho = (rangey*np.ones( (np.shape(sim_dist)[0], np.shape(sim_dist)[1])))
@@ -250,9 +202,9 @@ def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='com
         mu  = (rangex*np.ones( (np.shape(sim_dist)[0]
                                 , np.shape(sim_dist)[1])).T).T
 
-    # calculating modality
+    # categorizing modality for simulation
     modality_sim, line_names, line_colours = pltfcn.determine_modality(
-            sim_dist, distplots, revision, False )
+            sim_dist, dstbnPlots, revision, False )
     lines = [float(i) for i in list( range( 0, len(line_names) ) ) ]
     bounds = [ i - 0.5 for i in lines + [lines[-1] + 1.0]  ]
     lines_center = [ a + b for a, b in zip( lines, [0]*len(line_names) ) ]
@@ -309,7 +261,7 @@ def figure_regimes(filename, save=False, xlabel='immi_rate', ylabel='comp_overla
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     sim_rich_cat, mf_rich_cat, lines_rich, mf_rich, sim_rich =\
         figure_richness_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
-                            , None, distplots, pbx, pby)
+                            , pbx, pby)
     modality_sim, hubbelRegime, mf_unimodal, lines_mod, colours_mod =\
     figure_modality_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                         , revision, distplots, pbx, pby)
@@ -414,115 +366,6 @@ def figure_regimes(filename, save=False, xlabel='immi_rate', ylabel='comp_overla
 
     return 0
 
-def fig3A(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
-                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
-                    , revision=None, distplots=False, pbx=20, pby=20):
-    """
-    Turnover rate
-    """
-    data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
-
-    # parameter range
-    rangex = data[xlabel]; rangey = data[ylabel]
-    K = data['carry_capacity']; rminus = data['death_rate'];
-    rplus = data['birth_rate']; S = data['nbr_species']
-
-    # 2D mu-rho
-    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
-                                , np.shape(data['sim_dist'])[1])).T).T
-
-    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
-                                , np.shape(data['sim_dist'])[1])))
-
-    # calculating turnover rate
-    nbr = 0
-    dist = 'sim_dist' # sim or mf
-    meanJ = eq.meanJ_est(data[dist], (np.shape(data['rich_dist'])[2]-1))
-    turnover_nava = 1. / (data[dist][:,:,nbr]*mu)
-    turnover_calc = ( 1. + data[dist][:,:,nbr] ) / ( data[dist][:,:,nbr]
-                        * ( rplus*nbr + mu + nbr*( rminus + ( rplus-rminus )
-                        * ( ( 1. - rho ) * nbr + rho * meanJ )/K  ) ) )
-    turnover = turnover_nava
-
-    # plots
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('cividis_r')) # copy the default cmap
-    my_cmap.set_bad( color_bad )
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    im = plt.imshow( turnover.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-
-    plt.title(r'$\langle T(0\rightarrow 0) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "turnover" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "turnover" + '.png');
-    else:
-        plt.show()
-
-    return 0
-
-def figTaylor(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'):
-    """
-    Taylors Law
-    """
-    data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
-    rangex = data[xlabel]; rangey = data[ylabel]
-    K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
-    S = data['nbr_species']
-
-    dist = 'mf_dist'
-    start = 1
-    prob = data[dist][:,:,start:]\
-            /np.sum(data[dist][:,:,start:],axis=2)[:,:,np.newaxis]
-
-    square      = np.tensordot( prob,np.arange(start,np.shape(data[dist])[2])**2
-                                , axes=(2,0) )
-    square_flat = square.flatten()
-    mean        = np.tensordot( prob, np.arange(start,np.shape(data[dist])[2])
-                                    , axes=(2,0) )
-    mean_flat   = mean.flatten()
-    variance    = square - mean**2
-    variance_flat = square_flat - mean_flat**2
-
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    # plots
-    """
-    plt.scatter(mean,variance,linewidths=0.01)
-    plt.xscale('log');plt.yscale('log')
-    plt.xlabel(r'$\langle n \rangle$'); plt.ylabel(r'$var(n)$')
-    plt.title(r"Taylor's Law")
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "Taylorlaw" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "Taylorlaw" + '.png');
-    else:
-        plt.show()
-    """
-
-    # plot TL scaled
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    cmap = mpl.cm.get_cmap("plasma")
-    for i in np.arange(np.shape(mean)[0]):
-        for j in np.arange(np.shape(mean)[1]):
-            plt.scatter(mean[i,j],variance[i,j], s=(float(j)/float(np.shape(mean)[1]))
-            , marker='+', edgecolors=None, c=cmap(i/np.shape(mean)[0]) )
-            #plt.scatter(mean[i,j],variance[i,j], s=(float(j)/float(np.shape(mean)[1]))
-            #, marker='o', edgecolors=None, c=cmap(i/np.shape(mean)[0]) )
-    plt.xscale('log');plt.yscale('log')
-    plt.xlabel(r'$\langle n \rangle$'); plt.ylabel(r'$var(n)$')
-    plt.title(r"Taylor's Law")
-    plt.legend([r"colour : $rho$",r"size : $mu$"])
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "Taylorlaw_SC" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "Taylorlaw_SC" + '.png');
-    else:
-
-        plt.show()
-
 def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , xlog=True, ylog=True, ydatalim=None, xdatalim=None
                     , revision=None, distplots=False, pbx=20, pby=20):
@@ -534,9 +377,9 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
     S = data['nbr_species']
 
-    start = 0
-    if xlabel=='nbr_species':
+    if xlabel == 'nbr_species':
         start = 1
+    else: start = 0
 
     # setting simulation parameters
     rangex = data[xlabel][start:]; rangey = data[ylabel][:]
@@ -605,152 +448,6 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                                 + nbr_species_arr * dom_turnover  ) / S
 
     color_bad = (211/256,211/256,211/256)
-    """
-    # Fig3C
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( dom_turnover.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    # FIG
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( sub_turnover.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(0\rightarrow 0) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    ## FIGURE 3D
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( fpt_dominance.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    # title
-    plt.title(r'$\langle T(0\rightarrow \tilde{n}) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    ## FIGURE 3E
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( fpt_submission.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    ## FIGURE 3F
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( fpt_cycling.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle+\langle T(0\rightarrow \tilde{n}) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    ## RATIO turnover
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( ratio_turnover.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(0\rightarrow 0) \rangle / \langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.png');
-    else:
-        plt.show()
-    plt.close()
-
-    ## Ratio go to
-    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
-    # plots
-    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
-    my_cmap.set_bad(color_bad)
-    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
-                    , 'norm' : mpl.colors.LogNorm()}
-    # heatmap
-    im = plt.imshow( ratio_switch.T, **imshow_kw)
-    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
-                , xlabel, ylabel)
-    # colorbar
-    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\langle T(\tilde{n}\rightarrow 0) \rangle / \langle T(0\rightarrow \tilde{n}) \rangle$')
-    if save:
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.pdf');
-        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.png');
-    else:
-        plt.show()
-    plt.close()
-    """
 
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     sim_rich_cat, mf_rich_cat, lines_rich, _, _ =\
@@ -1382,6 +1079,9 @@ if __name__ == "__main__":
     sim_corr        = RESULTS_DIR + os.sep + 'multiLV80'
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
+    sim_K50         = RESULTS_DIR + os.sep + 'multiLV5'
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV10'
+    sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
     # Create appropriate npz file for the sim_dir
     #cdate.mlv_consolidate_sim_results( large_immi, 'nbr_species', 'comp_overlap')
@@ -1390,6 +1090,9 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_avJ, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
+    #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
@@ -1403,9 +1106,16 @@ if __name__ == "__main__":
     # Phase diagram
     #figure_richness_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40))
     #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
-    #figure_modality_phases(large_immi+os.sep+NPZ_SHORT_FILE, save)
+    #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
     #figure_regimes(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #figure_regimes(sim_corr+os.sep+NPZ_SHORT_FILE, save)
     #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
+    figure_regimes(sim_immi+os.sep+NPZ_SHORT_FILE, save)
+    #figure_richness_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
+    #figure_richness_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
+    #figure_modality_phases(sim_K50+os.sep+NPZ_SHORT_FILE, save)
+    #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
+    #figure_modality_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
 
     # Richness between experiments and models
     #compare_richness(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')

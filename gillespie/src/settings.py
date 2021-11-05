@@ -1,4 +1,5 @@
 from matplotlib import colors
+import os
 
 VAR_NAME_DICT = { 'birth_rate'      : r'birth, $r^{+}$'
                 , 'death_rate'      : r'death, $r^{-}$'
@@ -52,6 +53,8 @@ IMSHOW_KW = { 'entropy'                 : {'cmap': 'cividis', 'aspect': None }
 imshow_kw = {'cmap': 'YlGnBu', 'aspect': None }
 
 NPZ_SHORT_FILE = 'short_consol_results.npz'
+
+MANU_FIG_DIR = 'figures' + os.sep + 'manuscript' # FIX TO NOT BE GLOBA
 
 # TODO : save txt file with what parameters vary (is this possible?)
 

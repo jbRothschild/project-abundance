@@ -509,12 +509,12 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     # TODO : replace with a dict
     param_dict, ss_dist_sim, richness_sim, time_present_sim, mean_pop_sim\
                   , mean_rich_sim, mean_time_present_sim, _, _, _, _, _ , _, _\
-                  , conditional\
+                  , conditional, _\
                   = mlv_extract_results_sim(dir, sim_nbr=sim_nbr)
 
     # theory equations
     theory_models   = theqs.Model_MultiLVim(**param_dict)
-    conv_dist, _ = theory_models.abund_1spec_MSLV()
+    #conv_dist, _ = theory_models.abund_1spec_MSLV()
     mf_dist, mf_abund = theory_models.abund_sid()
     title = r'$\rho=$' + str(param_dict['comp_overlap']) + r', $\mu=$' \
             + str(param_dict['immi_rate']) + r', $S=$' + str(param_dict['nbr_species'])
@@ -560,7 +560,7 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     axes = plt.gca()
 
     plt.scatter(np.arange(len(ss_dist_sim)),ss_dist_sim,label='simulation')
-    plt.plot(np.arange(len(conv_dist)),conv_dist,label='convolution approx.')
+    #plt.plot(np.arange(len(conv_dist)),conv_dist,label='convolution approx.')
     plt.plot(np.arange(len(mf_dist)),mf_dist,label='mean field approx.')
     plt.ylabel(r"probability distribution function")
     plt.xlabel(r'n')
@@ -582,6 +582,7 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     plt.savefig(dir + os.sep + fname + '.pdf');
     #plt.xscale('log')
     #plt.show()
+    print('done distribution of single sim')
 
 
     fig  = plt.figure()
@@ -1015,7 +1016,6 @@ if __name__ == "__main__":
 
     #mlv_plot_average_sim_results(sim_dir,'comp_overlap')
 
-
     sim_dir = RESULTS_DIR + os.sep + 'multiLV45'
     sim_dir = RESULTS_DIR + os.sep + 'multiLV71'
     sim_dir = RESULTS_DIR + os.sep + 'multiLVNavaJ'
@@ -1039,7 +1039,7 @@ if __name__ == "__main__":
                                             , 'comp_overlap')
 
 
-    #mlv_plot_sim_results(sim_dir, 'comp_overlap')
+    mlv_plot_sim_results(sim_dir, 'comp_overlap')
 
     #sim_dir = RESULTS_DIR + os.sep + 'sir0'
     #fpt_distribution(sim_dir)

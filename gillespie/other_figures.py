@@ -93,7 +93,7 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
     axes = plt.gca()
 
     plt.scatter(np.arange(len(ss_dist_sim)), ss_dist_sim, label='simulation')
-    plt.plot(np.arange(len(conv_dist)),conv_dist,label='convolution approx.')
+    #plt.plot(np.arange(len(conv_dist)),conv_dist,label='convolution approx.')
     plt.plot(np.arange(len(mf_dist)),mf_dist,label='mean field approx.')
     plt.ylabel(r"probability distribution function")
     plt.xlabel(r'n')
@@ -259,9 +259,46 @@ def average_conditional(filename, xlabel='immi_rate', ylabel='comp_overlap', sta
     pltfcn.heatmap(rangex, rangey, (ratio_var_av_J/ratio_var_av).T, xlabel, ylabel, r'$J-n/J$'
                     , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
                     , ylog=True, xdatalim=None, ydatalim=None)
+    return 0
 
+def plotting_divergence(filename, xlabel='immi_rate', ylabel='comp_overlap', start=0):
+    data = np.load(filename); #plt.style.use('src/custom_heatmap.mplstyle')
+    S = data['nbr_species']
+
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
+
+    sim_dist = data['sim_dist'][start:,:,:]
+    sad_J_dist = data['mf3_dist'][start:,:,:]
+    sad_JminusN_dist = data['mf_dist'][start:,:,:]
+
+    jensen_div_J = np.zeros((np.shape(sim_dist)[0],np.shape(sim_dist)[1]))
+    kl_div_J     = np.zeros((np.shape(sim_dist)[0],np.shape(sim_dist)[1]))
+    jensen_div_JminusN = np.zeros((np.shape(sim_dist)[0],np.shape(sim_dist)[1]))
+    kl_div_JminusN     = np.zeros((np.shape(sim_dist)[0],np.shape(sim_dist)[1]))
+
+    for i in range(np.shape(sim_dist)[0]):
+        for j in range(np.shape(sim_dist)[1]):
+            jensen_div_J[i,j] = eq.JS_divergence(sim_dist[i,j,:],sad_J_dist[i,j,:])
+            kl_div_J[i,j]     = eq.KL_divergence(sim_dist[i,j,:],sad_J_dist[i,j,:])
+            jensen_div_JminusN[i,j] = eq.JS_divergence(sim_dist[i,j,:],sad_JminusN_dist[i,j,:])
+            kl_div_JminusN[i,j]     = eq.KL_divergence(sim_dist[i,j,:],sad_JminusN_dist[i,j,:])
+
+    pltfcn.heatmap(rangex, rangey, jensen_div_J.T, xlabel, ylabel
+                    , r'Jensen Divergence, $\langle J|n_j \rangle = S \langle n \rangle $'
+                    , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
+                    , ylog=True, xdatalim=None, ydatalim=None)
+    pltfcn.heatmap(rangex, rangey, kl_div_J.T, xlabel, ylabel, r'KL Divergence, $\langle J|n_j \rangle = S \langle n \rangle $'
+                    , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
+                    , ylog=True, xdatalim=None, ydatalim=None)
+    pltfcn.heatmap(rangex, rangey, jensen_div_JminusN.T, xlabel, ylabel, r'Jensen Divergence, $\langle J|n_j \rangle = (S-1) \langle n \rangle + n_j $'
+                    , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
+                    , ylog=True, xdatalim=None, ydatalim=None)
+    pltfcn.heatmap(rangex, rangey, kl_div_JminusN.T, xlabel, ylabel, r'KL Divergence, $\langle J|n_j \rangle = (S-1) \langle n \rangle + n_j $'
+                    , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
+                    , ylog=True, xdatalim=None, ydatalim=None)
 
     return 0
+
 
 if __name__ == "__main__":
 
@@ -277,8 +314,11 @@ if __name__ == "__main__":
     sim_corr        = RESULTS_DIR + os.sep + 'multiLV80'
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
+    sim_K50         = RESULTS_DIR + os.sep + 'multiLV5'
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV10'
+    sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
-    #mlv_plot_single_sim_results(sim_immi, sim_nbr = 1)
+    mlv_plot_single_sim_results(sim_K50, sim_nbr = 200)
     # Create appropriate npz file for the sim_dir
     #cdate.mlv_consolidate_sim_results( sim_spec, 'nbr_species', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_immi, 'immi_rate', 'comp_overlap')
@@ -303,13 +343,14 @@ if __name__ == "__main__":
 
     # Richness between experiments and models
     #compare_richness(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    #plotting_divergence(sim_corr+os.sep+NPZ_SHORT_FILE)
 
     # correlation business
     #fig_corr(sim_corr+os.sep+NPZ_SHORT_FILE, save, revision='80')
     #fig_timecorr(sim_time + os.sep + "sim1" + os.sep + "results_0.pickle")
     #fig3A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
     #pearson_correlation_plots(sim_corr + os.sep + NPZ_SHORT_FILE)
-    average_conditional(sim_corr + os.sep + NPZ_SHORT_FILE)
+    #average_conditional(sim_corr + os.sep + NPZ_SHORT_FILE)
 
 
     # plots trajectories, however it would appear that MultiLV6 (traj.zip) has been deleted

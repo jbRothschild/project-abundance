@@ -61,12 +61,16 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         sim_nbr = i + 1
         if not os.path.exists(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                    'results_0.pickle'):
+
             print( "Missing simulation: " + str(sim_nbr) )
             rich_dist_vary.append( np.array( [0] ) )
             sim_dist_vary.append( np.array( [0] ) )
             #conv_dist_vary.append( np.array( ss_dist_conv ) )
             mf_dist_vary.append( np.array( [0] ) )
+            mf3_dist_vary.append( np.array( [0] ) )
+
         else:
+
             with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                        'results_0.pickle', 'rb') as handle:
                 param_dict  = pickle.load(handle)
@@ -94,7 +98,6 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
 
             # TEMP FIX FOR SOMETHING WRONG CONDITIONAL MLV71
             conditional = model.results['conditional']
-            print( np.sum(conditional) )
             for j in np.arange(0,conditional.shape[0]):
                 conditional[j,j] *= 2
                 if np.sum(conditional[j][:]) != 0.0:
@@ -142,7 +145,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
             end = time.time()
             hours, rem = divmod( end-start, 3600 )
             minutes, seconds = divmod( rem, 60 )
-            print(">>{}Time elapsed: {:0>2}:{:0>2}:{:05.2f}".format(i,int(hours)
+            print(">>{}: Time elapsed: {:0>2}:{:0>2}:{:05.2f}".format(i,int(hours)
                                                         , int(minutes),seconds))
             # Value of parameters
             param1[i] = param_dict[parameter1]

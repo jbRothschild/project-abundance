@@ -238,14 +238,14 @@ class MultiLV(Parent):
                             , 'richness' : np.zeros(self.nbr_species+1)
                             , 'time_btwn_ext' : []
                             , 'temp_time' : np.zeros(self.nbr_species)
-                            , 'joint_temp' : np.zeros( (self.carry_capacity*5
+                            , 'joint' : np.zeros( (self.carry_capacity*5
                                             ,self.carry_capacity*5) )
                             , 'conditional' : np.zeros( (self.carry_capacity*5
                                             ,self.carry_capacity*5) )
-                            , 'av_ni_nj_temp' : np.zeros( ( self.nbr_species,
+                            , 'av_ni_nj' : np.zeros( ( self.nbr_species,
                                                         self.nbr_species))
-                            , 'av_ni_temp' : np.zeros(self.nbr_species)
-                            , 'av_ni_sq_temp' : np.zeros(self.nbr_species)
+                            , 'av_ni' : np.zeros(self.nbr_species)
+                            , 'av_ni_sq' : np.zeros(self.nbr_species)
                             , 'corr_ni_nj' : 0.0, 'coeff_ni_nj' : 0.0
                             , 'av_J' : 0.0, 'av_J_sq' : 0.0, 'cov_ni_nj' : 0.0
                             , 'av_J_n' : np.zeros(self.nbr_species)
@@ -370,12 +370,12 @@ class MultiLV(Parent):
         self.results['av_Jminusn_sq'] += dt*np.square(J-current_state)
         self.results['av_Jminusn_n'] += dt*(J-current_state)*current_state
         for i, value_i in enumerate(current_state):
-            self.results['av_ni_temp'][i] += dt*value_i
-            self.results['av_ni_sq_temp'][i] += dt*value_i**2
+            self.results['av_ni'][i] += dt*value_i
+            self.results['av_ni_sq'][i] += dt*value_i**2
 
             for j, value_j in enumerate(current_state[i+1:]):
-                self.results['joint_temp'][int(value_i)][int(value_j)] += dt
-                self.results['av_ni_nj_temp'][i][i+j+1] += dt*value_i*value_j
+                self.results['joint'][int(value_i)][int(value_j)] += dt
+                self.results['av_ni_nj'][i][i+j+1] += dt*value_i*value_j
 
         return 0
 
@@ -392,18 +392,18 @@ class MultiLV(Parent):
 
 
         # Calculate conditional probability
-        self.results['joint_temp'] /= np.sum( self.results['joint_temp'] )
-        for i in np.arange(0, np.shape(self.results['joint_temp'])[0]):
+        self.results['joint'] /= np.sum( self.results['joint'] )
+        for i in np.arange(0, np.shape(self.results['joint'])[0]):
             self.results['conditional'][i][i] = \
-                                        2*self.results['joint_temp'][i][i]
+                                        2*self.results['joint'][i][i]
                                         # It should be double. I didn't before...
-            for j in np.arange(i+1,np.shape(self.results['joint_temp'])[1]):
+            for j in np.arange(i+1,np.shape(self.results['joint'])[1]):
                 self.results['conditional'][j][i] = \
-                                ( self.results['joint_temp'][i][j]\
-                                        + self.results['joint_temp'][j][i] )
+                                ( self.results['joint'][i][j]\
+                                        + self.results['joint'][j][i] )
                 self.results['conditional'][i][j] = \
-                                ( self.results['joint_temp'][i][j]\
-                                        + self.results['joint_temp'][j][i] )
+                                ( self.results['joint'][i][j]\
+                                        + self.results['joint'][j][i] )
 
         self.results['conditional'] /= np.sum(self.results['conditional'])
 
@@ -414,9 +414,9 @@ class MultiLV(Parent):
 
 
         # Calculate correlation
-        self.results['av_ni_temp'] /= total_time
-        self.results['av_ni_sq_temp'] /= total_time
-        self.results['av_ni_nj_temp'] /= total_time
+        self.results['av_ni'] /= total_time
+        self.results['av_ni_sq'] /= total_time
+        self.results['av_ni_nj'] /= total_time
         self.results['av_J'] /= total_time
         self.results['av_J_sq'] /= total_time
         self.results['av_J_n'] /= total_time
@@ -427,32 +427,32 @@ class MultiLV(Parent):
         nbr_spec_corr = 0
 
         for i in np.arange(0, self.nbr_species):
-            var_J_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
-                        - self.results['av_ni_temp'][i]**2 ) ) * (
+            var_J_n = ( ( np.sqrt( self.results['av_ni_sq'][i]
+                        - self.results['av_ni'][i]**2 ) ) * (
                         np.sqrt( self.results['av_J_sq']
                         - self.results['av_J']**2 ) ) )
-            var_Jminusn_n = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
-                            - self.results['av_ni_temp'][i]**2 ) ) * (
+            var_Jminusn_n = ( ( np.sqrt( self.results['av_ni_sq'][i]
+                            - self.results['av_ni'][i]**2 ) ) * (
                             np.sqrt( self.results['av_Jminusn_sq'][i]
                             - self.results['av_Jminusn'][i]**2 ) ) )
             # cov(J,n)
-            cov_J_n = (self.results['av_J_n'][i] - self.results['av_ni_temp'][i]
+            cov_J_n = (self.results['av_J_n'][i] - self.results['av_ni'][i]
                         * self.results['av_J'] )
             # cov(J-n,n)
             cov_Jminusn_n = (self.results['av_Jminusn_n'][i]
-                            - self.results['av_ni_temp'][i] *
+                            - self.results['av_ni'][i] *
                             self.results['av_Jminusn'][i] )
 
             # coefficients of variation
             if self.results['av_J_n'][i] != 0.0 \
-                                    and self.results['av_ni_temp'][i] != 0.0:
+                                    and self.results['av_ni'][i] != 0.0:
                 self.results['coeff_J_n']+= ( cov_J_n /( self.results['av_J']
-                                            * self.results['av_ni_temp'][i] ) )
+                                            * self.results['av_ni'][i] ) )
             if self.results['av_Jminusn'][i] != 0.0 \
-                                    and self.results['av_ni_temp'][i] != 0.0:
+                                    and self.results['av_ni'][i] != 0.0:
                 self.results['coeff_Jminusn_n'] += ( cov_Jminusn_n
                                             / ( self.results['av_Jminusn'][i]
-                                            * self.results['av_ni_temp'][i] ) )
+                                            * self.results['av_ni'][i] ) )
             # Pearson correlation
             if var_J_n != 0.0:
                 self.results['corr_J_n'] += cov_J_n / var_J_n
@@ -461,20 +461,20 @@ class MultiLV(Parent):
                 self.results['corr_Jminusn_n'] += cov_Jminusn_n / var_Jminusn_n
 
             for j in np.arange(i+1, self.nbr_species):
-                var_nm = ( ( np.sqrt( self.results['av_ni_sq_temp'][i]
-                        - self.results['av_ni_temp'][i]**2 ) ) * (
-                        np.sqrt( self.results['av_ni_sq_temp'][j]
-                        - self.results['av_ni_temp'][j]**2 ) ) )
+                var_nm = ( ( np.sqrt( self.results['av_ni_sq'][i]
+                        - self.results['av_ni'][i]**2 ) ) * (
+                        np.sqrt( self.results['av_ni_sq'][j]
+                        - self.results['av_ni'][j]**2 ) ) )
                 # cov(n_i,n_j)
-                cov_ni_nj = ( self.results['av_ni_nj_temp'][i][j]
-                            - self.results['av_ni_temp'][i] *
-                            self.results['av_ni_temp'][j] )
+                cov_ni_nj = ( self.results['av_ni_nj'][i][j]
+                            - self.results['av_ni'][i] *
+                            self.results['av_ni'][j] )
                 # coefficients of variation
-                if self.results['av_ni_temp'][i] != 0.0 \
-                                    and self.results['av_ni_temp'][j] != 0.0:
+                if self.results['av_ni'][i] != 0.0 \
+                                    and self.results['av_ni'][j] != 0.0:
                     self.results['coeff_ni_nj'] += ( cov_ni_nj
-                                    / ( self.results['av_ni_temp'][i]
-                                    * self.results['av_ni_temp'][j] ) )
+                                    / ( self.results['av_ni'][i]
+                                    * self.results['av_ni'][j] ) )
                 # Pearson correlation
                 if var_nm != 0.0:
                     self.results['corr_ni_nj'] += cov_ni_nj / var_nm
@@ -497,8 +497,8 @@ class MultiLV(Parent):
         self.results['corr_Jminusn_n'] /= ( self.nbr_species)
         self.results['coeff_Jminusn_n'] /= ( self.nbr_species)
 
-        #del self.results['av_ni_temp'], self.results['av_ni_sq_temp']\
-        #    , self.results['av_ni_nj_temp'], self.results['joint_temp']
+        #del self.results['av_ni'], self.results['av_ni_sq']\
+        #    , self.results['av_ni_nj'], self.results['joint']
 
         super(MultiLV, self).save_trajectory(simulation, times, traj)
 
