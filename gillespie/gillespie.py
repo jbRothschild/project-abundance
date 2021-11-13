@@ -24,15 +24,14 @@ Example usage :
     python3 gillespie.py -m [MODEL] -g [NBR_GENERATIONS] -t [NBR_TRAJECTORIES]
                             -T [TOTAL_TIME] -n [SIMULATION_NBR]
                             -tau [TAU_LEAPING(bool)] -p [PARAMETER=VALUE]
-    python3 gillespie.py -m multiLV -t 1 -g 70000000 -n 0 -p max_gen_save=10000
-                            sim_dir=multiLV3
+    python3 gillespie.py -m multiLV -t 1 -g 1000000 -n 0 -p comp_overlap=0.1 immi_rate=0.01 max_gen_save=1000000 sim_dir=multiLV3
 
 """
 
 # TODO : num_states is poorly named, should be number of species or something.
 #        Even deleted if if must.
 
-import os, random, time, argparse
+import os, random, time, argparse, datetime
 import numpy as np
 import src.gillespie_models as gm
 from src.gillespie_models import MODELS
@@ -50,12 +49,17 @@ def gillespie_sample_discrete(probs, r2):
         i-1 : index of reaction
     """
     i = 0; p_sum = 0.0
+    """ This doesn't seem to help, actually takes longer!
     sorted_prob = sorted(probs, reverse=True) # sort list first, might save time
     sorted_idx = sorted(range(len(probs)), key=lambda k: probs[k]
                             , reverse=True)
     while p_sum < r2: #find index
         p_sum += sorted_prob[i]; i += 1
     return sorted_idx[i - 1]
+    """
+    while p_sum < r2:
+        p_sum += probs[i]; i += 1
+    return i-1
 
 def gillespie_draw(Model, current_state):
     """
@@ -71,14 +75,18 @@ def gillespie_draw(Model, current_state):
     r1, r2 = np.random.random(2)
 
     # compute propensities
-    propensity = Model.propensity( current_state );
-    prob_propensity = propensity/sum( propensity )
+    propensity = Model.propensity( current_state ); #1/3 of time
+    #propensity = np.ones(60)
+    sum_prop = sum( propensity )
+
+    prob_propensity = propensity/sum_prop
 
     # compute time
-    time = - np.log( r1 )/np.sum( propensity )
+    time = - np.log( r1 )/sum_prop
 
     # draw reaction from this distribution
-    reaction_index = gillespie_sample_discrete(prob_propensity, r2)
+    reaction_index = gillespie_sample_discrete(prob_propensity, r2) # 1/5 of time
+    #reaction_index = 0
 
     return reaction_index, time
 
@@ -165,28 +173,42 @@ def tau_leaping(Model, simulation, times, current_state, nbr_for_criticality=10.
 
 def gillespie(Model, simulation, times, current_state):
     i=1
+    total_time = 0.0
+    start = time.time()
     while not ( ( Model.stop_condition(current_state,i) ) or
         Model.generation_time_exceed(times[(i-1)%Model.max_gen_save], i-1)):
-        start = time.time()
         # draw the event and time step
-        reaction_idx, dt = gillespie_draw(Model, current_state)
 
-        Model.update_results(current_state, dt)
+        reaction_idx, dt = gillespie_draw(Model, current_state)
+        total_time += dt
+
+        # archaic, takes too long to run
+        #Model.update_results(current_state, dt)
 
         # Update the system
         # TODO what if system size changes? Going to have to rethink this...
         simulation[i%Model.max_gen_save,:] = current_state + Model.update(
                                                 current_state, reaction_idx );
-        times[i%Model.max_gen_save] = times[(i-1)%Model.max_gen_save] + dt;
+        times[i%Model.max_gen_save] = dt;
         current_state = simulation[i%Model.max_gen_save,:].copy()
 
         i += 1
-        end = time.time()
-        hours, rem = divmod(end-start, 3600)
-        minutes, seconds = divmod(rem, 60)
-        #print(end-start)
-        #print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
-        #            , int(minutes), seconds))
+
+        if i%Model.max_gen_save==0:
+            Model.checkpoint_results(simulation, times)
+            simulation = np.zeros( np.shape(simulation) )
+            times = np.zeros( np.shape(times) )
+        """
+        if i%10**6==0:
+            end = time.time()
+            hours, rem = divmod(end-start, 3600)
+            minutes, seconds = divmod(rem, 60)
+            print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
+                        , int(minutes), seconds))
+            start = time.time()
+        """
+
+    return current_state, total_time
 
 
 
@@ -215,10 +237,11 @@ def SSA(Model, traj):
     current_state = simulation[0,:].copy()
 
     if not Model.tau: # regular SSM
-        gillespie(Model, simulation, times, current_state)
+        last_state, total_time = gillespie(Model, simulation, times, current_state)
 
     else: # tau leaping, (Cao, Gillespie, and Petzold, 2006)
         tau_leaping(Model, simulation, times, current_state)
+
     end = time.time()
     hours, rem = divmod(end-start, 3600)
     minutes, seconds = divmod(rem, 60)
@@ -226,13 +249,12 @@ def SSA(Model, traj):
                 , int(minutes), seconds))
 
     start = time.time()
-    Model.save_trajectory(simulation, times, traj)
+    Model.save_trajectory(simulation, last_state, total_time, traj)
     end = time.time()
     hours, rem = divmod(end-start, 3600)
     minutes, seconds = divmod(rem, 60)
     print(">> Time elapsed save: {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
                 , int(minutes), seconds))
-
 
     return simulation, times
 

@@ -47,6 +47,9 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     coeff_ni_nj     = np.zeros(nbr_sims); corr_ni_nj        = np.zeros(nbr_sims)
     coeff_J_n       = np.zeros(nbr_sims); corr_J_n          = np.zeros(nbr_sims)
     coeff_Jminusn_n = np.zeros(nbr_sims); corr_Jminusn_n    = np.zeros(nbr_sims)
+    coeff_ni_nj_S     = np.zeros(nbr_sims); corr_ni_nj_S     = np.zeros(nbr_sims)
+    coeff_J_n_S       = np.zeros(nbr_sims); corr_J_n_S       = np.zeros(nbr_sims)
+    coeff_Jminusn_n_S = np.zeros(nbr_sims); corr_Jminusn_n_S = np.zeros(nbr_sims)
     # TEMP TIMES
     time_autocor_spec = np.zeros( nbr_sims )
     mean_time_autocor_abund = np.zeros( nbr_sims )
@@ -98,10 +101,10 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
 
             # TEMP FIX FOR SOMETHING WRONG CONDITIONAL MLV71
             conditional = model.results['conditional']
-            for j in np.arange(0,conditional.shape[0]):
-                conditional[j,j] *= 2
-                if np.sum(conditional[j][:]) != 0.0:
-                    conditional[j,:] /= np.sum(conditional[j,:])
+            #for j in np.arange(0,conditional.shape[0]):
+            #    conditional[j,j] *= 2
+            #    if np.sum(conditional[j][:]) != 0.0:
+            #        conditional[j,:] /= np.sum(conditional[j,:])
 
             av_ni_given_nj = average_ni_given_nj( conditional )
             av_ni_given_nj_vary.append( av_ni_given_nj )
@@ -112,6 +115,12 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
             coeff_J_n[sim_nbr-1] = model.results['coeff_J_n']
             corr_Jminusn_n[sim_nbr-1] = model.results['corr_Jminusn_n']
             coeff_Jminusn_n[sim_nbr-1] = model.results['coeff_Jminusn_n']
+            corr_ni_nj_S[sim_nbr-1] = model.results['corr_ni_nj_S']
+            coeff_ni_nj_S[sim_nbr-1] = model.results['coeff_ni_nj_S']
+            corr_J_n_S[sim_nbr-1] = model.results['corr_J_n_S']
+            coeff_J_n_S[sim_nbr-1] = model.results['coeff_J_n_S']
+            corr_Jminusn_n_S[sim_nbr-1] = model.results['corr_Jminusn_n_S']
+            coeff_Jminusn_n_S[sim_nbr-1] = model.results['coeff_Jminusn_n_S']
 
             ############################################################################################################################
             # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
@@ -265,6 +274,176 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     np.savez(filename, **dict_arrays)
 
     return filename, dict_arrays
+
+def mlv_consolidate_sim_results_testing(dir, parameter1='immi_rate'
+                                    , parameter2='comp_overlap'):
+    """
+    Analyze how the results from different simulations differ for varying
+    (parameter)
+
+    Input :
+        dir       : directory that we're plotting from
+        parameter1 : the parameter that changes between different simulations
+                    (string)
+        parameter2 : second parameter that changes between different simulations
+                    (string)
+    """
+    filename =  dir + os.sep + NPZ_SHORT_FILE
+
+    with open(dir + os.sep + 'sim1' + os.sep
+                    + 'results_0.pickle', 'rb') as handle:
+        param_dict  = pickle.load(handle)
+
+    model = MultiLV(**param_dict)
+    dict_array_flat = {}
+    dict_array_2D = {}
+
+    entries_to_remove = {'time_btwn_ext'}
+
+    for k in entries_to_remove:
+        (model.results).pop(k, None)
+
+    list_results_keys = (model.results).keys()
+
+    for key in list_results_keys:
+        dict_array_flat[key] = []
+
+    # Additional computations
+    dict_array_flat['sim_dist'] = []; dict_array_flat['rich_dist'] = []
+    dict_array_flat['mf3_dist'] = []; dict_array_flat['mf_dist'] = []
+    dict_array_flat['conv_dist'] = []; dict_array_flat['av_ni_given_nj'] = []
+
+    dict_array_flat['time_autocor_spec'] = []
+    dict_array_flat['mean_time_autocor_abund'] = []
+    dict_array_flat['std_time_autocor_abund'] = []
+    dict_array_flat['dominance_turnover'] = []
+    dict_array_flat['suppress_turnover'] = []
+    dict_array_flat['dominance_return'] = []
+    dict_array_flat['suppress_return'] = []
+
+    # count number of subdirectories
+    nbr_sims = len( next( os.walk(dir) )[1] )
+    param1 = np.zeros(nbr_sims)
+    param2 = np.zeros(nbr_sims)
+
+    #nbr_sims=100
+    # TODO change to dictionary
+    for i in np.arange(nbr_sims):
+        sim_nbr = i + 1
+        with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+                   'results_0.pickle', 'rb') as handle:
+            param_dict  = pickle.load(handle)
+
+        model           = MultiLV(**param_dict)
+        theory_model    = theqs.Model_MultiLVim(**param_dict)
+        param1[i] = param_dict[parameter1]
+        param2[i] = param_dict[parameter2]
+
+        for key in list_results_keys:
+            dict_array_flat[key].append(model.results[key])
+
+        # distribution
+        start = time.time()
+        ss_dist_sim     = model.results['ss_distribution'] \
+                                / np.sum(model.results['ss_distribution'])
+        #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
+        ss_dist_mf, _   = theory_model.abund_sid()
+        ss_dist_mf3, _  = theory_model.abund_sid_J()
+        dict_array_flat['rich_dist'].append(model.results['richness'])
+        dict_array_flat['sim_dist'].append( np.array( ss_dist_sim ) )
+        #conv_dist_vadict_array_flat['rich_dist'] = []ry.append( np.array( ss_dist_conv ) )
+        dict_array_flat['mf_dist'].append( np.array( ss_dist_mf ) )
+        dict_array_flat['mf3_dist'].append( np.array( ss_dist_mf3 ) )
+
+        conditional = model.results['conditional']
+        av_ni_given_nj = average_ni_given_nj( conditional )
+        dict_array_flat['av_ni_given_nj'].append( av_ni_given_nj )
+
+        S = model.nbr_species; K = model.carry_capacity
+        mu = model.immi_rate; rho = model.comp_overlap
+        rplus = model.birth_rate; rminus = model.death_rate
+
+        nbr_species = int( S*(1.0-ss_dist_sim[0]) )
+        nbr = int( eq.deterministic_mean(nbr_species, mu, rho, rplus, rminus, K) )
+        dict_array_flat['dominance_turnover'].append( eq.mfpt_a2a(ss_dist_sim, nbr, mu, rplus, rminus, K, rho, S))
+        dict_array_flat['suppress_turnover'].append( eq.mfpt_020(ss_dist_sim, mu) )
+        dict_array_flat['dominance_return'].append( eq.mfpt_a2b(ss_dist_sim, 0, nbr, mu, rplus) )
+        dict_array_flat['suppress_return'].append( eq.mfpt_b2a(ss_dist_sim, 0, nbr, mu, rplus) )
+
+        """ This previous code needs to be fixed.
+        # TEMP FIX FOR SOME WRONG COEFFICIENT OF VARIATION
+        correlations_fix(model, dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+                  'results_0.pickle')
+
+        # TEMP FIX FOR SOMETHING WRONG CONDITIONAL MLV71
+        conditional = model.results['conditional']
+        for j in np.arange(0,conditional.shape[0]):
+            conditional[j,j] *= 2
+            if np.sum(conditional[j][:]) != 0.0:
+                conditional[j,:] /= np.sum(conditional[j,:])
+
+        # TEMP AUTOCORRELATION TIME SAVING. This is an aweful way of doing it. Fix it.
+
+        n=2; fracTime=100
+
+        autocor, _, specAutocor, _, newTimes =\
+                 autocorrelation_spectrum(model.results['times'][n:],\
+                model.results['trajectory'][n:])
+
+        _, time_autocor_spec[sim_nbr-1] = exponential_fit_autocorrelation(specAutocor, newTimes, fracTime)
+        mean_time_autocor_abund[sim_nbr-1], std_time_autocor_abund[sim_nbr-1] =\
+                average_timescale_autocorrelation( autocor, newTimes, fracTime)
+                """
+        end = time.time()
+        hours, rem = divmod( end-start, 3600 )
+        minutes, seconds = divmod( rem, 60 )
+        print(">>{}: Time elapsed: {:0>2}:{:0>2}:{:05.2f}".format(i,int(hours)
+                                                    , int(minutes),seconds))
+
+    # For heatmap stuff
+    param1_2D = np.unique(param1); param2_2D = np.unique(param2)
+    dim1     = len(param1_2D)   ; dim2      = len(param2_2D)
+
+    for keys in dict_array_flat.keys():
+        if dict_array_flat[keys] == []:
+            pass
+        elif not hasattr(dict_array_flat[keys][0],'__len__'):
+            dict_array_2D[keys] = np.zeros( (dim1,dim2) )
+            print(keys,'here')
+        elif len(np.shape(dict_array_flat[keys][0])) < 2:
+            # 2 dimensional properties (joint dist) ignored for now
+            max_len = len( max(dict_array_flat[keys], key=len) )
+            dict_array_2D[keys] = np.zeros( (dim1,dim2,max_len) )
+            print(keys,'done')
+        else:
+            pass
+
+    # put into a 2d array all the previous results
+    for key in (dict_array_2D).keys():
+        if not hasattr(dict_array_flat[key][0],'__len__'):
+            for sim in np.arange(nbr_sims):
+                i = np.where( param1_2D==param1[sim] )[0][0]
+                j = np.where( param2_2D==param2[sim] )[0][0]
+                dict_array_2D[key][i,j] = dict_array_flat[key][sim]
+        else:
+            for sim in np.arange(nbr_sims):
+                i = np.where( param1_2D==param1[sim] )[0][0]
+                j = np.where( param2_2D==param2[sim] )[0][0]
+                dict_array_2D[key][i,j,:len(dict_array_flat[key][sim])] \
+                                                = dict_array_flat[key][sim]
+
+    dict_array_2D['carry_capacity'] = model.carry_capacity
+    dict_array_2D['birth_rate'] = model.birth_rate
+    dict_array_2D['death_rate'] = model.death_rate
+    dict_array_2D['nbr_species'] = model.nbr_species
+    dict_array_2D['immi_rate'] = model.immi_rate
+    dict_array_2D['comp_overlap'] = model.comp_overlap
+    dict_array_2D[parameter1] = param1_2D
+    dict_array_2D[parameter2] = param2_2D
+    # save results in a npz file
+    np.savez(filename, **dict_array_2D)
+
+    return filename, dict_array_2D
 
 def mlv_multiple_folder_consolidate(list_dir, consol_name_dir, parameter1=None
                                             , parameter2=None, consol = False):

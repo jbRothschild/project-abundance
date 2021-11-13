@@ -92,21 +92,21 @@ class Parent(object):
 
         return False
 
-    def save_trajectory( self, simulation, times, traj ):
+    def save_trajectory( self, simulation, total_time, traj ):
         """
         For now simply saves each trajectory and some results
         """
-        idx_sort = np.argsort(times)
+        #idx_sort = np.argsort(times)
         # TODO Get rid of this. No longer need to save cumbersome txt files
-        np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s.txt' %(traj)
-                                , simulation[idx_sort,:] )
-        np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s_time.txt' %(traj)
-                                , times[idx_sort])
+        #np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s.txt' %(traj)
+        #                        , simulation[idx_sort,:] )
+        #np.savetxt(self.sim_subdir + os.sep + 'trajectory_%s_time.txt' %(traj)
+        #                        , times[idx_sort])
 
         # Save state and some results of the simulation
         self.results['time_btwn_ext'] = np.array(self.results['time_btwn_ext'])
-        self.results['times'] = times
-        self.results['trajectory'] = simulation
+        #self.results['times'] = times
+        #self.results['trajectory'] = simulation
         with open(self.sim_subdir + os.sep + 'results_%s.pickle' %(traj),
                   'wb') as handle:
             pickle.dump(self.__dict__, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -276,19 +276,20 @@ class MultiLV(Parent):
         """
         prop = np.zeros( len(current_state)*2 )
 
-        for i in np.arange(0,len(current_state)):
-            prop[i*2] = ( current_state[i] * ( self.birth_rate
-                        - self.quadratic * ( current_state[i]
-                        + self.comp_overlap*np.sum(
-                        np.delete(current_state,i)))/self.carry_capacity )
-                        + self.immi_rate)
+        prop[::2] = ( self.immi_rate + current_state * ( self.birth_rate ) )
+                        #- ( self.quadratic *
+                        #( self.birth_rate - self.death_rate ) *
+                        #(1.0 - self.comp_overlap ) * current_state +
+                        #( self.comp_overlap * np.sum(current_state) ) )
+                        #/ self.carry_capacity ) )
                         # birth + immigration
-            prop[i*2+1] = (current_state[i] * ( self.death_rate + self.emmi_rate
+        prop[1::2] = ( current_state * ( self.death_rate #+ self.emmi_rate
                           + ( self.birth_rate - self.death_rate )*( 1.0
-                          - self.quadratic )*(current_state[i]
-                          + self.comp_overlap*np.sum(
-                          np.delete(current_state,i)))/self.carry_capacity ) )
+                          - self.quadratic )*( (1.0 - self.comp_overlap ) * current_state
+                          + self.comp_overlap*np.sum(current_state) ) /self.carry_capacity ) )
                           # death + emmigration
+
+
         return prop
 
     def update( self, current_state, idx_reaction ):
@@ -341,13 +342,15 @@ class MultiLV(Parent):
 
         """
         # normalize steady state distribution
-        for i in current_state:
-            self.results['ss_distribution'][int(i)] += dt
+        #for i in current_state:
+        #    self.results['ss_distribution'][int(i)] += dt
+
+        self.results['ss_distribution'][current_state.astype(int)] += dt
 
         # normalize richness distribution
-        current_richness = np.count_nonzero( current_state )
-        self.results['richness'][current_richness] += dt
-
+        #current_richness = np.count_nonzero( current_state )
+        self.results['richness'][np.count_nonzero( current_state )] += dt
+        """
         # times that species is present. Note temp_time is keeping track of the
         # time a particular species has been present in the system
 
@@ -376,15 +379,42 @@ class MultiLV(Parent):
             for j, value_j in enumerate(current_state[i+1:]):
                 self.results['joint'][int(value_i)][int(value_j)] += dt
                 self.results['av_ni_nj'][i][i+j+1] += dt*value_i*value_j
+        """
+        return 0
+
+    def checkpoint_results( self, simulation, times ):
+        J = np.sum(simulation, axis=1)
+        J_weighted = J * times
+        sim_sq = simulation**2
+        sim_weighted = (simulation.T * times)
+        sim_sq_weighted = (sim_sq.T * times)
+        Jminusn = J[:,None] - simulation
+
+        #print(np.shape(sim_weighted),np.shape(sim_sq_weighted),np.shape(sim_weighted[1,:]),np.shape(sim_sq_weighted[2,:]))
+        #print(np.shape(simulation),np.shape(sim_sq),np.shape(simulation[1,:]),np.shape(sim_sq[2,:]))
+
+        # Tally the joint distribution P(n_i,n_j) and temporary variables for
+        # correlation calculation
+        self.results['av_J'] += np.sum(J_weighted)
+        self.results['av_J_sq'] += np.sum(J_weighted*J)
+        self.results['av_J_n'] += np.sum(simulation.T * J_weighted, axis=1)
+        self.results['av_Jminusn'] += np.sum( Jminusn.T * times, axis=1)
+        self.results['av_Jminusn_sq'] += np.sum( np.square(Jminusn).T * times, axis=1)
+        self.results['av_Jminusn_n'] += np.sum(Jminusn.T * sim_weighted, axis=1)
+        for i in range( self.nbr_species ):
+            self.results['av_ni'][i] += np.sum(sim_weighted[i,:])
+            self.results['av_ni_sq'][i] += np.sum(sim_sq_weighted[i,:])
+            for j in np.arange(i+1,self.nbr_species):
+                #self.results['joint'][int(value_i),int(value_j)] += dt
+                self.results['av_ni_nj'][i,j] += np.sum(sim_weighted[i,:]*simulation[:,j])
 
         return 0
 
-    def save_trajectory( self, simulation, times, traj ):
+    def save_trajectory( self, simulation, last_state, total_time, traj ):
         """
         Explain what is going on
         """
         # normalize the distribution
-        total_time = np.max(times)
         self.results['ss_distribution'] /= total_time
 
         # normalize the richness
@@ -392,6 +422,7 @@ class MultiLV(Parent):
 
 
         # Calculate conditional probability
+        """ Need to find efficient way to calculate joint probabilities
         self.results['joint'] /= np.sum( self.results['joint'] )
         for i in np.arange(0, np.shape(self.results['joint'])[0]):
             self.results['conditional'][i][i] = \
@@ -411,7 +442,7 @@ class MultiLV(Parent):
             if self.results['ss_distribution'][i] != 0:
                 self.results['conditional'][:][i] /=\
                                         self.results['ss_distribution'][i]
-
+        """
 
         # Calculate correlation
         self.results['av_ni'] /= total_time
@@ -431,6 +462,7 @@ class MultiLV(Parent):
                         - self.results['av_ni'][i]**2 ) ) * (
                         np.sqrt( self.results['av_J_sq']
                         - self.results['av_J']**2 ) ) )
+
             var_Jminusn_n = ( ( np.sqrt( self.results['av_ni_sq'][i]
                             - self.results['av_ni'][i]**2 ) ) * (
                             np.sqrt( self.results['av_Jminusn_sq'][i]
@@ -497,15 +529,9 @@ class MultiLV(Parent):
         self.results['corr_Jminusn_n'] /= ( self.nbr_species)
         self.results['coeff_Jminusn_n'] /= ( self.nbr_species)
 
-        #del self.results['av_ni'], self.results['av_ni_sq']\
-        #    , self.results['av_ni_nj'], self.results['joint']
+        self.results['last_state'] = last_state
 
-        super(MultiLV, self).save_trajectory(simulation, times, traj)
-
-        # TODO : Check I can get rid of.
-        # with open('filename.pickle', 'rb') as handle:
-        #    b = pickle.load(handle)
-        #print(self.results['corr_ni_nj'])
+        super(MultiLV, self).save_trajectory(simulation, total_time, traj)
 
         return 0
 

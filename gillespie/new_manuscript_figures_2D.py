@@ -749,8 +749,8 @@ def fig_corr(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     K = data['carry_capacity']; rminus = data['death_rate']
     rplus = data['birth_rate']; S = data['nbr_species']
 
-    correff = [ 'corr_ni_nj', 'corr_J_n', 'corr_Jminusn_n'\
-                , 'coeff_ni_nj', 'coeff_J_n', 'coeff_Jminusn_n'
+    correff = [ 'corr_ni_nj2D', 'corr_J_n2D', 'corr_Jminusn_n2D'\
+                , 'coeff_ni_nj2D', 'coeff_J_n2D', 'coeff_Jminusn_n2D'
                     ]
     corref_name = [r'cov($n_i,n_j$)/$\sigma_{n_i}\sigma_{n_j}$'\
                     , r'cov($J,n$)/$\sigma_{J}\sigma_{n}$'\
@@ -884,9 +884,9 @@ def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
 
     for j, element in enumerate(plotRange):
         color = cmap(j/len(plotRange ) )
-        ax.plot(other, data['time_autocor_spec'][i,:], lw=2, fmt='-o'
+        ax.plot(other, data['time_autocor_spec2D'][i,:], lw=2, fmt='-o'
                     , c=color)
-        plt.scatter(other, data['suppress_return'][i,:]+['dominance_turnover'][i,:]
+        plt.scatter(other, data['suppress_return2D'][i,:]+['dominance_turnover2D'][i,:]
                     , lw=2, c=color, edgecolor='none' )
     ax.plot(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
                     , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
@@ -924,12 +924,12 @@ def fig_timescales_autocor(sim, save=False, range='comp_overlap', start=0
 
     for j, element in enumerate(plotRange):
         color = cmap(j/len(plotRange ) )
-        ax.errorbar(other, data['mean_time_autocor_abund'][i,:]
-                        , yerr=data['std_time_autocor_abund'][i,:], fmt='-o'
+        ax.errorbar(other, data['mean_time_autocor_abund2D'][i,:]
+                        , yerr=data['std_time_autocor_abund2D'][i,:], fmt='-o'
                         , c=color)
-        plt.scatter(other, data['suppress_turnover'][i,:], lw=2, c=color
+        plt.scatter(other, data['suppress_turnover2D'][i,:], lw=2, c=color
                         , edgecolor='none', marker='o' )
-        plt.scatter(other, data['dominance_turnover'][i,:], lw=2, c=color
+        plt.scatter(other, data['dominance_turnover2D'][i,:], lw=2, c=color
                         , edgecolor='none', marker='x' )
     ax.errorbar(np.NaN, np.NaN,yerr=np.NaN, fmt='-o', color='silver'
                         , label=r'$T_{exp}$ : $e^{-t/T_{exp}}$')
@@ -1044,7 +1044,7 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
+    cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
@@ -1065,7 +1065,7 @@ if __name__ == "__main__":
     #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
     #figure_regimes(sim_immi + os.sep + NPZ_SHORT_FILE, save, ydatalim=(20,60))
     figure_regimes(sim_K100 + os.sep + NPZ_SHORT_FILE, save)
-    figure_richness_phases(sim_K50+os.sep+NPZ_SHORT_FILE, save)
+    figure_richness_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
     #figure_richness_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
     figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
     #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
