@@ -183,7 +183,7 @@ def gillespie(Model, simulation, times, current_state):
         total_time += dt
 
         # archaic, takes too long to run
-        #Model.update_results(current_state, dt)
+        Model.update_results(current_state, dt)
 
         # Update the system
         # TODO what if system size changes? Going to have to rethink this...
@@ -199,7 +199,7 @@ def gillespie(Model, simulation, times, current_state):
             simulation = np.zeros( np.shape(simulation) )
             times = np.zeros( np.shape(times) )
         """
-        if i%10**6==0:
+        if i%10**4==0:
             end = time.time()
             hours, rem = divmod(end-start, 3600)
             minutes, seconds = divmod(rem, 60)
@@ -209,8 +209,6 @@ def gillespie(Model, simulation, times, current_state):
         """
 
     return current_state, total_time
-
-
 
 def SSA(Model, traj):
     """

@@ -344,6 +344,7 @@ def mlv_consolidate_sim_results_testing(dir, parameter1='immi_rate'
 
         # distribution
         start = time.time()
+        print(model.results['ss_distribution'])
         ss_dist_sim     = model.results['ss_distribution'] \
                                 / np.sum(model.results['ss_distribution'])
         #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
@@ -362,8 +363,9 @@ def mlv_consolidate_sim_results_testing(dir, parameter1='immi_rate'
         S = model.nbr_species; K = model.carry_capacity
         mu = model.immi_rate; rho = model.comp_overlap
         rplus = model.birth_rate; rminus = model.death_rate
-
+        print(ss_dist_sim)
         nbr_species = int( S*(1.0-ss_dist_sim[0]) )
+
         nbr = int( eq.deterministic_mean(nbr_species, mu, rho, rplus, rminus, K) )
         dict_array_flat['dominance_turnover'].append( eq.mfpt_a2a(ss_dist_sim, nbr, mu, rplus, rminus, K, rho, S))
         dict_array_flat['suppress_turnover'].append( eq.mfpt_020(ss_dist_sim, mu) )

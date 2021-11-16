@@ -1032,7 +1032,7 @@ if __name__ == "__main__":
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
     sim_K50         = RESULTS_DIR + os.sep + 'multiLV53' # 5,
-    sim_K100        = RESULTS_DIR + os.sep + 'multiLV109' # 10, 103, 109
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV91' # 10, 103, 109, 90, 91
     sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
@@ -1044,7 +1044,7 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
+    cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
