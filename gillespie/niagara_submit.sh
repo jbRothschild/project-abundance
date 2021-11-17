@@ -1,8 +1,8 @@
 #!/bin/bash
-#SBATCH --nodes=43
+#SBATCH --nodes=4
 #SBATCH --ntasks-per-node=40
-#SBATCH --time=3:30:00
-#SBATCH --job-name =mlvi-2param-hours
+#SBATCH --time=0:24:00
+#SBATCH --job-name=mlvi-2param-hours
 
 #run this code using jbroths:~$ sbatch *script_name.sh*
 
@@ -46,8 +46,8 @@ linspace () {
 # SIR model
 #parallel --joblog slurm-$SLURM_JOBID.log -j $SLURM_TASKS_PER_NODE "python gillespie.py -m sir -t 1000 -n {}" ::: `seq 0 ${NUM_TASKS_ZERO}`
 
-NUM_TASKS_1=41 # Generally 40, maybe more?
-NUM_TASKS_2=41
+NUM_TASKS_1=12 # Generally 40, maybe more?
+NUM_TASKS_2=12
 NUM_TASKS_ZERO=$((NUM_TASKS-1))
 
 # multiLV model, varying parameters
@@ -67,7 +67,7 @@ mkdir -p ${RESULTS_DIR}/${SIM_DIR}
 
 # 2 variable vary
 #parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 1000000 -n {#} -p ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=10000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
-parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.5 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 10000000 -n {#} -p birth_rate=2.0 death_rate=1.0 carry_capacity=100 ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=1000000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
+parallel --joblog slurm-$SLURM_JOBID.log --sshdelay 0.1 --wd $PWD "python gillespie.py -m multiLV -t 1 -g 1000000 -n {#} -p birth_rate=2.0 death_rate=1.0 carry_capacity=100 ${VAR1_NAME}={1} ${VAR2_NAME}={2} max_gen_save=100000 sim_dir=${SIM_DIR}" ::: ${VAR1[@]} ::: ${VAR2[@]}
 
 
 # 1 parameter choice only

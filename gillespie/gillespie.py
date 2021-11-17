@@ -199,7 +199,7 @@ def gillespie(Model, simulation, times, current_state):
             Model.checkpoint_results(simulation, times)
             simulation = np.zeros( np.shape(simulation) )
             times = np.zeros( np.shape(times) )
-
+        """
         if i%10**5==0:
             end = time.time()
             hours, rem = divmod(end-start, 3600)
@@ -207,6 +207,7 @@ def gillespie(Model, simulation, times, current_state):
             print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
                         , int(minutes), seconds))
             start = time.time()
+        """
 
 
     return current_state, total_time
