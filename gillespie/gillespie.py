@@ -226,6 +226,10 @@ def SSA(Model, traj):
     start = time.time()
     init_state = Model.initialize( )
 
+    with open(Model.sim_subdir + os.sep + 'sim_param.pickle' %(traj),
+              'wb') as handle:
+        pickle.dump(Model.__dict__, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
     # create output arrays output
     simulation = np.zeros( ( Model.max_gen_save, len(init_state) ) )
     times = np.zeros( ( Model.max_gen_save ) )

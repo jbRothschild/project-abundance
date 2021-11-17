@@ -1032,7 +1032,7 @@ if __name__ == "__main__":
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
     sim_K50         = RESULTS_DIR + os.sep + 'multiLV53' # 5,
-    sim_K100        = RESULTS_DIR + os.sep + 'multiLV91' # 10, 103, 109, 90, 91
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV90' # 10, 103, 109, 90, 91
     sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
