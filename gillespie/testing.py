@@ -37,7 +37,54 @@ def autocorrelation4(x):
     pi = ifft(p)
     return np.real(pi)[:n//2]/(np.arange(n//2)[::-1]+n//2)
 
+def propensities():
+    current_state = np.array([50,50,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0])
+    immi_rate = 0.001
+    comp_overlap = 1.0
+    birth_rate = 2.0
+    death_rate = 1.0
+    carry_capacity = 100
+    quadratic = 0.0
+    emmi_rate = 0.0
+
+    prop = np.zeros( len(current_state)*2 )
+    prop2 = np.zeros( len(current_state)*2 )
+
+    prop[::2] = ( immi_rate + current_state * ( birth_rate ) )
+                    #- ( quadratic *
+                    #( birth_rate - death_rate ) *
+                    #(1.0 - comp_overlap ) * current_state +
+                    #( comp_overlap * np.sum(current_state) ) )
+                    #/ carry_capacity ) )
+                    # birth + immigration
+    prop[1::2] = ( current_state * ( death_rate #+ emmi_rate
+                      #+ ( birth_rate - death_rate )*( 1.0
+                      #- quadratic )*( (1.0 - comp_overlap ) * current_state
+                      + ( birth_rate - death_rate )
+                      * ( (1.0 - comp_overlap ) * current_state
+                      + comp_overlap * np.sum(current_state) ) / carry_capacity ) )
+                      # death + emmigration
+
+    for i in np.arange(0,len(current_state)):
+            prop2[i*2] = ( current_state[i] * ( birth_rate
+                        - quadratic * ( current_state[i]
+                        + comp_overlap*np.sum(
+                        np.delete(current_state,i)))/carry_capacity )
+                        + immi_rate)
+                        # birth + immigration
+            prop2[i*2+1] = (current_state[i] * ( death_rate + emmi_rate
+                          + ( birth_rate - death_rate )*( 1.0
+                          - quadratic )*(current_state[i]
+                          + comp_overlap*np.sum(
+                          np.delete(current_state,i)))/carry_capacity ) )
+                          # death + emmigration
+
+    #print(prop==prop2)
+    return 0
+
+
 def main():
+    """
     t = np.linspace(0,20,1024)
     x = np.exp(-t**2)
     pl.plot(t[:200], autocorrelation(x)[:200],label='scipy fft')
@@ -47,7 +94,18 @@ def main():
     pl.yscale('log')
     pl.legend()
     pl.show()
+    """
+    #propensities()
+    ss = np.zeros(30)
+    st = np.zeros(30)
+    a = np.array([0,0,0,0,10,2,3,3,0])
+    unique, counts = np.unique(a,return_counts=True)
+    ss[unique.astype(int)] += 0.33*counts
+    print(ss)
 
+    for i in a:
+        st[i] += 0.33
+    print(ss)
 
 if __name__=='__main__':
     main()

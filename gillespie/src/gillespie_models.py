@@ -284,12 +284,12 @@ class MultiLV(Parent):
                         #/ self.carry_capacity ) )
                         # birth + immigration
         prop[1::2] = ( current_state * ( self.death_rate #+ self.emmi_rate
-                          + ( self.birth_rate - self.death_rate )*( 1.0
-                          - self.quadratic )*( (1.0 - self.comp_overlap ) * current_state
-                          + self.comp_overlap*np.sum(current_state) ) /self.carry_capacity ) )
+                          #+ ( self.birth_rate - self.death_rate )*( 1.0
+                          #- self.quadratic )*( (1.0 - self.comp_overlap ) * current_state
+                          + ( self.birth_rate - self.death_rate )
+                          * ( (1.0 - self.comp_overlap ) * current_state
+                          + self.comp_overlap * np.sum(current_state) ) / self.carry_capacity ) )
                           # death + emmigration
-
-
         return prop
 
     def update( self, current_state, idx_reaction ):
@@ -342,10 +342,10 @@ class MultiLV(Parent):
 
         """
         # normalize steady state distribution
-        #for i in current_state:
-        #    self.results['ss_distribution'][int(i)] += dt
-
-        self.results['ss_distribution'][current_state.astype(int)] += dt
+        for i in current_state:
+            self.results['ss_distribution'][int(i)] += dt
+        #unique, counts = np.unique(current_state, return_counts=True)
+        #self.results['ss_distribution'][unique.astype(int)] += dt*counts
 
         # normalize richness distribution
         #current_richness = np.count_nonzero( current_state )
@@ -419,7 +419,8 @@ class MultiLV(Parent):
 
         # normalize the richness
         self.results['richness'] /= total_time
-
+        print(self.results['richness'])
+        print(np.dot(self.results['richness'],np.arange(len(self.results['richness']))))
 
         # Calculate conditional probability
         """ Need to find efficient way to calculate joint probabilities

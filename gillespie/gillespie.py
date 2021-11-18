@@ -24,7 +24,7 @@ Example usage :
     python3 gillespie.py -m [MODEL] -g [NBR_GENERATIONS] -t [NBR_TRAJECTORIES]
                             -T [TOTAL_TIME] -n [SIMULATION_NBR]
                             -tau [TAU_LEAPING(bool)] -p [PARAMETER=VALUE]
-    python3 gillespie.py -m multiLV -t 1 -g 1000000 -n 0 -p comp_overlap=1.0 immi_rate=0.01 max_gen_save=1000000 sim_dir=multiLV3
+    python3 gillespie.py -m multiLV -t 1 -g 10000000 -n 0 -p comp_overlap=1.0 immi_rate=0.001 max_gen_save=1000000 sim_dir=multiLV3
 
 """
 
@@ -199,7 +199,7 @@ def gillespie(Model, simulation, times, current_state):
             Model.checkpoint_results(simulation, times)
             simulation = np.zeros( np.shape(simulation) )
             times = np.zeros( np.shape(times) )
-        """
+
         if i%10**5==0:
             end = time.time()
             hours, rem = divmod(end-start, 3600)
@@ -207,7 +207,6 @@ def gillespie(Model, simulation, times, current_state):
             print(">> Time elapsed : {:0>2}:{:0>2}:{:05.2f}".format(int(hours)
                         , int(minutes), seconds))
             start = time.time()
-        """
 
 
     return current_state, total_time

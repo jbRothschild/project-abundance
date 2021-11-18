@@ -1032,7 +1032,7 @@ if __name__ == "__main__":
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
     sim_K50         = RESULTS_DIR + os.sep + 'multiLV53' # 5,
-    sim_K100        = RESULTS_DIR + os.sep + 'multiLV900' # 10, 103, 109, 90, 91
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV700' # 10, 103, 109, 90, 91, 70, 71
     sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
@@ -1045,12 +1045,14 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
     cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results_test( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=20, start=20)
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=save, start=20, fixed=30)
+    #many_parameters_dist(sim_K100+os.sep+NPZ_SHORT_FILE,range='comp_overlap')
 
     # plots of maximums as a function of either immi_rate or comp_overlap
     #maximum_plot(sim_immi+os.sep+NPZ_SHORT_FILE, range='immi_rate', save=save, start=20)
