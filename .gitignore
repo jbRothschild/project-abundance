@@ -6,3 +6,4 @@ gillespie/sim_results/*
 *.txt
 *slurm*
 *.npz
+*.svg

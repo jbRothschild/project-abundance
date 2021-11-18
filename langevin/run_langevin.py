@@ -75,7 +75,7 @@ if __name__ == '__main__':
     timeStep = args.timeStep
     nbrSteps = args.nbrSteps
 
-    population = initialize_pop( param)
+    population = initialize_pop( param )
     fcn_force = lotkvol_force( param ); fcn_diff = master_diff( param )
 
     simulation = NumericalLangevin(fcn_force=fcn_force, fcn_diff=fcn_diff
