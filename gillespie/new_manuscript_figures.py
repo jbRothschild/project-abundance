@@ -213,7 +213,7 @@ def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='com
     lines_center = [ a + b for a, b in zip( lines, [0]*len(line_names) ) ]
 
     # boundaries of modality, just from distribution
-    modality_mf, _, _  = pltfcn.determine_modality( mean_field, False, sampleP0 = False )
+    modality_mf, _, _  = pltfcn.determine_modality( mean_field, False, sampleP0 = False)
 
     meanN = mf_meanJ / S
     # boundaries of modality equation
@@ -1032,7 +1032,7 @@ if __name__ == "__main__":
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
     sim_K50         = RESULTS_DIR + os.sep + 'multiLV53' # 5,
-    sim_K100        = RESULTS_DIR + os.sep + 'multiLV700' # 10, 103, 109, 90, 91, 70, 71
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV80' # 10, 103, 109, 90, 91, 70, 71
     sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
@@ -1044,7 +1044,7 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
-    cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results_test( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
@@ -1067,9 +1067,9 @@ if __name__ == "__main__":
     #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
     #figure_regimes(sim_immi + os.sep + NPZ_SHORT_FILE, save, ydatalim=(20,60))
     figure_regimes(sim_K100 + os.sep + NPZ_SHORT_FILE, save)
-    figure_richness_phases(sim_K50+os.sep+NPZ_SHORT_FILE, save)
+    figure_richness_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
     #figure_richness_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
-    figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
+    figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save, dstbnPlots=False)
     #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
     #figure_modality_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
 
