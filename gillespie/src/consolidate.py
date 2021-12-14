@@ -333,6 +333,10 @@ def mlv_consolidate_sim_results_testing(dir, parameter1='immi_rate'
         with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                    'results_0.pickle', 'rb') as handle:
             param_dict  = pickle.load(handle)
+        with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
+                   'sim_param.pickle', 'rb') as handle:
+            parameters  = pickle.load(handle)
+            print(parameters['comp_overlap'],parameters['immi_rate'])
 
         model           = MultiLV(**param_dict)
         theory_model    = theqs.Model_MultiLVim(**param_dict)

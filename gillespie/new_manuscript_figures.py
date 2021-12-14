@@ -417,7 +417,7 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     POINTS_BETWEEN_X_TICKS = pbx; POINTS_BETWEEN_Y_TICKS = pby
     sim_rich_cat, mf_rich_cat, lines_rich, _, _ =\
         figure_richness_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
-                            , None, distplots, pbx, pby)
+                            , pbx, pby)
     modality_sim, modality_mf, mf_unimodal, lines_mod, colours_mod =\
     figure_modality_phases(filename, False, xlabel, ylabel, xlog, ylog, ydatalim, xdatalim
                         , revision, distplots, pbx, pby)
@@ -432,38 +432,16 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                     , 'norm' : mpl.colors.LogNorm()}
     # heatmap
     font_label_contour = 8
-
-    im = plt.imshow( ratio_dominance_loss.T, **imshow_kw)
-    #im = plt.imshow( (mfpt_approx_excluded/ratio_dominance_loss).T, **imshow_kw)
-    #ax1 = ax.contour( ratio_dominance_loss.T, [10.0, 100.0, 10**5], linestyles=['dotted','dashed','solid']
     boundary = S/2; boundary_colour = 'k'
 
+    form = ticker.ScalarFormatter(useOffset=False, useMathText=True)
+    g = lambda x,pos : "${}$".format(form._formatSciNotation('%1.10e' % x))
+    fmt = ticker.FuncFormatter(g)
 
-    #ax1 = ax.contour( (ratio_dominance_loss*(1.0-mf_dist[:,:,0])/mf_dist[:,:,0]).T, [boundary]
-    ax1 = ax.contour( (ratio_dominance_loss).T, [boundary]
-            , linestyles=['dashed'], colors = boundary_colour, linewidths = 1)
-    ax2 = ax.contour( (ratio_dominance_loss).T, [K]
-            , linestyles=[(0, (3, 1, 1, 1))], colors = boundary_colour, linewidths = 1)
-    #ax3 = ax.contour( (ratio_dominance_loss/(S*(1.0-mf_dist[:,:,0]))).T, [1.0]
-    #        , linestyles=['dotted'], colors = boundary_colour, linewidths = 1)
+    contours = plt.contour(ratio_dominance_loss.T, [10,100,1000], linestyles='dashed', colors='k')
+    plt.clabel(contours, inline=True, fontsize=8, fmt=fmt)
+    im = plt.imshow( ratio_dominance_loss.T, **imshow_kw)
 
-    h1, _ = ax1.legend_elements(); h2, _ = ax2.legend_elements()
-    #h3, _ = ax3.legend_elements()
-    h = [h1[0], h2[0]]#, h3[0]]
-    labels = [r'$S/2$', r'$K$']#,r'$\langle S^* \rangle$']
-    plt.legend(h, labels, loc='lower left', facecolor='white', framealpha=0.85)
-    """
-
-    ax1 = ax.contour( (ratio_dominance_loss/mfpt_approx_excluded).T, [1.0]
-            , linestyles=['dotted'], colors = boundary_colour, linewidths = 1)
-    ax2 = ax.contour( (ratio_dominance_loss/mfpt_approx_hubbel).T, [1.0]
-            , linestyles=['dashed'], colors = boundary_colour, linewidths = 1)
-
-    h1, _ = ax1.legend_elements(); h2, _ = ax2.legend_elements()
-    h = [h1[0], h2[0]]
-    labels = [r'$Chou$',r'$Hubbel$']
-    plt.legend(h, labels, loc='lower left', facecolor='white', framealpha=0.85)
-    """
     #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
     pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
                 , xlabel, ylabel)
@@ -479,6 +457,7 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
 
     colours_line = ['r','g','b']; plots = [40,20,0];
     markerline = ['o-','x-','D-']
+
     f = plt.figure(figsize=(3.25,2.5))
     fig = plt.gcf(); ax = plt.gca()
     # lineplot
@@ -500,7 +479,7 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # legend
     plt.legend(loc='best')
     plt.xscale('log'); plt.yscale('log')
-    plt.ylabel(r'$ R(\tilde{n} \rightarrow \tilde{n}) / R(\tilde{n} \rightarrow 0)$')
+    plt.ylabel(r'$ T(\tilde{x} \rightarrow 0) / T(\tilde{x} \rightarrow \tilde{x})$')
     plt.xlabel(VAR_NAME_DICT[ylabel])
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_dominance_loss_lineplot" + '.pdf');
@@ -522,43 +501,9 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
 
     mfpt_approx_full = eq.mfpt_return_full(fNmin, mu, nbr_species_arr, S )
 
+    contours = plt.contour(ratio_suppression_loss.T, [1E-2,1E-1,1E0], linestyles='dashed', colors='k')
+    plt.clabel(contours, inline=True, fontsize=8, fmt=fmt)
     im = plt.imshow( ratio_suppression_loss.T, **imshow_kw)
-    #im = plt.imshow( mfpt_approx_full.T, **imshow_kw)
-    """
-    MF = ax.contour( modality_mf.T, [0.5], linestyles='solid'
-                        , colors = 'k', linewidths = 2)
-    MF2 = ax.contour( mf_unimodal.T, [1.], linestyles='solid'
-                        , colors = 'k', linewidths = 2)
-    if start == 0:
-        MF3 = ax.contour( mf_rich_cat.T, [-0.5], linestyles='solid', colors = 'k'
-                                    , linewidths = 2)
-    MF4 = ax.contour( mf_rich_cat.T, [0.5], linestyles='solid', colors = 'k'
-                                , linewidths = 2)
-    """
-
-    ax1 = ax.contour( ratio_suppression_loss.T, [boundary], linestyles=['dashed']
-                        , colors = boundary_colour, linewidths = 1)
-    ax2 = ax.contour( (1.0 - mf_dist[:,:,0]).T, [(S-1/2)/S], linestyles=['solid']
-                        , colors = boundary_colour, linewidths = 1)
-    #ax3 = ax.contour( ratio_suppression_loss.T, [1.], linestyles=['dotted']
-    #                    , colors = boundary_colour, linewidths = 1)
-    h1, _ = ax1.legend_elements(); h2, _ = ax2.legend_elements()
-    #h3, _ = ax3.legend_elements()
-    h = [h1[0],h2[0]]#,h3[0]]
-    labels = [r'$1/S$',r'$Eq. 10; \langle S^* \rangle = S-1/2$']#,'mean-field']
-    plt.legend(h, labels, loc='upper left', facecolor='white', framealpha=0.85)
-    #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
-    """
-
-    ax1 = ax.contour( (ratio_suppression_loss/mfpt_approx_full).T, [1.0], linestyles=['dashed']
-                        , colors = boundary_colour, linewidths = 1)
-
-    h1, _ = ax1.legend_elements();
-    h = [h1[0]]
-    labels = [r'$Full$']
-    plt.legend(h, labels, loc='upper left', facecolor='white', framealpha=0.85)
-    """
-    #ax.clabel(ax1, inline=True, fmt=ticker.LogFormatterMathtext(), fontsize=font_label_contour)
 
     pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
                 , xlabel, ylabel)
@@ -591,11 +536,239 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
     # legendimag
     plt.legend(loc='best')
     plt.xscale('log'); plt.yscale('log')
-    plt.ylabel(r'$R(0 \rightarrow 0) / R(0 \rightarrow \tilde{n})$ ')
+    plt.ylabel(r'$T(0 \rightarrow \tilde{x}) / T(0 \rightarrow 0)$ ')
     plt.xlabel(VAR_NAME_DICT[ylabel])
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss_lineplot" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_suppression_loss_lineplot" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    return 0
+
+def supp_mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
+                    , xlog=True, ylog=True, ydatalim=None, xdatalim=None
+                    , revision=None, distplots=False, pbx=20, pby=20):
+
+    # loading
+    data = np.load(filename); plt.style.use('src/custom_heatmap.mplstyle')
+    K = data['carry_capacity']; rminus = data['death_rate']; rplus = data['birth_rate'];
+    S = data['nbr_species']
+
+    if xlabel == 'nbr_species':
+        start = 1
+    else: start = 0
+
+    # setting simulation parameters
+    rangex = data[xlabel][start:]; rangey = data[ylabel][:]
+    K = data['carry_capacity']; rminus = data['death_rate'];
+    rplus = data['birth_rate'];
+    mu = data['immi_rate']; S = data['nbr_species']
+
+    # simulation results
+    sim_dist = data['sim_dist'][start:,:,:]
+    mf_dist = data['mf_dist'][start:,:,:]
+    rich_dist = data['rich_dist'][start:,:,:]
+
+    # 2D rho-mu
+    mu  = (rangex*np.ones( (np.shape(data['sim_dist'])[0]
+                                , np.shape(data['sim_dist'])[1])).T).T
+
+    rho = (rangey*np.ones( (np.shape(data['sim_dist'])[0]
+                                , np.shape(data['sim_dist'])[1])))
+
+    arr             = data['sim_dist']
+    meanJ           = eq.meanJ_est(arr, (np.shape(data['rich_dist'])[2]-1))
+    max_arr         = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    dom_turnover    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    sub_turnover    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    fpt_dominance   = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    fpt_submission  = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    nbr_species_arr = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    min_arr         = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    prob_min_arr    = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    ntilde          = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+    prob_ntilde_arr = np.zeros( ( np.shape(arr)[0], np.shape(arr)[1] ) )
+
+    for i in np.arange(np.shape(arr)[0]):
+        for j in np.arange(np.shape(arr)[1]):
+            nbr_species_arr[i,j] = S*(1.0-arr[i,j,0])#np.dot(data['rich_dist'][i,j]
+                            #    , np.arange(len(data['rich_dist'][i,j])) )
+            nbr = int(eq.deterministic_mean(nbr_species_arr[i,j], mu[i,j],rho[i,j], rplus
+                                                , rminus, K))
+            ntilde[i,j] = nbr
+            #max_arr[i,j] = nbr
+            max_arr[i,j] = 1 + np.argmax( arr[i,j,1:] )
+            min_arr[i,j] = np.argmin( arr[i,j,:nbr] )
+            prob_min_arr[i,j] = sim_dist[i, j, int(min_arr[i,j])]
+            prob_ntilde_arr[i,j] = sim_dist[i,j,nbr]
+
+            sub_turnover[i,j]   = eq.mfpt_020( arr[i,j], mu[i,j] )
+            dom_turnover[i,j]   = eq.mfpt_a2a( arr[i,j], nbr, mu[i,j], rplus, rminus
+                                        , K, rho[i,j], S )
+            fpt_submission[i,j] = eq.mfpt_b2a( arr[i,j], 0, nbr, mu[i,j], rplus)
+            fpt_dominance[i,j]  = eq.mfpt_a2b( arr[i,j], 0, nbr, mu[i,j], rplus)
+
+    fNmin = ( rplus * min_arr + mu ) * prob_min_arr
+    fluxNtilde = ( mu + ntilde * ( ( rplus + rminus ) + ( rplus - rminus )
+                    * ( ( 1.0 - rho ) * ntilde + rho * meanJ ) / K )
+                    ) * prob_ntilde_arr
+
+    mfpt_approx_excluded = eq.mfpt_1species( fNmin, fluxNtilde, S)
+    mfpt_approx_hubbel   = eq.mfpt_hubbel_regime(fluxNtilde, mu, nbr_species_arr, S )
+
+    fpt_cycling    = fpt_dominance + fpt_submission
+    ratio_turnover = sub_turnover / dom_turnover
+    ratio_dominance_loss = fpt_submission / dom_turnover
+    ratio_suppression_loss = fpt_dominance / sub_turnover
+    ratio_switch   = fpt_dominance / fpt_submission
+    weighted_timescale = ( ( S - nbr_species_arr) * sub_turnover
+                                + nbr_species_arr * dom_turnover  ) / S
+
+    color_bad = (211/256,211/256,211/256)
+
+    # Fig3C
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( dom_turnover.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$ T(\tilde{x}\rightarrow \tilde{x}) $')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dom_turnover" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    # FIG
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( sub_turnover.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$T(0\rightarrow 0)$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_sub_turnover" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## FIGURE 3D
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( fpt_dominance.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    # title
+    plt.title(r'$T(0\rightarrow \tilde{x})$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_dominance" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## FIGURE 3E
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( fpt_submission.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$ T(\tilde{x}\rightarrow 0) $')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_supression" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## FIGURE 3F
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('viridis_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( fpt_cycling.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$T(\tilde{x}\rightarrow 0) + T(0\rightarrow \tilde{x})$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_cycling" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## RATIO turnover
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( ratio_turnover.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$T(0\rightarrow 0) / T(\tilde{x}\rightarrow \tilde{x})$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_turnover" + '.png');
+    else:
+        plt.show()
+    plt.close()
+
+    ## Ratio go to
+    f = plt.figure(); fig = plt.gcf(); ax = plt.gca()
+    # plots
+    my_cmap = copy.copy(mpl.cm.get_cmap('plasma_r')) # copy the default cmap
+    my_cmap.set_bad(color_bad)
+    imshow_kw = { 'cmap' : my_cmap, 'aspect' : None, 'interpolation' : None
+                    , 'norm' : mpl.colors.LogNorm()}
+    # heatmap
+    im = plt.imshow( ratio_switch.T, **imshow_kw)
+    pltfcn.set_axis(ax, plt, pbx, pby, rangex, rangey, xlog, ylog, xdatalim, ydatalim
+                , xlabel, ylabel)
+    # colorbar
+    cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
+    plt.title(r'$T(\tilde{x}\rightarrow 0) /T(0\rightarrow \tilde{x})$')
+    if save:
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.pdf');
+        plt.savefig(MANU_FIG_DIR + os.sep + "fpt_ratio_switch" + '.png');
     else:
         plt.show()
     plt.close()
@@ -613,7 +786,7 @@ def mfpt(filename, save=False, xlabel='immi_rate', ylabel='comp_overlap'
                 , xlabel, ylabel)
     # colorbar
     cb = plt.colorbar(ax=ax, cmap=imshow_kw['cmap'])
-    plt.title(r'$\frac{S-\langle S^* \rangle }{S}\langle T(0\rightarrow 0) \rangle + \frac{\langle S^* \rangle }{S}\langle T(\tilde{n}\rightarrow \tilde{n}) \rangle$')
+    plt.title(r'$\frac{S-\langle S^* \rangle }{S} T(0\rightarrow 0)  + \frac{\langle S^* \rangle }{S} T(\tilde{x}\rightarrow \tilde{x})$')
     if save:
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_weighted_timescale" + '.pdf');
         plt.savefig(MANU_FIG_DIR + os.sep + "fpt_weighted_timescale" + '.png');
@@ -1031,9 +1204,9 @@ if __name__ == "__main__":
     sim_corr        = RESULTS_DIR + os.sep + 'multiLV80'
     sim_time        = RESULTS_DIR + os.sep + 'multiLV6'
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
-    sim_K50         = RESULTS_DIR + os.sep + 'multiLV53' # 5,
-    sim_K100        = RESULTS_DIR + os.sep + 'multiLV80' # 10, 103, 109, 90, 91, 70, 71
-    sim_K200        = RESULTS_DIR + os.sep + 'multiLV20'
+    sim_K50         = RESULTS_DIR + os.sep + 'multiLV50' # 5,
+    sim_K100        = RESULTS_DIR + os.sep + 'multiLV87' # 10, 103, 109, 90, 91, 70, 71, 80
+    sim_K200        = RESULTS_DIR + os.sep + 'multiLV200' # 87 replaces : missing 1321-1360
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
     # Create appropriate npz file for the sim_dir
@@ -1044,9 +1217,10 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results_testing( sim_K50, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results_testing( sim_K200, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results_testing(  RESULTS_DIR + os.sep + 'multiLV80', 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_test( sim_K100, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
@@ -1066,10 +1240,10 @@ if __name__ == "__main__":
     #figure_regimes(sim_corr+os.sep+NPZ_SHORT_FILE, save)
     #figure_regimes(sim_spec+os.sep+NPZ_SHORT_FILE, xlabel='nbr_species',xlog=False, xdatalim=(0,32), ydatalim=(0,40), save=save, pbx=16)
     #figure_regimes(sim_immi + os.sep + NPZ_SHORT_FILE, save, ydatalim=(20,60))
-    figure_regimes(sim_K100 + os.sep + NPZ_SHORT_FILE, save)
-    figure_richness_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
+    # figure_regimes(sim_K100 + os.sep + NPZ_SHORT_FILE, save, revision='87')
+    # figure_richness_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
     #figure_richness_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
-    figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save, dstbnPlots=False)
+    # figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save, revision='87', dstbnPlots=False)
     #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
     #figure_modality_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
 
@@ -1077,12 +1251,13 @@ if __name__ == "__main__":
     #compare_richness(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
 
     # correlation business
-    fig_corr(sim_K100+os.sep+NPZ_SHORT_FILE, save)#, revision='80')
+    # fig_corr(sim_K100+os.sep+NPZ_SHORT_FILE, save)#, revision='80')
     #fig_timecorr(sim_time + os.sep + "sim1" + os.sep + "results_0.pickle")
     #fig3A(sim_immi+os.sep+NPZ_SHORT_FILE, save, ydatalim=(20,60), xdatalim=(0,40), revision='71')
 
     # MFPT
-    #mfpt(sim_immi+os.sep+NPZ_SHORT_FILE, save=True, ydatalim=(20,60), xdatalim=(0,40), revision='71')
+    mfpt(sim_K100+os.sep+NPZ_SHORT_FILE, save=True, ydatalim=(0,40), xdatalim=(0,40))#, revision='71')
+    #supp_mfpt(sim_K100+os.sep+NPZ_SHORT_FILE, save=True, ydatalim=(0,40), xdatalim=(0,40))
 
     # plots trajectories, however it would appear that MultiLV6 (traj.zip) has been deleted
     #plot_trajectory(sim_time, 19, 100000, colour='mediumturquoise', save=save)
