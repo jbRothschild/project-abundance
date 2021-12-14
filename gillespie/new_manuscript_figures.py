@@ -1217,16 +1217,9 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results( sim_corr, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
-<<<<<<< HEAD
-    #cdate.mlv_consolidate_sim_results_testing( sim_K50, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_testing( sim_K200, 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_testing(  RESULTS_DIR + os.sep + 'multiLV80', 'immi_rate', 'comp_overlap')
-    #cdate.mlv_consolidate_sim_results_testing( sim_K100, 'immi_rate', 'comp_overlap')
-=======
     #cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
     cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
->>>>>>> 53454c9529077ab4d6d1580840ab79be0e1f96e6
 
     # plots many SAD distributions, different colours for different
     #many_parameters_dist(sim_immi+os.sep+NPZ_SHORT_FILE,save=True, fixed=4, start=20)
