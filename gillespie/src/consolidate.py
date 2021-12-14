@@ -20,7 +20,7 @@ def average_ni_given_nj( conditional ):
     return avNi_Nj
 
 
-def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
+def mlv_consolidate_sim_results_old(dir, parameter1='immi_rate'
                                     , parameter2='comp_overlap'):
     """
     Analyze how the results from different simulations differ for varying
@@ -275,7 +275,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
 
     return filename, dict_arrays
 
-def mlv_consolidate_sim_results_testing(dir, parameter1='immi_rate'
+def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
                                     , parameter2='comp_overlap'):
     """
     Analyze how the results from different simulations differ for varying

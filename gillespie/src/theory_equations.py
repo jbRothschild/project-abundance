@@ -301,6 +301,39 @@ class Model_MultiLVim(object):
 
         return dstbn_n, abundance
 
+    def abund_jer(self):
+        """
+        <n_j|n_i> is given by the deterministic lotka voltera equations, however
+        n_i is fixed for one species. Solve the equation for other species to
+        get:
+                n^{+,-} = (K-rho n_i)(1{+,-})
+        """
+        sqr = np.sqrt( 1. + (4.0*self.immi_rate
+                * (1.0 + self.comp_overlap*( self.nbr_species-2 ))
+                / ( self.carry_capacity*( self.birth_rate-self.death_rate ) ) ))
+        N = self.carry_capacity / self.comp_overlap
+        n_j = ( (self.carry_capacity - self.comp_overlap
+                    * np.arange( np.shape(self.population) ) ) / ( 2. * ( 1.
+                    + self.comp_overlap * ( self.nbr_species - 2 ) ) ) );
+        n_j[:int(np.ceil(N))] *= (1. + sqr )
+        n_j[int(np.floor(N))] *= (1. - sqr )
+        prob_n_unnormalized = np.zeros( np.shape(self.population) );
+        prob_n_unnormalized[0] = 1.0#1E-250;
+        for n in np.arange( 1, len(prob_n_unnormalized)):
+            previous_n = n - 1
+            prob_n_unnormalized[n] = prob_n_unnormalized[previous_n] * (
+                ( self.immi_rate + self.birth_rate*previous_n)
+                / ( n* (self.death_rate + (1-self.comp_overlap)*n*(
+                self.birth_rate-self.death_rate)/self.carry_capacity
+                + ( self.birth_rate-self.death_rate)*(
+                (self.nbr_species-1)*mean_n + n )*self.comp_overlap
+                / self.carry_capacity ) ) )
+
+        prob_n = prob_n_unnormalized / ( np.sum( prob_n_unnormalized ) )
+
+        return prob_n
+
+
     def abund_sid_J(self):
         """
         Mean field approximation :  Solving Master equation by assuming
