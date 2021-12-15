@@ -1214,7 +1214,7 @@ if __name__ == "__main__":
     sim_avJ         = RESULTS_DIR + os.sep + 'multiLVNavaJ'
     sim_K50         = RESULTS_DIR + os.sep + 'multiLV50' # 5,
     sim_K100        = RESULTS_DIR + os.sep + 'multiLV87' # 10, 103, 109, 90, 91, 70, 71, 80
-    sim_K200        = RESULTS_DIR + os.sep + 'multiLV200' # 87 replaces : missing 1321-1360
+    sim_K200        = RESULTS_DIR + os.sep + 'multiLV200' # 87 replaces 86: missing 1321-1360
 
     #anl.mlv_plot_single_sim_results(sim_immi, sim_nbr = 822)
     # Create appropriate npz file for the sim_dir
