@@ -188,8 +188,14 @@ def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='com
     # simulation results
     sim_dist = data['sim_dist'][start:,:,:]
     mf_dist = data['mf_dist'][start:,:,:]
-    mf3_dist = data['mf_dist'][start:,:,:]
+    mf3_dist = data['mf3_dist'][start:,:,:]
+    mfdet_dist = data['mfdet_dist'][start:,:,:]
     rich_dist = data['rich_dist'][start:,:,:]
+
+    approximations =\
+        { r'$\langle J | n \rangle = (S-1) \langle n \rangle + n$' : mf_dist
+        , r'$\langle J | n \rangle = S \langle n \rangle$' : mf3_dist
+        , r'$\langle n_i | n_j \rangle = n_{det}$' : mfdet_dist }
 
     # WHICH MEAN FIELD TO USE? 1 (S-1)<n> + n or 3 S<n>
     mean_field = mf_dist # mf3_
@@ -207,13 +213,15 @@ def figure_modality_phases(filename, save=False, xlabel='immi_rate', ylabel='com
 
     # categorizing modality for simulation
     modality_sim, line_names, line_colours = pltfcn.determine_modality(
-            sim_dist, dstbnPlots, revision, False )
+            sim_dist, dstbnPlots, revision, False, data['nbr_species']
+            , approximations )
     lines = [float(i) for i in list( range( 0, len(line_names) ) ) ]
     bounds = [ i - 0.5 for i in lines + [lines[-1] + 1.0]  ]
     lines_center = [ a + b for a, b in zip( lines, [0]*len(line_names) ) ]
 
     # boundaries of modality, just from distribution
-    modality_mf, _, _  = pltfcn.determine_modality( mean_field, False, sampleP0 = False)
+    modality_mf, _, _  = pltfcn.determine_modality( mean_field, False
+                                                    , sampleP0 = False)
 
     meanN = mf_meanJ / S
     # boundaries of modality equation
@@ -1218,7 +1226,7 @@ if __name__ == "__main__":
     #cdate.mlv_consolidate_sim_results(sim_time, parameter1='immi_rate', parameter2='comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K50, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
-    cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
+    #cdate.mlv_consolidate_sim_results( sim_K100, 'immi_rate', 'comp_overlap')
     #cdate.mlv_consolidate_sim_results( sim_K200, 'immi_rate', 'comp_overlap')
 
     # plots many SAD distributions, different colours for different
@@ -1242,7 +1250,7 @@ if __name__ == "__main__":
     # figure_regimes(sim_K100 + os.sep + NPZ_SHORT_FILE, save, revision='87')
     # figure_richness_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save)
     #figure_richness_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
-    # figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save, revision='87', dstbnPlots=False)
+    figure_modality_phases(sim_K100+os.sep+NPZ_SHORT_FILE, save, revision='87', dstbnPlots=True)
     #figure_modality_phases(sim_immi+os.sep+NPZ_SHORT_FILE, save)
     #figure_modality_phases(sim_K200+os.sep+NPZ_SHORT_FILE, save)
 

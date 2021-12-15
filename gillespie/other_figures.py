@@ -156,7 +156,6 @@ def mlv_plot_single_sim_results(dir, sim_nbr = 1):
 
     return 0
 
-
 def pearson_correlation_plots(filename, xlabel='immi_rate', ylabel='comp_overlap', start=0):
 
     data = np.load(filename); #plt.style.use('src/custom_heatmap.mplstyle')
@@ -174,7 +173,6 @@ def pearson_correlation_plots(filename, xlabel='immi_rate', ylabel='comp_overlap
     pltfcn.heatmap(rangex, rangey, data['corr_Jminusn_n2D'].T, xlabel, ylabel, r'$cov(J-n,n)/\sigma_{J-n}\sigma_{n}$'
                     , OTHER_FIG_DIR, pbtx=20, pbty=20, save=True, xlog=True
                     , ylog=True, xdatalim=None, ydatalim=None)
-
     return 0
 
 def average_conditional(filename, xlabel='immi_rate', ylabel='comp_overlap', start=0):

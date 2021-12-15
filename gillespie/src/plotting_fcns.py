@@ -60,24 +60,61 @@ def smooth(x,window_len=11,window='hanning'):
     y = np.convolve( w / w.sum(), s, mode='valid')
     return y
 
-def plot_prob(probability, i, j, colour):
+def plot_prob(probability, i, j, colour, SRA=False, approx_dstbn={}
+                            , nbrSpecies=30):
     DIST_DIR = MANU_FIG_DIR + os.sep + 'distributions'
-    os.makedirs(DIST_DIR, exist_ok=True)
-    f = plt.figure(figsize=(1.75,1.25)); fig = plt.gcf(); ax = plt.gca()
-    plt.plot(probability[:125], color=colour, linewidth=2, zorder=10)
-    plt.xticks([0,50,100])
-    size = 7; ax.axes.labelsize = size
-    plt.xlabel(r'n',fontsize=size, labelpad=2);
-    plt.ylabel(r'P(n)', fontsize=size, labelpad=2);
-    plt.xlim([0,125]); plt.yscale('log')
+    os.makedirs(DIST_DIR, exist_ok=True);
+    size = 7
+    lstyle = ['solid', 'dashed', 'dotted', 'dashdot']
+    maxn = 150
+    if not SRA:
+        fsize = (1.75,1.25); cols = 1
+    else:
+        fsize = (3.5,1.25); cols = 2
+    fig = plt.figure(figsize=fsize)
+    gs = fig.add_gridspec(1,cols)
+    ax = fig.add_subplot(gs[0,0])
+    ax.plot(probability[:maxn], color=colour, linewidth=2, zorder=10
+                    , label='sim.')
+    for k, key in enumerate(approx_dstbn):
+        ax.plot(approx_dstbn[key][:maxn], color='k', linewidth=2, zorder=10
+                        ,linestyle=lstyle[k], label=key)
+    ax.set_xticks(list(np.arange(0,maxn+1,50)))
+    ax.axes.labelsize = size
+    ax.set_xlabel(r'n',fontsize=size, labelpad=2);
+    ax.set_ylabel(r'P(n)', fontsize=size, labelpad=2);
+    ax.set_xlim([0,maxn]); plt.yscale('log')
     ax.tick_params(axis='both', which='major', labelsize=size)
+    h, l = ax.get_legend_handles_labels()
+    ax.legend(h, l)
     #ax.tick_params(axis='both', which='minor', labelsize=6)
-    plt.savefig(DIST_DIR + os.sep + "dstbn_" + str(i) + '_' + str(j)+'.pdf')
-    plt.close()
+    if SRA:
+        ax2 = fig.add_subplot(gs[0,1])
+        rank, SRA = SAD_to_SRA(np.arange(0,maxn),nbrSpecies*probability[:maxn])
+        ax2.plot(rank, SRA, color=colour, linewidth=2, zorder=10)
+        for k, key in enumerate(approx_dstbn):
+            rank, SRA = SAD_to_SRA(np.arange(0,maxn)
+                                , nbrSpecies*approx_dstbn[key][:maxn])
+            ax2.plot(rank, SRA, color='k', linewidth=2, zorder=10
+                            ,linestyle=lstyle[k], label=key)
+        ax2.axes.labelsize = size
+        ax2.set_xlabel(r'rank',fontsize=size, labelpad=2);
+        ax2.set_ylabel(r'abundance', fontsize=size, labelpad=2);
+        ax2.set_xlim([0,nbrSpecies]); plt.yscale('log')
+        ax2.tick_params(axis='both', which='major', labelsize=size)
+    fig.savefig(DIST_DIR + os.sep + "dstbn_" + str(i) + '_' + str(j)+'.pdf')
+    plt.close(fig)
 
     return 0
 
-def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
+def SAD_to_SRA(n, SAD):
+    rank = np.flip(np.cumsum(SAD))
+    SRA = n
+    return rank, SRA
+
+
+def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True
+                                , nbrSpecies=30, approx_dict={}, SRA=True ):
     """
     This is a fine art, which I do not truly believe in
 
@@ -130,7 +167,11 @@ def determine_modality( arr, plot=True, revisionmanual=None, sampleP0 = True ):
     if plot:
         for i in np.arange(np.shape(arr)[0]):
             for j in np.arange(np.shape(arr)[1]):
-                plot_prob(arr[i,j,:], i, j, line_colours[int(modality_arr[i,j])])
+                approx_dict_ij = {}
+                for key in approx_dict:
+                    approx_dict_ij[key] = approx_dict[key][i,j,:]
+                plot_prob(arr[i,j,:], i, j, line_colours[int(modality_arr[i,j])]
+                                , SRA, approx_dict_ij)
                 #plot_prob(arr[i,j,:], i, j, 'red')
     return modality_arr, line_names, line_colours
 

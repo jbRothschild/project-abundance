@@ -313,10 +313,10 @@ class Model_MultiLVim(object):
                 / ( self.carry_capacity*( self.birth_rate-self.death_rate ) ) ))
         N = self.carry_capacity / self.comp_overlap
         n_j = ( (self.carry_capacity - self.comp_overlap
-                    * np.arange( np.shape(self.population) ) ) / ( 2. * ( 1.
-                    + self.comp_overlap * ( self.nbr_species - 2 ) ) ) );
+                    * np.arange( len(self.population) ) ) / ( 2. * ( 1.
+                    + self.comp_overlap * ( self.nbr_species - 2. ) ) ) );
         n_j[:int(np.ceil(N))] *= (1. + sqr )
-        n_j[int(np.floor(N))] *= (1. - sqr )
+        n_j[int(np.floor(N)):] *= (1. - sqr )
         prob_n_unnormalized = np.zeros( np.shape(self.population) );
         prob_n_unnormalized[0] = 1.0#1E-250;
         for n in np.arange( 1, len(prob_n_unnormalized)):
@@ -326,7 +326,7 @@ class Model_MultiLVim(object):
                 / ( n* (self.death_rate + (1-self.comp_overlap)*n*(
                 self.birth_rate-self.death_rate)/self.carry_capacity
                 + ( self.birth_rate-self.death_rate)*(
-                (self.nbr_species-1)*mean_n + n )*self.comp_overlap
+                (self.nbr_species-1)*n_j[n] + n )*self.comp_overlap
                 / self.carry_capacity ) ) )
 
         prob_n = prob_n_unnormalized / ( np.sum( prob_n_unnormalized ) )
@@ -554,7 +554,7 @@ class Model_MultiLVim(object):
             print("Warning :  We don't have any other approximation for <J|n>")
             raise SystemExit
 
-    def abund_jer( self, approx='prob_Jgiveni_deterministic' ):
+    def abund_jer_old( self, approx='prob_Jgiveni_deterministic' ):
         """
         Approximation of abundance distribution of stochastic Lotka-Volterra
         with immigration. Instead of exact <J|n> use some approximation

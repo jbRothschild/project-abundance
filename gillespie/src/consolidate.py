@@ -311,6 +311,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
     # Additional computations
     dict_array_flat['sim_dist'] = []; dict_array_flat['rich_dist'] = []
     dict_array_flat['mf3_dist'] = []; dict_array_flat['mf_dist'] = []
+    dict_array_flat['mfdet_dist'] = [];
     dict_array_flat['conv_dist'] = []; dict_array_flat['av_ni_given_nj'] = []
 
     dict_array_flat['time_autocor_spec'] = []
@@ -336,7 +337,7 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         with open(dir + os.sep + 'sim' + str(sim_nbr) + os.sep +
                    'sim_param.pickle', 'rb') as handle:
             parameters  = pickle.load(handle)
-            print(parameters['comp_overlap'],parameters['immi_rate'])
+            #print(parameters['comp_overlap'],parameters['immi_rate'])
 
         model           = MultiLV(**param_dict)
         theory_model    = theqs.Model_MultiLVim(**param_dict)
@@ -354,11 +355,13 @@ def mlv_consolidate_sim_results(dir, parameter1='immi_rate'
         #ss_dist_conv, _ = theory_model.abund_1spec_MSLV()
         ss_dist_mf, _   = theory_model.abund_sid()
         ss_dist_mf3, _  = theory_model.abund_sid_J()
+        ss_dist_mfdet   = theory_model.abund_jer()
         dict_array_flat['rich_dist'].append(model.results['richness'])
         dict_array_flat['sim_dist'].append( np.array( ss_dist_sim ) )
         #conv_dist_vadict_array_flat['rich_dist'] = []ry.append( np.array( ss_dist_conv ) )
         dict_array_flat['mf_dist'].append( np.array( ss_dist_mf ) )
         dict_array_flat['mf3_dist'].append( np.array( ss_dist_mf3 ) )
+        dict_array_flat['mfdet_dist'].append( np.array( ss_dist_mfdet ) )
 
         conditional = model.results['conditional']
         av_ni_given_nj = average_ni_given_nj( conditional )
