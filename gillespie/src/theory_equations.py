@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 
 import itertools; from itertools import combinations
 
-from scipy.special import gamma, poch, factorial, hyp1f1 # certain functions
+from scipy.special import gamma, poch, factorial, hyp1f1, comb, beta # certain functions
 import scipy, scipy.stats; import scipy.io as spo
 from scipy.optimize import fsolve as sp_solver # numerical solver, can change to
                                                # a couple others, i.e. broyden1
@@ -1555,6 +1555,76 @@ def vary_species_count(species=150):
 
     return 0
 
+def deterministic_mean(param_dict, immi_rate=1.0, comp_overlap=1.0
+                                , nbr_species_present=0):
+    """
+    Calculates the mean of the LV equations, for com_overlap between 0
+    and 1.
+    """
+    if nbr_species_present==0:
+        nbr_species_present = param_dict['nbr_species']
+    return param_dict['carry_capacity']*( ( 1. + np.sqrt( 1.+ 4.*immi_rate*
+           ( 1. + comp_overlap*( nbr_species_present - 1. ) ) /
+           (param_dict['carry_capacity']*(param_dict['birth_rate']-param_dict['death_rate']) ) ) )
+           / ( 2.*( 1.+comp_overlap*( nbr_species_present-1.) ) ) )
+
+def our_asymp(param_dict, immi_rate=1.0, comp_overlap=1.0, maxn=1000):
+    J = param_dict['nbr_species'] * deterministic_mean(param_dict, immi_rate, comp_overlap)
+    K = param_dict['carry_capacity']
+    prob_n_unnormalized = np.zeros( maxn );
+    prob_n_unnormalized[0] = 1.0#1E-250;
+    n = np.arange(1, maxn)
+    prob_n_unnormalized[1:] = ( param_dict['birth_rate'] / ( param_dict['death_rate'] +
+                ( (param_dict['birth_rate'] - param_dict['death_rate'] )
+                * J / K ) ) ** n * n ** (immi_rate/param_dict['birth_rate']-1.0) )
+
+    dstbn = prob_n_unnormalized / np.sum(prob_n_unnormalized)
+    return np.arange(maxn), dstbn
+
+def our_approx_neutral(param_dict, immi_rate=1.0, comp_overlap=1.0, maxn=1000):
+    J = param_dict['nbr_species'] * deterministic_mean(param_dict, immi_rate, comp_overlap)
+    prob_n_unnormalized = np.zeros( maxn );
+    a = immi_rate/param_dict['birth_rate']
+    prob_n_unnormalized[0] = 1.0
+    factor = ( param_dict['birth_rate'] )
+    K = param_dict['carry_capacity']
+    prob_n_unnormalized[1:] *= factor
+    for n in np.arange(1, maxn):
+        prob_n_unnormalized[n] = prob_n_unnormalized[n-1] * ( a + n - 1. ) / n
+
+    limitJ = np.arange(1, maxn)
+    prob_n_unnormalized[1:] /= ( param_dict['death_rate'] +
+                        ( (param_dict['birth_rate'] - param_dict['death_rate'])
+                        * limitJ / K ) ) ** np.arange(1, maxn)
+
+    dstbn = prob_n_unnormalized / np.sum(prob_n_unnormalized)
+    return np.arange(maxn), dstbn
+
+def baxter(param_dict, immi_rate=1.0, maxn=1000):
+    S = param_dict['nbr_species']
+    J = int( S * deterministic_mean(param_dict, immi_rate, 1.0) )
+    a = immi_rate#/param_dict['birth_rate']
+    prob_n_unnormalized = np.zeros( maxn );
+    prob_n_unnormalized[0] = 1.0
+    n = np.arange(1,int(J))
+    prob_n_unnormalized = ( n/J ) ** ( a - 1. ) * np.exp(-n/J *( 2 *a*(S-1) - 1.) )
+    dstbn = prob_n_unnormalized / np.sum(prob_n_unnormalized)
+    return n, dstbn
+
+
+def alonso(param_dict, immi_rate=1.0, maxn=1000):
+    S = param_dict['nbr_species']
+    P = 1.0 / S
+    J = int( S * deterministic_mean(param_dict, immi_rate, 1.0) )
+    m = immi_rate / ( J * P * ( param_dict['birth_rate'] + immi_rate * S +
+                param_dict['death_rate'] + ( param_dict['birth_rate']
+                - param_dict['birth_rate'] ) / param_dict['carry_capacity'] ) )
+    nstar = ( J - m ) / ( 1.0 - m ) - P
+    Pstar = m * ( J - 1.0 ) * P / ( 1.0 - m )
+    n = np.arange(maxn)
+    dstbn = comb(J,n) * beta( n + P, nstar - n ) / beta( Pstar, nstar - J )
+
+    return np.arange(maxn), dstbn
 
 
 if __name__ == "__main__":
